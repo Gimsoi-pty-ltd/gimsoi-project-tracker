@@ -14,9 +14,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      # Note: Once you have real Java/Python code, you will add the setup action here 
-      # (e.g., actions/setup-java@v4)
       
       - name: Backend placeholder
         run: echo "placeholder - backend lint/build/test"
@@ -24,8 +21,17 @@ jobs:
       - name: Backend lint
         run: echo "placeholder - backend lint"
 
+        # INTENTIONAL FAILURE HERE
+        # For Failure and Rollback Simulation using `exit 1` to trigger failed test
       - name: Backend test
-        run: echo "placeholder - backend test"
+        run: |
+          echo "Simulating a test failure for CI demonstration..."
+          exit 1 
+
+      - name: Backend test
+        run: |
+          echo "Simulating a test failure for CI demonstration..."
+          exit 1
 
       - name: Backend build
         run: echo "placeholder - backend build"
