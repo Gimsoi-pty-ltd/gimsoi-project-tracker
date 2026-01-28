@@ -1,0 +1,46 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  backend:
+    name: Backend Checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Backend placeholder
+        run: echo "placeholder - backend lint/build/test"
+
+      - name: Backend lint
+        run: echo "placeholder - backend lint"
+
+      - name: Backend test
+        run: echo "placeholder - backend test"
+
+      - name: Backend build
+        run: echo "placeholder - backend build"
+
+  frontend:
+    name: Frontend Checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Frontend placeholder
+        run: echo "placeholder - frontend lint/build/test"
+
+      - name: Frontend lint
+        run: echo "placeholder - frontend lint"
+
+      - name: Frontend test
+        run: echo "placeholder - frontend test"
+
+      - name: Frontend build
+        run: echo "placeholder - frontend build"
