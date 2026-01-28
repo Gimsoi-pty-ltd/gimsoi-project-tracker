@@ -14,9 +14,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      # Note: Once you have real Java/Python code, you will add the setup action here 
-      # (e.g., actions/setup-java@v4)
       
       - name: Backend placeholder
         run: echo "placeholder - backend lint/build/test"
@@ -24,6 +21,7 @@ jobs:
       - name: Backend lint
         run: echo "placeholder - backend lint"
 
+      # FIXED: Reverted failure simulation. This now passes.
       - name: Backend test
         run: echo "placeholder - backend test"
 
@@ -37,7 +35,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Ensures Node.js is setup for the tests"
+      # Ensures Node.js is setup for the tests
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -54,3 +52,4 @@ jobs:
 
       - name: Frontend build
         run: echo "placeholder - frontend build"
+        
