@@ -21,17 +21,9 @@ jobs:
       - name: Backend lint
         run: echo "placeholder - backend lint"
 
-        # INTENTIONAL FAILURE HERE
-        # For Failure and Rollback Simulation using `exit 1` to trigger failed test
+      # FIXED: Reverted failure simulation. This now passes.
       - name: Backend test
-        run: |
-          echo "Simulating a test failure for CI demonstration..."
-          exit 1 
-
-      - name: Backend test
-        run: |
-          echo "Simulating a test failure for CI demonstration..."
-          exit 1
+        run: echo "placeholder - backend test"
 
       - name: Backend build
         run: echo "placeholder - backend build"
@@ -43,7 +35,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Ensures Node.js is setup for the tests"
+      # Ensures Node.js is setup for the tests
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -60,3 +52,4 @@ jobs:
 
       - name: Frontend build
         run: echo "placeholder - frontend build"
+        
