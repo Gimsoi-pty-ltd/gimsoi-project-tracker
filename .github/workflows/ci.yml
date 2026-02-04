@@ -7,31 +7,49 @@ on:
     branches: [ "main" ]
   workflow_dispatch: # Allows manual triggering from the Actions tab
 
-# Ensures tests only have the ability to read but not make changes
+# Ensures tests only have the ability to read but not make changes to tests
 permissions:
   contents: read
 
-# Cancels old builds if a new commit is pushed to the same PR
+# Cancels old test build to improve speed
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  # ------------------------------------------------------------------
+  # JOB 1: CHECK CI SYNTAX (Ensures workflow file structure is correct)
+  # ------------------------------------------------------------------
+  lint-ci:
+    name: Lint CI Config
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check YAML Syntax
+        uses: ibiqlik/action-yamllint@v3
+        with:
+          file_or_dir: .github/workflows/
+          strict: true
+
+  # ------------------------------------------------------------------
+  # JOB 2: SECURITY
+  # ------------------------------------------------------------------
   security:
     name: Security & Secret Scan
     runs-on: ubuntu-latest
+    needs: lint-ci  
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0 # Allows Gitleaks to scan from beginning of repo history
 
-  # 1. Block dangerous files immediately
+      # 1. Block dangerous files immediately
       - name: Block Prohibited File Types
         run: |
-          # Scan for files ending in .env, .pem, or .key (ignoring node_modules)
           FORBIDDEN_FILES=$(find . -type f \( -name "*.env" -o -name "*.pem" -o -name "*.key" \) -not -path "*/node_modules/*")
-          
           if [ -n "$FORBIDDEN_FILES" ]; then
             echo "::error title=Prohibited Files Detected::The following files must be removed from the repo:"
             echo "$FORBIDDEN_FILES"
@@ -39,7 +57,7 @@ jobs:
           fi
           echo "No prohibited file extensions found."
 
-  # 2. SCAN: Detect secrets using Gitleaks
+      # 2. SCAN: Detect secrets using Gitleaks
       - name: Gitleaks Secret Scan
         uses: gitleaks/gitleaks-action@v2
         env:
@@ -48,7 +66,7 @@ jobs:
           fail: true
           config: .gitleaks.toml
 
-  # 3. VERIFY: Ensure CI masks secrets in logs
+      # 3. VERIFY: Ensure CI masks secrets in logs
       - name: Verify Secret Masking
         env:
           TEST_SECRET: ${{ secrets.FIREBASE_API_KEY_TEST }}
@@ -61,14 +79,13 @@ jobs:
              echo "If you see '***' above, masking is working."
           fi
 
-  # 4. REMEDIATE: Point to docs if any step above failed
+      # 4. REMEDIATE: Point to docs if any step above failed
       - name: Security Remediation Steps
         if: failure()
         run: |
           echo "::error title=Security Check Failed::STOP! DO NOT IGNORE."
           echo "========================================================"
           echo "You have committed a secret or a prohibited file."
-          echo ""
           echo "HOW TO FIX THIS:"
           echo "1. Read the guide: docs/security/handling-secrets.md"
           echo "2. If it's a file (.env), remove it: 'git rm .env'"
@@ -76,12 +93,12 @@ jobs:
           echo "========================================================"
 
   # ------------------------------------------------------------------
-  # JOB 2: BACKEND
+  # JOB 3: BACKEND
   # ------------------------------------------------------------------
   backend:
     name: Backend Checks
     runs-on: ubuntu-latest
-    needs: security # Prevents testing backen if it fails security checks
+    needs: security # Prevents testing backend if it fails security checks
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -101,12 +118,12 @@ jobs:
         run: echo "placeholder - backend build"
 
   # ------------------------------------------------------------------
-  # JOB 3: FRONTEND
+  # JOB 4: FRONTEND
   # ------------------------------------------------------------------
   frontend:
     name: Frontend Checks
     runs-on: ubuntu-latest
-    needs: security # Prevents testing backen if it fails security checks
+    needs: security # Prevents testing frontend if it fails security checks
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
