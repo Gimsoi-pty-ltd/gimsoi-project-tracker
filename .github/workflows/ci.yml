@@ -66,20 +66,13 @@ jobs:
       # 2. SCAN: Detect secrets using Gitleaks (Free Workaround)
       - name: Gitleaks Secret Scan
         run: |
-          # 1. Install Gitleaks Globally (using sudo to access /usr/local/bin)
-          HOST="https://raw.githubusercontent.com"
-          URL_PATH="/gitleaks/gitleaks/master/scripts/install.sh"
-          curl -sSfL "${HOST}${URL_PATH}" | sudo sh
+          # Install (One-liner style)
+          ver="v8.18.4"
+          url="https://github.com/gitleaks/gitleaks/releases/download/${ver}/gitleaks_8.18.4_linux_x64.tar.gz"
+          wget -qO- "$url" | tar xvz && sudo mv gitleaks /usr/local/bin/
 
-          # 2. Verify Install (This prints the version in your logs)
-          gitleaks version
-
-          # 3. Run the scan
-          gitleaks detect \
-            --source . \
-            --config .gitleaks.toml \
-            --verbose \
-            --redact
+          # Scan
+          gitleaks detect --source . --config .gitleaks.toml --verbose --redact
 
       # 3. VERIFY: Ensure CI masks secrets in logs
       - name: Verify Secret Masking
