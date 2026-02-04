@@ -1,11 +1,12 @@
+---
 name: CI Pipeline
 
-on:
+'on':
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
-  workflow_dispatch: # Allows manual triggering from the Actions tab
+    branches: ["main"]
+  workflow_dispatch:  # Allows manual triggering from the Actions tab
 
 # Ensures tests only have the ability to read but not make changes to tests
 permissions:
@@ -39,19 +40,23 @@ jobs:
   security:
     name: Security & Secret Scan
     runs-on: ubuntu-latest
-    needs: lint-ci  
+    needs: lint-ci
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Allows Gitleaks to scan from beginning of repo history
+          # Allows Gitleaks to scan from beginning of repo history
+          fetch-depth: 0
 
       # 1. Block dangerous files immediately
       - name: Block Prohibited File Types
         run: |
-          FORBIDDEN_FILES=$(find . -type f \( -name "*.env" -o -name "*.pem" -o -name "*.key" \) -not -path "*/node_modules/*")
+          FORBIDDEN_FILES=$(find . -type f \
+            \( -name "*.env" -o -name "*.pem" -o -name "*.key" \) \
+            -not -path "*/node_modules/*")
+
           if [ -n "$FORBIDDEN_FILES" ]; then
-            echo "::error title=Prohibited Files Detected::The following files must be removed from the repo:"
+            echo "::error title=Prohibited Files::Remove these files:"
             echo "$FORBIDDEN_FILES"
             exit 1
           fi
@@ -72,7 +77,7 @@ jobs:
           TEST_SECRET: ${{ secrets.FIREBASE_API_KEY_TEST }}
         run: |
           if [ -z "$TEST_SECRET" ]; then
-             echo "::warning::FIREBASE_API_KEY_TEST is not set in Repo Settings. Skipping mask check."
+             echo "::warn::FIREBASE_API_KEY_TEST missing. Skipping."
           else
              echo "Testing secret masking..."
              echo "The secret value is: $TEST_SECRET"
@@ -98,11 +103,11 @@ jobs:
   backend:
     name: Backend Checks
     runs-on: ubuntu-latest
-    needs: security # Prevents testing backend if it fails security checks
+    needs: security  # Prevents testing backend if security fails
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -123,7 +128,7 @@ jobs:
   frontend:
     name: Frontend Checks
     runs-on: ubuntu-latest
-    needs: security # Prevents testing frontend if it fails security checks
+    needs: security  # Prevents testing frontend if security fails
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -141,3 +146,4 @@ jobs:
 
       - name: Frontend Build
         run: echo "placeholder - frontend build"
+        
