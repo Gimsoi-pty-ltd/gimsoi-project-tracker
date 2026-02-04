@@ -1,0 +1,39 @@
+# File: .gitleaks.toml
+# .gitleaks.toml is in the root of the project so GitLeaks can easily access it
+
+title = "Project Tracker Secret Rules"
+
+[allowlist]
+description = "Allow specific public Firebase configs in Frontend only"
+# WE ONLY WHITELIST THE FRONTEND. 
+# The Backend (apps/backend) is fully scanned because it should never contain this public key.
+paths = [
+    '''apps/frontend/src/firebase-config\.js''',
+    '''apps/frontend/src/config/firebase\.ts''',
+    '''apps/frontend/src/lib/firebase\.js''',
+    '''apps/frontend/firebase\.js'''
+]
+regexes = [
+    '''AIza[0-9A-Za-z-_]{35}'''
+]
+
+[[rules]]
+description = "Block Firebase Service Account Private Keys"
+id = "firebase-service-account"
+# This will catch 'serviceAccountKey.json' if someone accidentally saves it in apps/backend/
+regex = '''"private_key": "-----BEGIN PRIVATE KEY-----'''
+tags = ["key", "firebase", "google"]
+
+[[rules]]
+description = "Block Generic Private Keys"
+id = "generic-private-key"
+# This catches any RSA/SSH keys dropped anywhere in apps/backend or apps/frontend
+regex = '''-----BEGIN ((EC|PGP|DSA|RSA|OPENSSH) )?PRIVATE KEY( BLOCK)?-----'''
+tags = ["key", "pki"]
+
+[[rules]]
+description = "Block Environment Files"
+id = "env-file"
+# Catches hardcoded secrets often found in backend configs
+regex = '''(DB_PASSWORD|AWS_SECRET_ACCESS_KEY|FIREBASE_ADMIN_KEY)\s*=\s*['"][a-zA-Z0-9]+['"]'''
+tags = ["env", "config"]
