@@ -66,15 +66,16 @@ jobs:
       # 2. SCAN: Detect secrets using Gitleaks (Free Workaround)
       - name: Gitleaks Secret Scan
         run: |
-          # 1. Install Gitleaks (Split URL to satisfy linter)
+          # 1. Install Gitleaks Globally (using sudo to access /usr/local/bin)
           HOST="https://raw.githubusercontent.com"
           URL_PATH="/gitleaks/gitleaks/master/scripts/install.sh"
+          curl -sSfL "${HOST}${URL_PATH}" | sudo sh
 
-          # Use the new variable name here:
-          curl -ssfL "${HOST}${URL_PATH}" | sh -s -- -b .
+          # 2. Verify Install (This prints the version in your logs)
+          gitleaks version
 
-          # 2. Run the scan
-          ./gitleaks detect \
+          # 3. Run the scan
+          gitleaks detect \
             --source . \
             --config .gitleaks.toml \
             --verbose \
