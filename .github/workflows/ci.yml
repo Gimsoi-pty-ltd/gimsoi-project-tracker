@@ -65,7 +65,7 @@ jobs:
       - name: Security Remediation Steps
         if: failure()
         run: |
-          echo "::error title=Security Check Failed::🛑 STOP! DO NOT IGNORE."
+          echo "::error title=Security Check Failed::STOP! DO NOT IGNORE."
           echo "========================================================"
           echo "You have committed a secret or a prohibited file."
           echo ""
