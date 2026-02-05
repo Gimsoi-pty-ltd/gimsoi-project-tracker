@@ -137,3 +137,10 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# Environment variables and secrets (never commit these)
+.env
+*.pem
+*.key
+*.p12
+
