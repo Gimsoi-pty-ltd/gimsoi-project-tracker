@@ -1,4 +1,8 @@
-secrets:
-  tags: security secrets
-  # Back to the tool that actually runs, but with better rules
-  run: npx secretlint --maskSecrets {staged_files}
+# lefthook.yml
+pre-commit:
+  parallel: true
+  commands:
+    secrets:
+      # This forces Lefthook to scan ALL file types
+      glob: "*"
+      run: npx secretlint --maskSecrets {staged_files}
