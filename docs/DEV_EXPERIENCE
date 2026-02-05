@@ -1,0 +1,101 @@
+Developer Experience & Data Safety Guide
+Purpose
+
+This document explains how developers should handle configuration, logging, and test data to keep the system secure and avoid accidental data leaks.
+
+1. Configuration & Environment Variables
+
+Secrets must never be hardcoded in source code.
+
+All sensitive values must be read from environment variables.
+
+Developers should use .env.example to know which variables are required.
+
+Real secret values are stored only in GitHub Secrets or the deployment platform.
+
+Example (Correct):
+
+const apiKey = process.env.EXTERNAL_API_KEY;
+
+
+Example (Not allowed):
+
+const apiKey = "real-api-key";
+
+2. Logging Rules (What NOT to Log)
+
+Developers must never log:
+
+Passwords or password hashes
+
+API keys or tokens (JWTs, OAuth tokens)
+
+Private keys or certificates
+
+Environment variable values
+
+Full request bodies that contain sensitive data
+
+Personal user information (emails, phone numbers, addresses)
+
+Allowed logs:
+
+Error messages
+
+Request IDs
+
+High-level system events
+
+3. Test Data Rules
+
+Allowed test data:
+
+Fake names and emails (e.g. user@test.local)
+
+Mock IDs and placeholder tokens
+
+Localhost URLs
+
+Dummy values clearly marked as test data
+
+Not allowed:
+
+Real user or employee data
+
+Production API keys
+
+Copied production database records
+
+Real credentials “just for testing”
+
+4. Refactoring Configs to Environment Variables
+
+Before (Not allowed):
+
+const jwtSecret = "super-secret";
+
+
+After (Correct):
+
+const jwtSecret = process.env.JWT_SECRET;
+
+
+Steps:
+
+Remove hardcoded value
+
+Use process.env
+
+Add variable name to .env.example
+
+Add real value via GitHub Secrets
+
+Rotate the secret if it was exposed
+
+5. CI & Guardrails
+
+CI will fail if unsafe files are committed (e.g. .env, .key, .pem)
+
+CI will block PRs if secrets are detected
+
+Developers must remove and rotate exposed secrets immediately
