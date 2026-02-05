@@ -7,7 +7,6 @@ pre-commit:
     # ----------------------------------------------------------------------
     secrets:
       tags: security secrets
-      glob: "*"
       # --maskSecrets hides the actual values in the log
       run: npx secretlint --maskSecrets {staged_files}
 
