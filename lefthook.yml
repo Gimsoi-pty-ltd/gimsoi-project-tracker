@@ -1,6 +1,4 @@
-# lefthook.yml
-pre-commit:
-  parallel: true
-  commands:
-    secrets:
-      run: npx secretlint --maskSecrets {staged_files}
+secrets:
+  tags: security secrets
+  # Back to the tool that actually runs, but with better rules
+  run: npx secretlint --maskSecrets {staged_files}
