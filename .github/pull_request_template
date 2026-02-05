@@ -1,0 +1,6 @@
+## Pre-Merge Checklist
+- [ ] No secrets committed
+- [ ] No .env files added
+- [ ] .env.example used for config reference
+- [ ] No real data in tests
+- [ ] Logs do not expose sensitive data
