@@ -1,5 +1,6 @@
 {
   "devDependencies": {
+    "@secretlint/secretlint-rule-pattern": "^11.3.1",
     "@secretlint/secretlint-rule-preset-recommend": "^11.3.1",
     "lefthook": "^2.1.0",
     "secretlint": "^11.3.1"
