@@ -1,0 +1,38 @@
+# lefthook.yml
+pre-commit:
+  parallel: true
+  commands:
+    # ----------------------------------------------------------------------
+    # 1. SECURITY
+    # ----------------------------------------------------------------------
+    secrets:
+      tags: security secrets
+      glob: "*"
+      # --maskSecrets hides the actual values in the log
+      run: npx secretlint --maskSecrets {staged_files}
+
+    # ----------------------------------------------------------------------
+    # 2. FRONTEND
+    # ----------------------------------------------------------------------
+    frontend-lint:
+      root: "apps/frontend/"
+      glob: "*.{js,jsx,ts,tsx}"
+      run: echo "[Frontend] Linting skipped (Placeholder)"
+
+    frontend-types:
+      root: "apps/frontend/"
+      glob: "*.{ts,tsx}"
+      run: echo "[Frontend] Type checking skipped (Placeholder)"
+
+    # ----------------------------------------------------------------------
+    # 3. BACKEND
+    # ----------------------------------------------------------------------
+    backend-lint:
+      root: "apps/backend/"
+      glob: "*.{js,ts}"
+      run: echo "[Backend] Linting skipped (Placeholder)"
+
+    backend-types:
+      root: "apps/backend/"
+      glob: "*.ts"
+      run: echo "[Backend] Type checking skipped (Placeholder)"
