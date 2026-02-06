@@ -1,6 +1,7 @@
+---
 name: "CodeQL"
 
-on:
+"on":
   push:
     branches: ["main"]
   pull_request:
@@ -22,7 +23,8 @@ jobs:
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
-          # explicitly scanning javascript, skipping the problematic 'actions' language
+          # Explicitly scan javascript only.
+          # Skipping 'actions' to avoid the "no source code" error.
           languages: javascript
 
       - name: Perform CodeQL Analysis
