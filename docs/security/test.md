@@ -1,2 +1,0 @@
-Testing graphql permissions
-FAKE_API=AIzaSyD-P2l4bm90_aRealKey_B7d9f8s7d6f5
