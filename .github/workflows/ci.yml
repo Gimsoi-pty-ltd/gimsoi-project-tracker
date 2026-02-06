@@ -1,3 +1,38 @@
+<<<<<<< HEAD
+name: CI Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch: # Allows manual triggering from the Actions tab
+
+jobs:
+  backend:
+    name: Backend Checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Backend placeholder
+        run: echo "placeholder - backend lint/build/test"
+
+      - name: Backend lint
+        run: echo "placeholder - backend lint"
+
+      # FIXED: Reverted failure simulation. This now passes.
+      - name: Backend test
+        run: echo "placeholder - backend test"
+
+      - name: Backend build
+        run: echo "placeholder - backend build"
+
+  frontend:
+    name: Frontend Checks
+    runs-on: ubuntu-latest
+=======
 ---
 name: CI Pipeline
 
@@ -109,15 +144,34 @@ jobs:
 
     # Prevents testing backend if security fails
     needs: security
+>>>>>>> fac9bf49ce5bf8086af26af8086eff83da5d3906
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
+<<<<<<< HEAD
+      # Ensures Node.js is setup for the tests
+=======
+>>>>>>> fac9bf49ce5bf8086af26af8086eff83da5d3906
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
+<<<<<<< HEAD
+      - name: Frontend placeholder
+        run: echo "placeholder - frontend lint/build/test"
+
+      - name: Frontend lint
+        run: echo "placeholder - frontend lint"
+
+      - name: Frontend test
+        run: echo "placeholder - frontend test"
+
+      - name: Frontend build
+        run: echo "placeholder - frontend build"
+        
+=======
       - name: Backend Lint
         run: echo "placeholder - backend lint"
 
@@ -153,3 +207,4 @@ jobs:
 
       - name: Frontend Build
         run: echo "placeholder - frontend build"
+>>>>>>> fac9bf49ce5bf8086af26af8086eff83da5d3906
