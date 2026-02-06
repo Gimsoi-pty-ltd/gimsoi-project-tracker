@@ -1,0 +1,9 @@
+# .github/CODEOWNERS
+
+# 1. Protect the CI/CD Pipelines
+# Only the Team Leads can approve changes to security workflows
+.github/workflows/   @kelebogilediale @TshegofatsoMkhabela @Kea-nhlapo @Lotus191524
+
+# 2. Protect the Security Configs
+.gitleaks.toml       @kelebogilediale @TshegofatsoMkhabela @Kea-nhlapo @Lotus191524
+docs/security/       @kelebogilediale @TshegofatsoMkhabela @Kea-nhlapo @Lotus191524
