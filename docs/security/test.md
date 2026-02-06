@@ -1,1 +1,2 @@
 Testing graphql permissions
+FAKE_API=AIzaSyD-FakeTokenForTestingYourScanner123
