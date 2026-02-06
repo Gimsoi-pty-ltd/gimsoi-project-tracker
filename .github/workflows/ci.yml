@@ -1,6 +1,7 @@
+---
 name: CI Pipeline
 
-on:
+"on":
   push:
     branches: ["main"]
   pull_request:
@@ -67,11 +68,17 @@ jobs:
         run: |
           # Install (One-liner style)
           ver="v8.18.4"
-          url="https://github.com/gitleaks/gitleaks/releases/download/${ver}/gitleaks_8.18.4_linux_x64.tar.gz"
+          # Broken into multiple lines to satisfy linter line-length limits
+          base="https://github.com/gitleaks/gitleaks/releases/download"
+          url="$base/${ver}/gitleaks_8.18.4_linux_x64.tar.gz"
           wget -qO- "$url" | tar xvz && sudo mv gitleaks /usr/local/bin/
 
           # Scan
-          gitleaks detect --source . --config .gitleaks.toml --verbose --redact
+          gitleaks detect \
+            --source . \
+            --config .gitleaks.toml \
+            --verbose \
+            --redact
 
       # 3. VERIFY: Ensure CI masks secrets in logs
       - name: Verify Secret Masking
