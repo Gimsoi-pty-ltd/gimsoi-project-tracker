@@ -2,7 +2,6 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import cookieParser from "cookie-parser";
-import { connectDB } from "./lib/db.js";
 import authRoutes from "./routes/auth.route.js";
 
 dotenv.config();
@@ -26,7 +25,6 @@ app.get("/api/status", (req, res) => res.json({ status: "ok" }));
 app.use("/api/auth", authRoutes);
 
 // Start
-await connectDB();
 
 const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => {
