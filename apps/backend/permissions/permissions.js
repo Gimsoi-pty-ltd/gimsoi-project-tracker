@@ -1,14 +1,14 @@
-const ROLES = require('../Roles/roles');
+import ROLES from '../Roles/roles.js';
 
 /**
- * Permission Rules:
- * - PM: can create tasks
- * - Intern: can update tasks
- * - Client: can only view progress
- * - Admin: has full access
+ * Permission matrix:
+ * - ADMIN:  CREATE_TASK, UPDATE_TASK, DELETE_TASK, VIEW_PROGRESS
+ * - PM:     CREATE_TASK, VIEW_PROGRESS
+ * - INTERN: UPDATE_TASK, VIEW_PROGRESS
+ * - CLIENT: VIEW_PROGRESS
  */
 const PERMISSIONS = {
-    [ROLES.ADMIN]: ['CREATE_TASK', 'UPDATE_TASK', 'VIEW_PROGRESS'],
+    [ROLES.ADMIN]: ['CREATE_TASK', 'UPDATE_TASK', 'DELETE_TASK', 'VIEW_PROGRESS'],
     [ROLES.PROJECT_MANAGER]: ['CREATE_TASK', 'VIEW_PROGRESS'],
     [ROLES.INTERN]: ['UPDATE_TASK', 'VIEW_PROGRESS'],
     [ROLES.CLIENT]: ['VIEW_PROGRESS']
@@ -20,12 +20,9 @@ const PERMISSIONS = {
  * @param {string} permission 
  * @returns {boolean}
  */
-const hasPermission = (role, permission) => {
+export const hasPermission = (role, permission) => {
     if (!PERMISSIONS[role]) return false;
     return PERMISSIONS[role].includes(permission);
 };
 
-module.exports = {
-    PERMISSIONS,
-    hasPermission
-};
+export { PERMISSIONS };
