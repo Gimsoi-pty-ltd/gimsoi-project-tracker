@@ -1,0 +1,14 @@
+import React from 'react';
+
+const MainLayout = ({ children, className = "" }) => {
+      return (
+            <div className={`min-h-screen w-full bg-[#F4F4F4] ${className}`}>
+                  {children}
+                      </div>
+      );
+};
+
+export default MainLayout;
+
+      )
+}
