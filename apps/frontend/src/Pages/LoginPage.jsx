@@ -10,7 +10,7 @@ function LoginPage() {
 
     const handleLogin = (e) => {
         e.preventDefault();
-        console.log('Login attempt:', { loginIdentifier, loginPassword });
+        console.log('Login attempt:', { loginIdentifier, password: '[REDACTED]' });
         // Add authentication logic here
     };
 
