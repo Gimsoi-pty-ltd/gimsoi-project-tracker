@@ -1,9 +1,22 @@
-import React from 'react';
-import { ArrowLeft, Mail, ChevronLeft } from 'lucide-react';
+import React, { useState } from 'react';
+import { ArrowLeft, Mail, ChevronLeft, Loader } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import NavyButton from '../Components/Buttons';
+import { useAuthStore } from '../store/authStore';
 
 const ForgotEmailPage = () => {
+  const [email, setEmail] = useState('');
+  const { forgotPassword, isLoading, error, message } = useAuthStore();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await forgotPassword(email);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   return (
     <div className="min-h-screen w-full flex items-center justify-center p-6 bg-white">
       {/* Box background set to #F4F4F4 */}
@@ -15,20 +28,33 @@ const ForgotEmailPage = () => {
         </Link>
 
         <div className="text-center mb-10">
-          <h1 className="text-3xl font-bold text-black mb-2">Enter Email Address</h1>
-          <p className="text-black font-medium">Edit your personal information</p>
+          <h1 className="text-3xl font-bold text-black mb-2">Forgot Password</h1>
+          <p className="text-black font-medium">Enter your email to reset your password</p>
         </div>
 
-        <div className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div className="relative group">
             <input
               type="email"
               placeholder="example@gmail.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               className="w-full px-6 py-4 pr-12 rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#002D62]/20 text-black placeholder-gray-400 bg-white transition-all shadow-sm"
               required
             />
             <Mail size={18} className="absolute right-6 top-4.5 text-gray-400 group-focus-within:text-[#002D62] transition-colors" />
           </div>
+
+          {error && <p className="text-red-500 text-sm font-semibold text-center">{error}</p>}
+          {message && <p className="text-green-500 text-sm font-semibold text-center">{message}</p>}
+
+          <NavyButton
+            type="submit"
+            disabled={isLoading}
+            className="w-full flex justify-center items-center"
+          >
+            {isLoading ? <Loader className="animate-spin" size={24} /> : "Send Reset Link"}
+          </NavyButton>
 
           <div className="text-center">
             <a href="#" className="text-black font-bold text-sm hover:underline">
@@ -57,9 +83,11 @@ const ForgotEmailPage = () => {
 
           <div className="text-center pt-4">
             <p className="text-black text-sm mb-4">Do you have an account?</p>
-            <NavyButton>Sign up</NavyButton>
+            <Link to="/signup">
+              <NavyButton className="w-full">Sign up</NavyButton>
+            </Link>
           </div>
-        </div>
+        </form>
       </div>
     </div>
   );
