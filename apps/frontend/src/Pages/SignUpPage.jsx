@@ -1,23 +1,32 @@
 import React, { useState } from 'react';
-import { User, Lock, Mail, Github, Facebook, Linkedin, ArrowLeft } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { User, Lock, Mail, Github, Facebook, Linkedin, ArrowLeft, Loader } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import NavyButton from '../Components/Buttons';
 import logo from '../assets/Gimsoi AI.jpg';
+import { useAuthStore } from '../store/authStore';
 
 function SignUpPage() {
     const [email, setEmail] = useState('');
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const navigate = useNavigate();
 
-    const handleSignUp = (e) => {
+    const { signup, error, isLoading } = useAuthStore();
+
+    const handleSignUp = async (e) => {
         e.preventDefault();
         if (password !== confirmPassword) {
             alert("Passwords do not match!");
             return;
         }
-        console.log('Sign Up attempt:', { email, username, password });
 
+        try {
+            await signup(email, password, username);
+            navigate("/verify-email");
+        } catch (error) {
+            console.error(error);
+        }
     };
 
     return (
@@ -97,11 +106,14 @@ function SignUpPage() {
                             <Lock size={18} className="absolute right-4 top-3.5 text-gray-400 group-focus-within:text-[#002D62] transition-colors" />
                         </div>
 
+                        {error && <p className="text-red-500 font-semibold mt-2 text-center text-sm">{error}</p>}
+
                         <NavyButton
                             type="submit"
-                            className="w-full !rounded-xl shadow-lg mt-2"
+                            className="w-full !rounded-xl shadow-lg mt-2 flex justify-center items-center"
+                            disabled={isLoading}
                         >
-                            Sign Up
+                            {isLoading ? <Loader className="animate-spin" size={24} /> : "Sign Up"}
                         </NavyButton>
                     </form>
 
