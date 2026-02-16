@@ -14,12 +14,17 @@ function LoginPage() {
 
     const handleLogin = async (e) => {
         e.preventDefault();
+<<<<<<< HEAD
         try {
             await login(loginIdentifier, loginPassword);
             navigate("/dashboard");
         } catch (error) {
             console.error(error);
         }
+=======
+        console.log('Login attempt:', { loginIdentifier, password: '[REDACTED]' });
+        // Add authentication logic here
+>>>>>>> aa992e851d2008cb4dcf781bce9549e285460aae
     };
 
     return (
