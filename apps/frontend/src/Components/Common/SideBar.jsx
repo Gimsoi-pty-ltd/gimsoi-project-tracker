@@ -1,9 +1,23 @@
 import React from "react";
-import { Home, FolderKanban, ListTodo, Users, PieChart, X } from "lucide-react";
+import { Home, FolderKanban, ListTodo, Users, PieChart, X, LogOut } from "lucide-react";
+import { useAuthStore } from "../../store/authStore";
+import { useNavigate } from "react-router-dom";
 
 export default function Sidebar({ onClose }) {
+  const { logout } = useAuthStore();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate("/login");
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   const menuItems = [
-    { label: "Home", icon: Home, href: "#" },
+    { label: "Home", icon: Home, href: "/dashboard" },
     { label: "Projects", icon: FolderKanban, href: "#" },
     { label: "Tasks", icon: ListTodo, href: "#" },
   ];
@@ -65,6 +79,17 @@ export default function Sidebar({ onClose }) {
             ))}
           </nav>
         </div>
+      </div>
+
+      {/* Logout Button */}
+      <div className="p-4 border-t border-blue-500/30">
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-3 w-full px-5 py-3 text-sm font-bold text-white rounded-xl bg-red-500 hover:bg-red-600 transition-all duration-200 shadow-lg active:scale-95"
+        >
+          <LogOut size={20} />
+          Logout
+        </button>
       </div>
     </div>
   );
