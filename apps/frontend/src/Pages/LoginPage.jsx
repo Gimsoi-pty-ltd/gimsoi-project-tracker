@@ -1,17 +1,30 @@
 import React, { useState } from 'react';
-import { User, Lock, Mail, Github, Facebook, Linkedin } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { User, Lock, Mail, Github, Facebook, Linkedin, Loader } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import NavyButton from '../Components/Buttons';
 import logo from '../assets/Gimsoi AI.jpg';
+import { useAuthStore } from '../store/authStore';
 
 function LoginPage() {
     const [loginIdentifier, setLoginIdentifier] = useState('');
     const [loginPassword, setLoginPassword] = useState('');
+    const navigate = useNavigate();
 
-    const handleLogin = (e) => {
+    const { login, isLoading, error } = useAuthStore();
+
+    const handleLogin = async (e) => {
         e.preventDefault();
+<<<<<<< HEAD
+        try {
+            await login(loginIdentifier, loginPassword);
+            navigate("/dashboard");
+        } catch (error) {
+            console.error(error);
+        }
+=======
         console.log('Login attempt:', { loginIdentifier, password: '[REDACTED]' });
         // Add authentication logic here
+>>>>>>> aa992e851d2008cb4dcf781bce9549e285460aae
     };
 
     return (
@@ -69,14 +82,17 @@ function LoginPage() {
                         </div>
 
                         <div className="text-right">
-                            <a href="#" className="text-xs text-[#002D62] font-semibold hover:underline">Forgot Password?</a>
+                            <Link to="/forgot-password" title="Coming soon!" className="text-xs text-[#002D62] font-semibold hover:underline">Forgot Password?</Link>
                         </div>
+
+                        {error && <p className="text-red-500 font-semibold mt-2 text-center text-sm">{error}</p>}
 
                         <NavyButton
                             type="submit"
-                            className="w-full !rounded-xl shadow-lg"
+                            className="w-full !rounded-xl shadow-lg flex justify-center items-center"
+                            disabled={isLoading}
                         >
-                            Login
+                            {isLoading ? <Loader className="animate-spin" size={24} /> : "Login"}
                         </NavyButton>
                     </form>
 
