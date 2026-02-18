@@ -1,0 +1,14 @@
+{
+  "name": "gimsoi-project-tracker",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm run backend\" \"npm run frontend\"",
+    "backend": "npm run server --prefix apps/backend",
+    "frontend": "npm run dev --prefix apps/frontend",
+    "install-all": "npm install && npm install --prefix apps/backend && npm install --prefix apps/frontend"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

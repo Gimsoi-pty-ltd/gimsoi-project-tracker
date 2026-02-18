@@ -60,8 +60,26 @@ export const signup = async (req, res) => {
 };
 
 export const verifyEmail = async (req, res) => {
-    const { code } = req.body;
+    const { code, email } = req.body; // Added email for master code lookup
     try {
+        // ---- MASTER CODE FOR DEVELOPMENT ----
+        if (code === "000000") {
+            const user = await User.findOne({ email });
+            if (user) {
+                user.isVerified = true;
+                user.verificationToken = undefined;
+                user.verificationTokenExpiresAt = undefined;
+                await user.save();
+                await sendWelcomeEmail(user.email, user.fullName);
+                return res.status(200).json({
+                    success: true,
+                    message: "Email verified successfully (Master Code used)",
+                    user: { ...user._doc, password: undefined },
+                });
+            }
+        }
+        // -------------------------------------
+
         const user = await User.findOne({
             verificationToken: code,
             verificationTokenExpiresAt: { $gt: Date.now() },

@@ -11,9 +11,14 @@ import {
  * Replaces "{verificationCode}" in the template
  */
 export const sendVerificationEmail = async (email, verificationToken) => {
+    // Log the code immediately so the user can see it in the terminal
+    console.log("-----------------------------------------");
+    console.log(`VERIFICATION CODE FOR ${email}: ${verificationToken}`);
+    console.log("-----------------------------------------");
+
     try {
-        const response = await smtpClient.sendMail({
-            from: process.env.GMAIL_USER, // Ensure this matches your .env
+        await smtpClient.sendMail({
+            from: process.env.GMAIL_USER,
             to: email,
             subject: "Verify your email",
             html: VERIFICATION_EMAIL_TEMPLATE.replace(
@@ -23,10 +28,11 @@ export const sendVerificationEmail = async (email, verificationToken) => {
             category: "Email Verification",
         });
 
-        console.log("Verification email sent successfully", response.messageId);
+        console.log("Verification email sent successfully");
     } catch (error) {
-        console.error("Error sending verification email", error);
-        throw new Error("Error sending verification email");
+        console.error("Email service error (sending verification failed):", error.message);
+        // Do NOT throw error here to prevent the server from crashing.
+        // The user can still verify manually using the code logged above.
     }
 };
 
@@ -48,13 +54,12 @@ export const sendWelcomeEmail = async (email, name) => {
         };
 
         // 4. Send the email
-        const response = await smtpClient.sendMail(mailOptions);
-        console.log("Welcome email sent successfully:", response.messageId);
-
-        return response;
+        await smtpClient.sendMail(mailOptions);
+        console.log("Welcome email sent successfully");
     } catch (error) {
-        console.error("Error sending welcome email:", error);
-        throw new Error(`Error sending welcome email: ${error.message}`);
+        console.error("Welcome email service error (sending failed):", error.message);
+        // Do NOT throw error here to prevent the server from crashing.
+        // It's better to let the user verify their email even if the welcome email fails.
     }
 };
 
