@@ -47,7 +47,8 @@ export const signup = async (req, res) => {
 
         const token = generateTokenAndSetCookie(res, user.id, user.role);
 
-        sendVerificationEmail(user.email, verificationToken);
+        sendVerificationEmail(user.email, verificationToken)
+            .catch(err => console.error("Failed to send verification email:", err));
 
         const { password: _, ...userWithoutPassword } = user;
         res.status(201).json({
