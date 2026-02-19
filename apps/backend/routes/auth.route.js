@@ -10,7 +10,7 @@ import {
 } from "../controllers/auth.controller.js";
 import { verifyToken } from "../middleware/verifyToken.js";
 import { authLimiter, loginLimiter } from "../middleware/rateLimiter.js";
-import { csrfProtection, generateCsrfToken } from "../middleware/csrfProtection.js";
+import { generateCsrfToken } from "../middleware/csrfProtection.js";
 
 const router = express.Router();
 
@@ -22,16 +22,16 @@ router.get("/csrf-token", (req, res) => {
 
 router.get("/check-auth", verifyToken, checkAuth);
 
-router.post("/signup", authLimiter, csrfProtection, signup);
+router.post("/signup", authLimiter, signup);
 
-router.post("/login", loginLimiter, csrfProtection, login);
+router.post("/login", loginLimiter, login);
 
-router.post("/logout", csrfProtection, logout);
+router.post("/logout", logout);
 
-router.post("/verify-email", authLimiter, csrfProtection, verifyEmail);
+router.post("/verify-email", authLimiter, verifyEmail);
 
-router.post("/forgot-password", authLimiter, csrfProtection, forgotPassword);
+router.post("/forgot-password", authLimiter, forgotPassword);
 
-router.post("/reset-password/:token", authLimiter, csrfProtection, resetPassword);
+router.post("/reset-password/:token", authLimiter, resetPassword);
 
 export default router;
