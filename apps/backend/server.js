@@ -4,7 +4,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import authRoutes from "./routes/auth.route.js";
 import tasksRoutes from "./routes/tasks.route.js";
-import { csrfErrorHandler } from "./middleware/csrfProtection.js";
+import { csrfProtection, csrfErrorHandler } from "./middleware/csrfProtection.js";
 
 dotenv.config();
 
@@ -26,6 +26,7 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization", "x-user-role", "x-csrf-token"],
   })
 );
+app.use(csrfProtection);
 
 // Routes
 app.get("/api/status", (req, res) => res.json({ status: "ok" }));
