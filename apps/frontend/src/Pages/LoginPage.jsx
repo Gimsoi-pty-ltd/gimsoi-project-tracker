@@ -6,7 +6,7 @@ import logo from '../assets/Gimsoi AI.jpg';
 import { useAuthStore } from '../store/authStore';
 
 function LoginPage() {
-    const [loginIdentifier, setLoginIdentifier] = useState('');
+    const [email, setEmail] = useState('');
     const [loginPassword, setLoginPassword] = useState('');
     const navigate = useNavigate();
 
@@ -14,17 +14,13 @@ function LoginPage() {
 
     const handleLogin = async (e) => {
         e.preventDefault();
-<<<<<<< HEAD
+        console.log('Login attempt:', { email, password: '[REDACTED]' });
         try {
-            await login(loginIdentifier, loginPassword);
+            await login(email, loginPassword);
             navigate("/dashboard");
         } catch (error) {
             console.error(error);
         }
-=======
-        console.log('Login attempt:', { loginIdentifier, password: '[REDACTED]' });
-        // Add authentication logic here
->>>>>>> aa992e851d2008cb4dcf781bce9549e285460aae
     };
 
     return (
@@ -55,18 +51,14 @@ function LoginPage() {
                         {/* Input with Icon on Right */}
                         <div className="relative group">
                             <input
-                                type="text"
-                                placeholder="Username or Email"
-                                value={loginIdentifier}
-                                onChange={(e) => setLoginIdentifier(e.target.value)}
+                                type="email"
+                                placeholder="Email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
                                 className="w-full bg-white rounded-lg px-4 py-3 pr-12 outline-none text-sm border-2 border-transparent focus:border-[#002D62]/20 transition-all shadow-sm"
                                 required
                             />
-                            {loginIdentifier.includes('gmail') ? (
-                                <Mail size={18} className="absolute right-4 top-3.5 text-gray-400 group-focus-within:text-[#002D62] transition-colors" />
-                            ) : (
-                                <User size={18} className="absolute right-4 top-3.5 text-gray-400 group-focus-within:text-[#002D62] transition-colors" />
-                            )}
+                            <Mail size={18} className="absolute right-4 top-3.5 text-gray-400 group-focus-within:text-[#002D62] transition-colors" />
                         </div>
 
                         <div className="relative group">
