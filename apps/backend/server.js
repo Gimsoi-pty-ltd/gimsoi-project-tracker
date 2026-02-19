@@ -26,6 +26,9 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization", "x-user-role", "x-csrf-token"],
   })
 );
+// CSRF protection — Double Submit Cookie via "csrf-csrf" package.
+// Automatically skips safe methods (GET, HEAD, OPTIONS).
+// See middleware/csrfProtection.js for configuration.
 app.use(csrfProtection);
 
 // Routes
