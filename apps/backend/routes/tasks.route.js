@@ -2,6 +2,7 @@ import express from "express";
 import { verifyToken } from "../middleware/verifyToken.js";
 import authorize from "../middleware/authMiddleware.js";
 import { readLimiter, writeLimiter } from "../middleware/rateLimiter.js";
+import { csrfProtection } from "../middleware/csrfProtection.js";
 
 const router = express.Router();
 
@@ -17,7 +18,7 @@ router.get("/", readLimiter, verifyToken, authorize("VIEW_PROGRESS"), (req, res)
  * POST /api/tasks — CREATE_TASK
  * Allowed: ADMIN, PM
  */
-router.post("/", writeLimiter, verifyToken, authorize("CREATE_TASK"), (req, res) => {
+router.post("/", writeLimiter, csrfProtection, verifyToken, authorize("CREATE_TASK"), (req, res) => {
     res.json({ message: "Task created successfully." });
 });
 
@@ -25,7 +26,7 @@ router.post("/", writeLimiter, verifyToken, authorize("CREATE_TASK"), (req, res)
  * PUT /api/tasks/:id — UPDATE_TASK
  * Allowed: ADMIN, INTERN
  */
-router.put("/:id", writeLimiter, verifyToken, authorize("UPDATE_TASK"), (req, res) => {
+router.put("/:id", writeLimiter, csrfProtection, verifyToken, authorize("UPDATE_TASK"), (req, res) => {
     res.json({ message: `Task ${req.params.id} updated successfully.` });
 });
 
@@ -33,7 +34,7 @@ router.put("/:id", writeLimiter, verifyToken, authorize("UPDATE_TASK"), (req, re
  * DELETE /api/tasks/:id — DELETE_TASK
  * Allowed: ADMIN
  */
-router.delete("/:id", writeLimiter, verifyToken, authorize("DELETE_TASK"), (req, res) => {
+router.delete("/:id", writeLimiter, csrfProtection, verifyToken, authorize("DELETE_TASK"), (req, res) => {
     res.json({ message: `Task ${req.params.id} deleted successfully.` });
 });
 
