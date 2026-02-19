@@ -7,7 +7,7 @@ import { useAuthStore } from '../store/authStore';
 
 function SignUpPage() {
     const [email, setEmail] = useState('');
-    const [username, setUsername] = useState('');
+    const [fullName, setFullName] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const navigate = useNavigate();
@@ -22,7 +22,7 @@ function SignUpPage() {
         }
 
         try {
-            await signup(email, password, username);
+            await signup(email, password, fullName);
             navigate("/verify-email");
         } catch (error) {
             console.error(error);
@@ -71,9 +71,9 @@ function SignUpPage() {
                         <div className="relative group">
                             <input
                                 type="text"
-                                placeholder="Username"
-                                value={username}
-                                onChange={(e) => setUsername(e.target.value)}
+                                placeholder="Full Name"
+                                value={fullName}
+                                onChange={(e) => setFullName(e.target.value)}
                                 className="w-full bg-white rounded-lg px-4 py-3 pr-12 outline-none text-sm border-2 border-transparent focus:border-[#002D62]/20 transition-all shadow-sm"
                                 required
                             />
