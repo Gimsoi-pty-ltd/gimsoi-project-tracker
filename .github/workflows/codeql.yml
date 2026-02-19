@@ -26,6 +26,11 @@ jobs:
           # Explicitly scan javascript only.
           # Skipping 'actions' to avoid the "no source code" error.
           languages: javascript
+          # Exclude js/missing-token-validation because we use csrf-csrf.
+          config: |
+            query-filters:
+              - exclude:
+                  id: js/missing-token-validation
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3

@@ -2,6 +2,7 @@ import bcryptjs from "bcryptjs";
 import crypto from "crypto";
 import prisma from "../lib/prisma.js";
 import { generateTokenAndSetCookie } from "../utils/generateTokenAndSetCookie.js";
+import ROLES from "../Roles/roles.js";
 import {
     sendVerificationEmail,
     sendWelcomeEmail,
@@ -9,8 +10,10 @@ import {
     sendResetSuccessEmail,
 } from "../services/emailService/emailService.js";
 
+const VALID_ROLES = Object.values(ROLES);
+
 export const signup = async (req, res) => {
-    const { email, password, fullName } = req.body;
+    const { email, password, fullName, role } = req.body;
 
     try {
         if (!email || !password || !fullName) {
@@ -29,19 +32,23 @@ export const signup = async (req, res) => {
             100000 + Math.random() * 900000
         ).toString();
 
+        const assignedRole = (role && VALID_ROLES.includes(role)) ? role : ROLES.INTERN;
+
         const user = await prisma.user.create({
             data: {
                 email,
                 password: hashedPassword,
                 fullName,
+                role: assignedRole,
                 verificationToken,
                 verificationTokenExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
             },
         });
 
-        const token = generateTokenAndSetCookie(res, user.id);
+        const token = generateTokenAndSetCookie(res, user.id, user.role);
 
-        sendVerificationEmail(user.email, verificationToken);
+        sendVerificationEmail(user.email, verificationToken)
+            .catch(err => console.error("Failed to send verification email:", err));
 
         const { password: _, ...userWithoutPassword } = user;
         res.status(201).json({
@@ -115,7 +122,7 @@ export const login = async (req, res) => {
                 .json({ success: false, message: "Invalid credentials" });
         }
 
-        const token = generateTokenAndSetCookie(res, user.id);
+        const token = generateTokenAndSetCookie(res, user.id, user.role);
 
         await prisma.user.update({
             where: { id: user.id },

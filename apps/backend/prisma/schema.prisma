@@ -15,6 +15,7 @@ model User {
   email                      String    @unique
   fullName                   String
   password                   String
+  role                       String    @default("INTERN")
   profilePic                 String    @default("")
   bio                        String?
   lastLogin                  DateTime  @default(now())
