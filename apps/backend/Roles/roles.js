@@ -1,5 +1,5 @@
-
-// USER ROLES CONSTANTS
+// User role constants used across the RBAC system.
+// Each key maps to the string value stored in the database and JWT.
 
 const ROLES = {
     ADMIN: "ADMIN",
@@ -8,4 +8,4 @@ const ROLES = {
     CLIENT: "CLIENT"
 };
 
-module.exports = ROLES;
+export default ROLES;
