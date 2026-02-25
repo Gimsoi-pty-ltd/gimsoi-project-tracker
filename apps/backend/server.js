@@ -6,6 +6,9 @@ import authRoutes from "./routes/auth.route.js";
 import tasksRoutes from "./routes/tasks.route.js";
 import { csrfProtection, csrfErrorHandler } from "./middleware/csrfProtection.js";
 
+
+import aiRoutes from "./AI/ai.routes.js";
+
 dotenv.config();
 
 if (!process.env.JWT_SECRET) {
@@ -16,8 +19,12 @@ const app = express();
 app.set("trust proxy", 1);
 
 // Middleware
+
+
+
 app.use(express.json());
 app.use(cookieParser());
+app.use("/api/ai", aiRoutes);
 app.use(
   cors({
     origin: process.env.CLIENT_URL || "http://localhost:5173",
