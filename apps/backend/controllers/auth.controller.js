@@ -152,29 +152,25 @@ export const forgotPassword = async (req, res) => {
     try {
         const user = await prisma.user.findUnique({ where: { email } });
 
-        if (!user) {
-            return res
-                .status(400)
-                .json({ success: false, message: "User not found" });
+        if (user) {
+            const resetToken = crypto.randomBytes(20).toString("hex");
+            const resetTokenExpiresAt = new Date(Date.now() + 1 * 60 * 60 * 1000);
+
+            await prisma.user.update({
+                where: { id: user.id },
+                data: {
+                    resetPasswordToken: resetToken,
+                    resetPasswordExpiresAt: resetTokenExpiresAt,
+                },
+            });
+
+            await sendPasswordResetEmail(
+                user.email,
+                `${process.env.CLIENT_URL}/reset-password/${resetToken}`
+            );
         }
 
-        const resetToken = crypto.randomBytes(20).toString("hex");
-        const resetTokenExpiresAt = new Date(Date.now() + 1 * 60 * 60 * 1000);
-
-        await prisma.user.update({
-            where: { id: user.id },
-            data: {
-                resetPasswordToken: resetToken,
-                resetPasswordExpiresAt: resetTokenExpiresAt,
-            },
-        });
-
-        await sendPasswordResetEmail(
-            user.email,
-            `${process.env.CLIENT_URL}/reset-password/${resetToken}`
-        );
-
-        res.status(200).json({
+        return res.status(200).json({
             success: true,
             message: "Password reset link sent to your email",
         });

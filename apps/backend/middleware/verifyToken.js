@@ -25,7 +25,18 @@ export const verifyToken = (req, res, next) => {
         req.userRole = decoded.role;
         next();
     } catch (error) {
+        if (error.name === 'JsonWebTokenError' ||
+            error.name === 'TokenExpiredError' ||
+            error.name === 'NotBeforeError') {
+            return res.status(401).json({
+                success: false,
+                message: "Unauthorized"
+            });
+        }
         console.log("Error in verifyToken ", error);
-        return res.status(500).json({ success: false, message: "Server error" });
+        return res.status(500).json({
+            success: false,
+            message: "Server error"
+        });
     }
 };
