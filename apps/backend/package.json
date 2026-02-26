@@ -13,7 +13,6 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@genkit-ai/googleai": "^1.28.0",
     "@prisma/adapter-pg": "^7.3.0",
     "@prisma/client": "^7.3.0",
     "bcryptjs": "^3.0.2",
@@ -23,16 +22,12 @@
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
     "express-rate-limit": "^8.2.1",
-    "genkit": "^1.29.0",
     "jsonwebtoken": "^9.0.2",
     "nodemailer": "^7.0.11",
     "nodemon": "^3.1.10",
     "pg": "^8.18.0",
     "prisma": "^7.3.0",
     "typescript": "^5.9.3"
-  },
-  "overrides": {
-    "@genkit-ai/firebase": {}
   },
   "devDependencies": {
     "@playwright/test": "^1.58.2"
