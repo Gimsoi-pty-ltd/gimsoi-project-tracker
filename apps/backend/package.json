@@ -6,7 +6,8 @@
   "scripts": {
     "server": "nodemon server.js",
     "start": "node server.js",
-    "test:api": "playwright test"
+    "test:api": "playwright test",
+    "postinstall": "prisma generate"
   },
   "type": "module",
   "keywords": [],
