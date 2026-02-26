@@ -6,23 +6,25 @@ import {
     WELCOME_EMAIL_TEMPLATE,
 } from "./emailTemplates/emailTemplates.js";
 
+// In test mode, skip all real SMTP calls — no credentials needed
+const IS_TEST = process.env.NODE_ENV === "test";
+
 /**
  * Send a Verification Email
- * Replaces "{verificationCode}" in the template
  */
 export const sendVerificationEmail = async (email, verificationToken) => {
+    if (IS_TEST) {
+        console.log(`[TEST] Skipping verification email to ${email}`);
+        return;
+    }
     try {
         const response = await smtpClient.sendMail({
-            from: process.env.GMAIL_USER, // Ensure this matches your .env
+            from: process.env.GMAIL_USER,
             to: email,
             subject: "Verify your email",
-            html: VERIFICATION_EMAIL_TEMPLATE.replace(
-                "{verificationCode}",
-                verificationToken
-            ),
+            html: VERIFICATION_EMAIL_TEMPLATE.replace("{verificationCode}", verificationToken),
             category: "Email Verification",
         });
-
         console.log("Verification email sent successfully", response.messageId);
     } catch (error) {
         console.error("Error sending verification email", error);
@@ -31,26 +33,21 @@ export const sendVerificationEmail = async (email, verificationToken) => {
 };
 
 export const sendWelcomeEmail = async (email, name) => {
+    if (IS_TEST) {
+        console.log(`[TEST] Skipping welcome email to ${email}`);
+        return;
+    }
     try {
         const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
         const loginURL = `${clientUrl}/login`;
-
-        const htmlContent = WELCOME_EMAIL_TEMPLATE.replace("{name}", name).replace(
-            "{loginURL}",
-            loginURL
-        );
-
-        const mailOptions = {
+        const htmlContent = WELCOME_EMAIL_TEMPLATE.replace("{name}", name).replace("{loginURL}", loginURL);
+        const response = await smtpClient.sendMail({
             from: process.env.GMAIL_USER,
             to: email,
             subject: "Welcome to Our Community",
             html: htmlContent,
-        };
-
-        // 4. Send the email
-        const response = await smtpClient.sendMail(mailOptions);
+        });
         console.log("Welcome email sent successfully:", response.messageId);
-
         return response;
     } catch (error) {
         console.error("Error sending welcome email:", error);
@@ -58,12 +55,14 @@ export const sendWelcomeEmail = async (email, name) => {
     }
 };
 
-// ==================================== //
 /**
  * Send Password Reset Request Email
- * Replaces "{resetURL}" in the template
  */
 export const sendPasswordResetEmail = async (email, resetURL) => {
+    if (IS_TEST) {
+        console.log(`[TEST] Skipping password reset email to ${email}`);
+        return;
+    }
     try {
         const response = await smtpClient.sendMail({
             from: process.env.GMAIL_USER,
@@ -71,7 +70,6 @@ export const sendPasswordResetEmail = async (email, resetURL) => {
             subject: "Reset your password",
             html: PASSWORD_RESET_REQUEST_TEMPLATE.replace("{resetURL}", resetURL),
         });
-
         console.log("Password reset email sent successfully", response.messageId);
     } catch (error) {
         console.error("Error sending password reset email", error);
@@ -81,9 +79,12 @@ export const sendPasswordResetEmail = async (email, resetURL) => {
 
 /**
  * Send Password Reset Success Email
- * No replacements needed for this template
  */
 export const sendResetSuccessEmail = async (email) => {
+    if (IS_TEST) {
+        console.log(`[TEST] Skipping reset success email to ${email}`);
+        return;
+    }
     try {
         const response = await smtpClient.sendMail({
             from: process.env.GMAIL_USER,
@@ -91,11 +92,7 @@ export const sendResetSuccessEmail = async (email) => {
             subject: "Password Reset Successful",
             html: PASSWORD_RESET_SUCCESS_TEMPLATE,
         });
-
-        console.log(
-            "Password reset success email sent successfully",
-            response.messageId
-        );
+        console.log("Password reset success email sent successfully", response.messageId);
     } catch (error) {
         console.error("Error sending password reset success email", error);
         throw new Error("Error sending password reset success email");
