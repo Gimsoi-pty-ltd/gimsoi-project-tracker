@@ -29,12 +29,9 @@
     "nodemon": "^3.1.10",
     "pg": "^8.18.0",
     "prisma": "^7.3.0",
-    "typescript": "^5.9.3",
-    "winston": "^3.19.0",
-    "zod": "^4.3.6"
+    "typescript": "^5.9.3"
   },
   "devDependencies": {
-    "@playwright/test": "^1.58.2",
-    "newman": "^6.2.2"
+    "@playwright/test": "^1.58.2"
   }
 }
