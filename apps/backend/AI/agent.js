@@ -10,11 +10,24 @@ export const ai = genkit({
 });
 
 export async function generateResponse(prompt) {
-  const response = await ai.generate({ prompt });
-  return response.text;
+  try {
+    const response = await ai.generate({ prompt });
+    return response.text;
+  } catch (err) {
+    if (err.message.includes("API key not valid")) {
+      throw new Error("Invalid or missing GEMINI_API_KEY. Please check your .env file.");
+    }
+    throw err;
+  }
 }
 
 // TEMP TEST — delete this after it works
 generateResponse("Say hello from Gimsoi project tracker in one sentence.")
   .then(response => console.log("AI Response:", response))
-  .catch(err => console.error("Error:", err.message));
+  .catch(err => {
+    if (err.message.includes("API key not valid")) {
+      console.error("AI Error: Invalid or missing GEMINI_API_KEY in your .env file.");
+    } else {
+      console.error("AI Error:", err.message);
+    }
+  });
