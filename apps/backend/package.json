@@ -31,6 +31,9 @@
     "prisma": "^7.3.0",
     "typescript": "^5.9.3"
   },
+  "overrides": {
+    "@genkit-ai/firebase": {}
+  },
   "devDependencies": {
     "@playwright/test": "^1.58.2"
   }
