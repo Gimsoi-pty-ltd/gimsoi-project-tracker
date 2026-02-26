@@ -132,6 +132,17 @@ test.describe('Auth API Tests', () => {
             expect(data.success).toBe(false);
             expect(data.message).toBe('Invalid CSRF token');
         });
+
+        test('returns 400 on missing fields', async ({ request }) => {
+            const response = await request.post('/api/auth/login', {
+                headers: { 'x-csrf-token': csrfToken },
+                data: {} // No email or password
+            });
+            expect(response.status()).toBe(400);
+            const data = await response.json();
+            expect(data.success).toBe(false);
+            expect(data.message).toBe('Email and password are required');
+        });
     });
 
     test.describe('GET /api/auth/check-auth', () => {
