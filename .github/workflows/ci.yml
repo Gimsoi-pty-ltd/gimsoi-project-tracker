@@ -109,11 +109,9 @@ jobs:
   # ------------------------------------------------------------------
   # JOB 3: BACKEND
   # ------------------------------------------------------------------
-  backend:
+   backend:
     name: Backend Checks
     runs-on: ubuntu-latest
-
-    # Prevents testing backend if security fails
     needs: security
     steps:
       - name: Checkout code
@@ -124,14 +122,28 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Backend Lint
-        run: echo "placeholder - backend lint"
+      - name: Install backend deps
+        working-directory: apps/backend
+        run: npm install
 
-      - name: Backend Test
-        run: echo "placeholder - backend test"
+      - name: Start backend (CI mode)
+        working-directory: apps/backend
+        env:
+          JWT_SECRET: "ci_test_secret_only"
+          CSRF_DISABLED: "true"
+          NODE_ENV: "test"
+          PORT: "5001"
+        run: |
+          node server.js &
+          sleep 2
 
-      - name: Backend Build
-        run: echo "placeholder - backend build"
+      - name: Run input safety tests (Newman)
+        working-directory: apps/backend
+        env:
+          PORT: "5001"
+        run: |
+          npx newman run tests/postman/input-safety.postman_collection.json \
+            -e tests/postman/input-safety.postman_environment.json
 
   # ------------------------------------------------------------------
   # JOB 4: FRONTEND
