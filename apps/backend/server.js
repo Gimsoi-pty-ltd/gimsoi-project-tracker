@@ -29,7 +29,13 @@ app.use(
 // CSRF protection — Double Submit Cookie via "csrf-csrf" package.
 // Automatically skips safe methods (GET, HEAD, OPTIONS).
 // See middleware/csrfProtection.js for configuration.
-app.use(csrfProtection);
+// Disable CSRF in CI/test runs so automated tests can hit POST/PUT/DELETE safely.
+// (Production stays protected.)
+if (process.env.CSRF_DISABLED === "true" || process.env.NODE_ENV === "test") {
+  console.log("CSRF disabled (test/ci mode).");
+} else {
+  app.use(csrfProtection);
+}
 
 // Routes
 app.get("/api/status", (req, res) => res.json({ status: "ok" }));
