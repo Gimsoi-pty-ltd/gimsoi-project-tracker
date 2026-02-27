@@ -12,3 +12,6 @@ These rules exist to keep delivery structured and predictable.
 - Prevents breaking the system
 - Keeps accountability clear
 - Ensures work aligns with client value
+
+#
+  -This is repository for tracking changes, commits, tasks and documentation related to the GimSOi project tracker

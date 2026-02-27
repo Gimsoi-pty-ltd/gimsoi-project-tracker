@@ -100,3 +100,23 @@ Concurrency is the ability of your system to handle multiple tasks or requests a
 
 **What is connection pooling?**
 Opening a new connection to a database is expensive (slow). **Connection Pooling** maintains a cache of open, reusable connections. When an API request needs the DB, it borrows an existing connection, uses it, and returns it to the pool instead of closing it. This drastically improves performance for high-traffic apps.
+
+
+## Environment Variables
+
+This backend uses environment variables for sensitive configuration such as API keys.
+
+### Required Variables
+
+Create a `.env` file in the `apps/backend` directory (same level as `package.json`) and define the following:
+
+```env
+GOOGLE_API_KEY=your_google_api_key_here
+ 
+ ## SETUP INSTRUCTIONS 
+ copy the example file:
+ bash
+ cp .env.example .env
+
+ 2 . add your own google API KEY TO THE .env file
+ 3.run backend as normal
