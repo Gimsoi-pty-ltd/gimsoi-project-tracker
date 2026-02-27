@@ -4,7 +4,7 @@ import logo from "../../assets/Gimsoi AI.jpg";
 
 export default function TopBar({ onMenuClick }) {
   return (
-    <div className="bg-blue-600 px-[32px] py-[18px] shadow-[0_4px_20px_rgba(37,99,235,0.2)] sticky top-0 z-30 border-b border-blue-500/30">
+    <div className="bg-[#002D62] px-[32px] py-[18px] shadow-[0_4px_20px_rgba(37,99,235,0.2)] sticky top-0 z-30 border-b border-blue-500/30">
       <div className="flex items-center justify-between w-full">
 
         {/* LEFT */}

@@ -28,7 +28,7 @@ export default function Sidebar({ onClose }) {
   ];
 
   return (
-    <div className="h-full w-[280px] bg-blue-600 pt-[32px] shadow-2xl flex flex-col border-r border-blue-500/30">
+    <div className="h-full w-[280px] bg-[#002D62] pt-[32px] shadow-2xl flex flex-col border-r border-blue-500/30">
       <div className="flex justify-between items-center px-8 mb-10">
         <span className="text-white font-bold text-lg tracking-tight">Project Tracker</span>
         <button
