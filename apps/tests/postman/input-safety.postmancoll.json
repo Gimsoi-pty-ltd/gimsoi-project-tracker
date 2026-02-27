@@ -1,0 +1,302 @@
+{
+  "info": {
+    "name": "Sprint 2 - Input Safety Boundaries",
+    "_postman_id": "input-safety-collection",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "AUTH - Signup missing required fields",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": { "raw": "{{baseUrl}}/api/auth/signup", "host": ["{{baseUrl}}"], "path": ["api", "auth", "signup"] },
+        "body": { "mode": "raw", "raw": "{}" }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Should be 4xx (not 500)', function () {",
+              "  pm.expect(pm.response.code).to.be.at.least(400);",
+              "  pm.expect(pm.response.code).to.be.below(500);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "AUTH - Signup invalid types",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": { "raw": "{{baseUrl}}/api/auth/signup", "host": ["{{baseUrl}}"], "path": ["api", "auth", "signup"] },
+        "body": { "mode": "raw", "raw": "{\"email\":123,\"password\":[\"nope\"]}" }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Should be 4xx (not 500)', function () {",
+              "  pm.expect(pm.response.code).to.be.at.least(400);",
+              "  pm.expect(pm.response.code).to.be.below(500);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "AUTH - Signup role escalation attempt (extra fields)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": { "raw": "{{baseUrl}}/api/auth/signup", "host": ["{{baseUrl}}"], "path": ["api", "auth", "signup"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"email\":\"role_escalate@example.com\",\"password\":\"Password123!\",\"role\":\"ADMIN\",\"permissions\":[\"*\"]}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Should reject extra/unsafe fields', function () {",
+              "  pm.expect([400,403]).to.include(pm.response.code);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "AUTH - Signup very long strings",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": { "raw": "{{baseUrl}}/api/auth/signup", "host": ["{{baseUrl}}"], "path": ["api", "auth", "signup"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"email\":\"{{longEmail}}\",\"password\":\"{{longPassword}}\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "const longEmail = 'a'.repeat(5000) + '@example.com';",
+              "const longPassword = 'A'.repeat(10000);",
+              "pm.environment.set('longEmail', longEmail);",
+              "pm.environment.set('longPassword', longPassword);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Should be 4xx (not 500)', function () {",
+              "  pm.expect(pm.response.code).to.be.at.least(400);",
+              "  pm.expect(pm.response.code).to.be.below(500);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "AUTH - Signup (first time for duplicate email test)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": { "raw": "{{baseUrl}}/api/auth/signup", "host": ["{{baseUrl}}"], "path": ["api", "auth", "signup"] },
+        "body": { "mode": "raw", "raw": "{\"email\":\"{{signupEmail}}\",\"password\":\"{{signupPassword}}\"}" }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('First signup should not 500', function () {",
+              "  pm.expect(pm.response.code).to.be.below(500);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "AUTH - Duplicate email (second signup should fail safely)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": { "raw": "{{baseUrl}}/api/auth/signup", "host": ["{{baseUrl}}"], "path": ["api", "auth", "signup"] },
+        "body": { "mode": "raw", "raw": "{\"email\":\"{{signupEmail}}\",\"password\":\"{{signupPassword}}\"}" }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Duplicate email should be 400 or 409', function () {",
+              "  pm.expect([400,409]).to.include(pm.response.code);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "AUTH - Login missing fields",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"] },
+        "body": { "mode": "raw", "raw": "{}" }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Should be 4xx (not 500)', function () {",
+              "  pm.expect(pm.response.code).to.be.at.least(400);",
+              "  pm.expect(pm.response.code).to.be.below(500);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TASKS - Unauthorized access (GET /api/tasks without token)",
+      "request": {
+        "method": "GET",
+        "url": { "raw": "{{baseUrl}}/api/tasks", "host": ["{{baseUrl}}"], "path": ["api", "tasks"] }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Should be 401/403', function () {",
+              "  pm.expect([401,403]).to.include(pm.response.code);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TASKS - Role escalation attempt (INTERN tries CREATE_TASK)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "x-user-role", "value": "INTERN" }
+        ],
+        "url": { "raw": "{{baseUrl}}/api/tasks", "host": ["{{baseUrl}}"], "path": ["api", "tasks"] },
+        "body": { "mode": "raw", "raw": "{\"title\":\"Test\"}" }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('INTERN should be forbidden (403)', function () {",
+              "  pm.expect(pm.response.code).to.eql(403);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TASKS - Invalid payload (POST /api/tasks bad types)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "x-user-role", "value": "ADMIN" }
+        ],
+        "url": { "raw": "{{baseUrl}}/api/tasks", "host": ["{{baseUrl}}"], "path": ["api", "tasks"] },
+        "body": { "mode": "raw", "raw": "{\"title\":123,\"dueDate\":[\"bad\"]}" }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Should be 400 (not 500)', function () {",
+              "  pm.expect(pm.response.code).to.be.at.least(400);",
+              "  pm.expect(pm.response.code).to.be.below(500);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TASKS - Very long strings (POST /api/tasks huge title)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "x-user-role", "value": "ADMIN" }
+        ],
+        "url": { "raw": "{{baseUrl}}/api/tasks", "host": ["{{baseUrl}}"], "path": ["api", "tasks"] },
+        "body": { "mode": "raw", "raw": "{\"title\":\"{{huge}}\"}" }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": { "exec": ["pm.environment.set('huge', 'A'.repeat(10000));"] }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Should be 4xx (not 500)', function () {",
+              "  pm.expect(pm.response.code).to.be.at.least(400);",
+              "  pm.expect(pm.response.code).to.be.below(500);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TASKS - Rapid sequential updates (PUT /api/tasks/:id repeated)",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "x-user-role", "value": "INTERN" }
+        ],
+        "url": { "raw": "{{baseUrl}}/api/tasks/{{taskId}}", "host": ["{{baseUrl}}"], "path": ["api", "tasks", "{{taskId}}"] },
+        "body": { "mode": "raw", "raw": "{\"status\":\"IN_PROGRESS\"}" }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Should not 500 under rapid updates', function () {",
+              "  pm.expect(pm.response.code).to.be.below(500);",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
