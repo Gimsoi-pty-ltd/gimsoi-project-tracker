@@ -1,4 +1,4 @@
-import { hasPermission } from '../permissions/permissions.js';
+import { hasPermission } from '../constants/permissions.js';
 
 /**
  * Middleware to restrict access based on permissions.
@@ -8,7 +8,7 @@ import { hasPermission } from '../permissions/permissions.js';
  */
 const authorize = (requiredPermission) => {
     return (req, res, next) => {
-        const userRole = req.userRole || req.headers['x-user-role'];
+        const userRole = req.user?.role || req.headers['x-user-role'];
 
         if (!userRole) {
             return res.status(401).json({ success: false, message: 'Authentication required. No role found in token or headers.' });

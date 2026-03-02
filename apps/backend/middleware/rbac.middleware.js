@@ -5,7 +5,8 @@ export const requireAnyRole = (roles = []) => {
     if (!req.user) return res.status(401).json({ message: "Unauthenticated" });
     if (!req.user.role) return res.status(403).json({ message: "Missing role" });
 
-    if (!allowed.has(req.user.role)) {
+    const userRole = req.user.role.toUpperCase();
+    if (!allowed.has(userRole)) {
       return res.status(403).json({ message: "Forbidden" });
     }
 
