@@ -11,7 +11,7 @@ export const createProject = async (req, res) => {
     const project = await projectService.createProject({
       name,
       clientId,
-      status: status || "Draft",
+      status: status ? status.toUpperCase() : "DRAFT",
       createdByUserId: req.user?.id || null,
     });
 
@@ -51,10 +51,10 @@ export const updateProject = async (req, res) => {
     const { id } = req.params;
     const { name, status } = req.body;
 
-    const updated = await projectService.updateProject(id, { name, status });
+    const updated = await projectService.updateProject(id, { name, status }, req.user.id, req.user.role);
     return res.status(200).json({ message: "Project updated", data: updated });
   } catch (err) {
-    console.error("updateProject error:", err?.message);
-    return res.status(500).json({ message: "Failed to update project" });
+    const statusCode = err.statusCode || 500;
+    return res.status(statusCode).json({ message: err.message || "Failed to update project" });
   }
 };

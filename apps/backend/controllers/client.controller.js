@@ -16,8 +16,7 @@ export const createClient = async (req, res) => {
 
     return res.status(201).json({ message: "Client created", data: client });
   } catch (err) {
-    console.error("createClient error:", err?.message);
-    return res.status(500).json({ message: "Failed to create client" });
+    return res.status(500).json({ message: "Failed to create client", error: err.stack || err.message || String(err) });
   }
 };
 
