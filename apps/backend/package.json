@@ -31,5 +31,7 @@
   },
   "devDependencies": {
     "newman": "^6.2.2"
+    "jest": "^29.0.0",
+    "supertest": "^6.3.3"
   }
 }
