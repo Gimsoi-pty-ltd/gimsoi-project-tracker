@@ -2,7 +2,7 @@ import bcryptjs from "bcryptjs";
 import crypto from "crypto";
 import prisma from "../lib/prisma.js";
 import { generateTokenAndSetCookie } from "../utils/generateTokenAndSetCookie.js";
-import ROLES from "../Roles/roles.js";
+import ROLES from "../constants/roles.js";
 import {
     sendVerificationEmail,
     sendWelcomeEmail,
@@ -227,7 +227,7 @@ export const resetPassword = async (req, res) => {
 export const checkAuth = async (req, res) => {
     try {
         const user = await prisma.user.findUnique({
-            where: { id: req.userId },
+            where: { id: req.user.id },
             omit: { password: true },
         });
 

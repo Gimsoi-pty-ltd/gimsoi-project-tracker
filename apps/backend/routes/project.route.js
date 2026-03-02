@@ -11,11 +11,11 @@ import {
 const router = express.Router();
 
 // Everyone logged in can view projects (Client is read-only)
-router.get("/", verifyToken, requireAnyRole(["Admin", "PM", "Intern", "Client"]), getProjects);
-router.get("/:id", verifyToken, requireAnyRole(["Admin", "PM", "Intern", "Client"]), getProjectById);
+router.get("/", verifyToken, requireAnyRole(["ADMIN", "PM", "INTERN", "CLIENT"]), getProjects);
+router.get("/:id", verifyToken, requireAnyRole(["ADMIN", "PM", "INTERN", "CLIENT"]), getProjectById);
 
 // Only Admin/PM can create/update
-router.post("/", verifyToken, requireAnyRole(["Admin", "PM"]), createProject);
-router.patch("/:id", verifyToken, requireAnyRole(["Admin", "PM"]), updateProject);
+router.post("/", verifyToken, requireAnyRole(["ADMIN", "PM"]), createProject);
+router.patch("/:id", verifyToken, requireAnyRole(["ADMIN", "PM"]), updateProject);
 
 export default router;

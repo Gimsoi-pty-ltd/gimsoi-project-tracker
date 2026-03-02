@@ -10,10 +10,10 @@ import {
 const router = express.Router();
 
 // Everyone logged in can view (including Client role - read-only)
-router.get("/", verifyToken, requireAnyRole(["Admin", "PM", "Intern", "Client"]), getClients);
-router.get("/:id", verifyToken, requireAnyRole(["Admin", "PM", "Intern", "Client"]), getClientById);
+router.get("/", verifyToken, requireAnyRole(["ADMIN", "PM", "INTERN", "CLIENT"]), getClients);
+router.get("/:id", verifyToken, requireAnyRole(["ADMIN", "PM", "INTERN", "CLIENT"]), getClientById);
 
 // Only Admin/PM can create
-router.post("/", verifyToken, requireAnyRole(["Admin", "PM"]), createClient);
+router.post("/", verifyToken, requireAnyRole(["ADMIN", "PM"]), createClient);
 
 export default router;
