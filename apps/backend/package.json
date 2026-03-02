@@ -6,7 +6,7 @@
   "scripts": {
     "server": "nodemon server.js",
     "start": "node server.js"
-    
+    "test": "NODE_ENV=test CSRF_DISABLED=true jest --runInBand"
   }
   "test:input-safety": "newman run apps/backend/tests/postman/input-safety.postman_collection.json -e apps/backend/tests/postman/input-safety.postman_environment.json --iteration-count 15",
   "type": "module",
