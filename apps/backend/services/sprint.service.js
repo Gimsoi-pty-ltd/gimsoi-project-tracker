@@ -1,68 +1,76 @@
-import { StateTransitionError } from '../errors/BusinessErrors.js';
+import prisma from "../lib/prisma.js";
+import { StateTransitionError, NotFoundError } from '../utils/errors.js';
+import { assertOwnership } from "../utils/ownership.js";
 
-/**
- * Service to handle Sprint domain logic.
- * Note: Database models are currently stubbed awaiting schema rollout.
- */
-export class SprintService {
-    constructor(dbMock = null) {
-        this.db = dbMock;
+export const createSprint = async ({ name, projectId, status, createdByUserId }) => {
+    return prisma.sprint.create({
+        data: {
+            name,
+            projectId,
+            status: status || 'PLANNING',
+            createdByUserId,
+        },
+    });
+};
+
+export const getSprintsByProject = async (projectId) => {
+    return prisma.sprint.findMany({
+        where: { projectId },
+        orderBy: { createdAt: "desc" }
+    });
+};
+
+export const getSprintById = async (id) => {
+    return prisma.sprint.findUnique({
+        where: { id: String(id) },
+        include: { tasks: true }
+    });
+};
+
+export const closeSprint = async (id, userId, userRole) => {
+    const sprint = await prisma.sprint.findUnique({ where: { id: String(id) } });
+    if (!sprint) throw new NotFoundError(`Sprint ${id} not found`);
+
+    if (userId && userRole) assertOwnership(sprint, userId, userRole);
+
+    const tasks = await prisma.task.findMany({ where: { sprintId: id } });
+    const hasOpenTasks = tasks.some(task => task.status !== 'DONE');
+
+    if (hasOpenTasks) {
+        throw new StateTransitionError("Cannot close sprint with active open tasks remaining.");
     }
 
-    /**
-     * Closes a sprint. Throws StateTransitionError if any task is still open.
-     * @param {string} sprintId 
-     */
-    async closeSprint(sprintId) {
-        // Stub retrieval since schema doesn't exist
-        const tasks = this.db ? await this.db.task.findMany({ where: { sprintId } }) : [];
+    return prisma.sprint.update({
+        where: { id: String(id) },
+        data: { status: 'CLOSED' }
+    });
+}
 
-        const hasOpenTasks = tasks.some(task => task.status !== 'DONE' && task.status !== 'CLOSED');
+export const updateSprintStatus = async (id, targetStatus, userId, userRole) => {
+    const sprint = await prisma.sprint.findUnique({ where: { id: String(id) } });
+    if (!sprint) throw new NotFoundError(`Sprint ${id} not found`);
 
-        if (hasOpenTasks) {
-            throw new StateTransitionError("Cannot close sprint with active open tasks remaining.");
-        }
+    if (userId && userRole) assertOwnership(sprint, userId, userRole);
 
-        if (this.db) {
-            await this.db.sprint.update({
-                where: { id: sprintId },
-                data: { status: 'CLOSED' }
-            });
-        }
+    const currentStatus = sprint.status;
 
-        return true;
+    const validTransitions = {
+        'PLANNING': ['ACTIVE'],
+        'ACTIVE': ['CLOSED'],
+        'CLOSED': ['ACTIVE']
+    };
+
+    const allowed = validTransitions[currentStatus] || [];
+    if (!allowed.includes(targetStatus)) {
+        throw new StateTransitionError(`Illegal sprint state transition from ${currentStatus} to ${targetStatus}`);
     }
 
-    /**
-     * Updates a sprint's status safely.
-     * @param {string} sprintId 
-     * @param {string} currentStatus 
-     * @param {string} targetStatus 
-     */
-    async updateSprintStatus(sprintId, currentStatus, targetStatus) {
-        const validTransitions = {
-            'PLANNING': ['ACTIVE', 'CANCELLED'],
-            'ACTIVE': ['CLOSED', 'CANCELLED'],
-            'CLOSED': [],
-            'CANCELLED': []
-        };
-
-        const allowed = validTransitions[currentStatus] || [];
-        if (!allowed.includes(targetStatus)) {
-            throw new StateTransitionError(`Illegal sprint state transition from ${currentStatus} to ${targetStatus}`);
-        }
-
-        if (targetStatus === 'CLOSED') {
-            return this.closeSprint(sprintId);
-        }
-
-        if (this.db) {
-            await this.db.sprint.update({
-                where: { id: sprintId },
-                data: { status: targetStatus }
-            });
-        }
-
-        return true;
+    if (targetStatus === 'CLOSED') {
+        return closeSprint(id, userId, userRole); // Pass down to the specific closer method
     }
+
+    return prisma.sprint.update({
+        where: { id: String(id) },
+        data: { status: targetStatus }
+    });
 }
