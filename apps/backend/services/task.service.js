@@ -1,5 +1,5 @@
 import prisma from "../lib/prisma.js";
-import { NotFoundError } from "../utils/errors.js";
+import { NotFoundError, ForbiddenError } from "../utils/errors.js";
 
 export const createTask = async ({ title, description, projectId, sprintId, reporterId, assigneeId }) => {
     return prisma.task.create({
@@ -37,10 +37,16 @@ export const getTaskById = async (id) => {
     });
 };
 
-export const updateTask = async (id, data) => {
+export const updateTask = async (id, data, userId, userRole) => {
     const existing = await prisma.task.findUnique({ where: { id } });
     if (!existing) {
         throw new NotFoundError(`Task with id ${id} not found`);
+    }
+
+    if (userId && userRole) {
+        if (userRole !== 'ADMIN' && existing.reporterId !== userId) {
+            throw new ForbiddenError("Only the reporter or an ADMIN can modify this task.");
+        }
     }
 
     return prisma.task.update({
@@ -55,10 +61,16 @@ export const updateTask = async (id, data) => {
     });
 };
 
-export const deleteTask = async (id) => {
+export const deleteTask = async (id, userId, userRole) => {
     const existing = await prisma.task.findUnique({ where: { id } });
     if (!existing) {
         throw new NotFoundError(`Task with id ${id} not found`);
+    }
+
+    if (userId && userRole) {
+        if (userRole !== 'ADMIN' && existing.reporterId !== userId) {
+            throw new ForbiddenError("Only the reporter or an ADMIN can modify this task.");
+        }
     }
 
     await prisma.task.delete({ where: { id } });
