@@ -8,9 +8,9 @@ import {
     resetPassword,
     checkAuth,
 } from "../controllers/auth.controller.js";
-import { verifyToken } from "../middleware/verifyToken.js";
-import { authLimiter, loginLimiter } from "../middleware/rateLimiter.js";
-import { generateCsrfToken } from "../middleware/csrfProtection.js";
+import { verifyToken } from "../middleware/verify-token.middleware.js";
+import { authLimiter, loginLimiter } from "../middleware/rate-limiter.middleware.js";
+import { generateCsrfToken } from "../middleware/csrf.middleware.js";
 
 const router = express.Router();
 

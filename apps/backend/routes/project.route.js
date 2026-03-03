@@ -1,5 +1,5 @@
 import express from "express";
-import { verifyToken } from "../middleware/verifyToken.js";
+import { verifyToken } from "../middleware/verify-token.middleware.js";
 import { requireAnyRole } from "../middleware/rbac.middleware.js";
 import {
   createProject,
