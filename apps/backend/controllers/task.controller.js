@@ -47,7 +47,7 @@ export const updateTask = async (req, res) => {
 
         const updated = await taskService.updateTask(id, {
             title, description, status, sprintId, assigneeId
-        });
+        }, req.user?.id, req.user?.role);
 
         return res.status(200).json({ success: true, message: "Task updated successfully", data: updated });
     } catch (err) {
@@ -59,7 +59,7 @@ export const updateTask = async (req, res) => {
 export const deleteTask = async (req, res) => {
     try {
         const { id } = req.params;
-        await taskService.deleteTask(id);
+        await taskService.deleteTask(id, req.user?.id, req.user?.role);
 
         return res.status(200).json({ success: true, message: "Task deleted successfully" });
     } catch (err) {
