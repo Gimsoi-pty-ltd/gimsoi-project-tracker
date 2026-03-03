@@ -33,10 +33,14 @@ export const closeSprint = async (id, userId, userRole) => {
 
     if (userId && userRole) assertOwnership(sprint, userId, userRole);
 
-    const tasks = await prisma.task.findMany({ where: { sprintId: id } });
-    const hasOpenTasks = tasks.some(task => task.status !== 'DONE');
+    const openTaskCount = await prisma.task.count({
+        where: {
+            sprintId: id,
+            status: { not: 'DONE' }
+        }
+    });
 
-    if (hasOpenTasks) {
+    if (openTaskCount > 0) {
         throw new StateTransitionError("Cannot close sprint with active open tasks remaining.");
     }
 
