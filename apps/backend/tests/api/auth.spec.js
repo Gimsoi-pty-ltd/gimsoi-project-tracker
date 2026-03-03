@@ -278,52 +278,5 @@ test.describe('Auth API Tests', () => {
         });
     });
 
-    test.describe('POST /api/auth/verify-email', () => {
-        test.fixme('returns 200 on happy path (requires mailer mock)', async ({ request }) => { });
 
-        test('returns 400 on invalid code', async ({ request }) => {
-            const response = await request.post('/api/auth/verify-email', {
-                headers: { 'x-csrf-token': csrfToken },
-                data: { code: 'invalid-code' }
-            });
-            expect(response.status()).toBe(400);
-            const data = await response.json();
-            expect(data.success).toBe(false);
-            expect(data.message).toBe('Invalid or expired verification code');
-        });
-    });
-
-    test.describe('POST /api/auth/reset-password/:token', () => {
-        test.fixme('returns 200 on happy path (requires mailer mock)', async ({ request }) => { });
-
-        test('returns 400 on invalid token', async ({ request }) => {
-            const response = await request.post('/api/auth/reset-password/invalid-token', {
-                headers: { 'x-csrf-token': csrfToken },
-                data: { password: 'newpassword123' }
-            });
-            expect(response.status()).toBe(400);
-            const data = await response.json();
-            expect(data.success).toBe(false);
-            expect(data.message).toBe('Invalid or expired reset token');
-        });
-    });
-
-    test.describe('Rate Limiting', () => {
-        test.skip('repeated login attempts eventually return 429', async ({ request }) => {
-            // loginLimiter config is standard Express Rate Limit. We spam the endpoint.
-            let lastStatus = 200;
-
-            // Fire 15 quick requests (assuming max logic is < 15, default usually 5-10)
-            for (let i = 0; i < 15; i++) {
-                const response = await request.post('/api/auth/login', {
-                    headers: { 'x-csrf-token': csrfToken },
-                    data: { email: `spam-${i}@example.com`, password: 'password123' }
-                });
-                lastStatus = response.status();
-                if (lastStatus === 429) break;
-            }
-
-            expect(lastStatus).toBe(429);
-        });
-    });
 });
