@@ -1,8 +1,8 @@
 import { useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Loader } from "lucide-react";
-import NavyButton from "../Components/Buttons";
-import { useAuthStore } from "../store/authStore";
+import NavyButton from "../../Components/Buttons";
+import { useAuthStore } from "../../store/authStore";
 
 export default function EmailVerification() {
   const [otp, setOtp] = useState(Array(6).fill(""));
