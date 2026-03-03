@@ -5,6 +5,8 @@ import cookieParser from "cookie-parser";
 import authRoutes from "./routes/auth.route.js";
 import tasksRoutes from "./routes/tasks.route.js";
 import { csrfProtection, csrfErrorHandler } from "./middleware/csrfProtection.js";
+import clientRoutes from "./routes/client.route.js";
+import projectRoutes from "./routes/project.route.js";
 
 dotenv.config();
 
@@ -36,6 +38,8 @@ app.get("/api/status", (req, res) => res.json({ status: "ok" }));
 app.use("/api/auth", authRoutes);
 app.use("/api/tasks", tasksRoutes);
 app.use("/api/sprints", sprintRoutes);
+app.use("/api/clients", clientRoutes);
+app.use("/api/projects", projectRoutes);
 
 // CSRF error handler — must be after routes
 app.use(csrfErrorHandler);
