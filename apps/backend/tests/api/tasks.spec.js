@@ -38,4 +38,25 @@ test.describe('Task Creation & Pipeline Validation', () => {
         expect(json.data.status).toBe('DONE');
     });
 
+    test('Non-reporter Intern is blocked from updating a task via 403 Forbidden', async ({ pmApi, internApi, testProject, testSprint }) => {
+        // PM creates the task
+        const taskRes = await pmApi.post('/api/tasks', {
+            data: {
+                title: "Top Secret PM Task",
+                projectId: testProject.id,
+                sprintId: testSprint.id
+            }
+        });
+        const taskData = await taskRes.json();
+        const taskId = taskData.data.id;
+
+        // Intern attempts to update the task they didn't report
+        const finishRes = await internApi.put(`/api/tasks/${taskId}`, {
+            data: { status: "DONE" }
+        });
+
+        // Must explicitly assert 403 Forbidden
+        expect(finishRes.status()).toBe(403);
+    });
+
 });
