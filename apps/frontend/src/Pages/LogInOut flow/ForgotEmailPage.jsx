@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Mail, ChevronLeft, Loader } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import NavyButton from '../Components/Buttons';
-import { useAuthStore } from '../store/authStore';
+import NavyButton from '../../Components/Buttons';
+import { useAuthStore } from '../../store/authStore';
 
 const ForgotEmailPage = () => {
   const [email, setEmail] = useState('');
