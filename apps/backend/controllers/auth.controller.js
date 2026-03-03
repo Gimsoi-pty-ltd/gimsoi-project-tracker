@@ -8,7 +8,7 @@ import {
     sendWelcomeEmail,
     sendPasswordResetEmail,
     sendResetSuccessEmail,
-} from "../services/emailService/emailService.js";
+} from "../services/email.service.js";
 
 const VALID_ROLES = Object.values(ROLES);
 
@@ -104,6 +104,12 @@ export const verifyEmail = async (req, res) => {
 
 export const login = async (req, res) => {
     const { email, password } = req.body;
+
+    if (!email || !password) {
+        return res
+            .status(400)
+            .json({ success: false, message: "Email and password are required" });
+    }
 
     try {
         const user = await prisma.user.findUnique({ where: { email } });
