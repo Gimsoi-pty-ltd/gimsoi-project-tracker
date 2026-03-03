@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Loader, Lock } from "lucide-react";
-import NavyButton from "../Components/Buttons";
-import { useAuthStore } from "../store/authStore";
+import NavyButton from "../../Components/Buttons";
+import { useAuthStore } from "../../store/authStore";
 
 const ResetPassword = () => {
   const [password, setPassword] = useState("");
