@@ -1,7 +1,7 @@
 import prisma from '../../lib/prisma.js';
 
 export default async function globalSetup() {
-    console.log('--- Playwright Global Setup: Wiping Database ---');
+    console.log('--- Playwright Global Setup: Initializing clean test environment ---');
     try {
         // Delete all records in the correct dependency order
         // Projects -> Sprints -> Tasks structure.
@@ -11,7 +11,7 @@ export default async function globalSetup() {
         await prisma.project.deleteMany();
         await prisma.client.deleteMany();
         await prisma.user.deleteMany();
-        console.log('--- Database Wipe Complete ---');
+        console.log('--- Test environment initialized ---');
     } catch (e) {
         console.error('Failed to wipe database in globalSetup:', e);
         throw e;
