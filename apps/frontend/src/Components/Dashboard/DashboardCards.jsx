@@ -1,24 +1,37 @@
-import React from 'react';
-import ActiveProjects from './ActiveProjects';
-import BlockedTasks from './BlockedTasks';
-import DaysRemaining from './DaysRemaining';
-import OverdueTasks from './OverdueTasks';
-import PhaseStatus from './PhaseStatus';
-import SprintOverview from './SprintOverview';
-import SprintVelocity from './SprintVelocity';
-import TaskProgress from './TaskProgress';
+import Cards from "../Common/Cards"
+import BlockedTasks from "./BlockedTasks";
+import ActiveProjects from "./ActiveProjects";
+import TaskProgress from "./TaskProgress";
+import SprintOverview from "./SprintOverview";
+import OverdueTasks from "./OverdueTasks";
+import DaysRemaining from "./DaysRemaining";
+import PhaseStatus from "./PhaseStatus";
+import SprintVelocity from "./SprintVelocity";
 
 const DashboardCards = () => {
   return (
-    <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-      <PhaseStatus />
-      <DaysRemaining />
-      <TaskProgress />
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-2 items-start">
+
       <ActiveProjects />
-      <SprintOverview />
-      <SprintVelocity />
+
+      <TaskProgress />
+      <DaysRemaining />
       <OverdueTasks />
-      <BlockedTasks />
+
+
+
+
+      <div className="lg:row-span-2">
+        <BlockedTasks />
+      </div>
+
+
+
+      <SprintVelocity />
+      <SprintOverview />
+      <PhaseStatus />
+
+
     </div>
   );
 };
