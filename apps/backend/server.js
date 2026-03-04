@@ -55,6 +55,13 @@ app.use("/api/sprints", sprintRoutes);
 // CSRF error handler — must be after routes
 app.use(csrfErrorHandler);
 
+// Test-only routes — mounted via dynamic import so the module never loads in non-test builds.
+// Double-guarded: server.js checks NODE_ENV here; each handler also guards internally.
+if (process.env.NODE_ENV === 'test') {
+  const { default: testingRoutes } = await import('./routes/testing.route.js');
+  app.use('/api/testing', testingRoutes);
+}
+
 // Start
 
 const PORT = process.env.PORT || 5001;
