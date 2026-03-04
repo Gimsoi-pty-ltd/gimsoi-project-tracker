@@ -9,7 +9,7 @@ import {
     checkAuth,
 } from "../controllers/auth.controller.js";
 import { verifyToken } from "../middleware/verify-token.middleware.js";
-import { authLimiter, loginLimiter } from "../middleware/rate-limiter.middleware.js";
+import { authLimiter, loginLimiter, readLimiter } from "../middleware/rate-limiter.middleware.js";
 import { generateCsrfToken } from "../middleware/csrf.middleware.js";
 
 const router = express.Router();
@@ -20,7 +20,7 @@ router.get("/csrf-token", (req, res) => {
     res.json({ success: true, csrfToken: token });
 });
 
-router.get("/check-auth", verifyToken, checkAuth);
+router.get("/check-auth", readLimiter, verifyToken, checkAuth);
 
 router.post("/signup", authLimiter, signup);
 
