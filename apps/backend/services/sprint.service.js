@@ -3,6 +3,13 @@ import { StateTransitionError, NotFoundError } from '../utils/errors.js';
 import { assertOwnership } from "../utils/ownership.js";
 
 export const createSprint = async ({ name, projectId, status, createdByUserId }) => {
+    // Guard: prevent creating sprints inside a COMPLETED project
+    const project = await prisma.project.findUnique({ where: { id: projectId } });
+    if (!project) throw new NotFoundError(`Project ${projectId} not found.`);
+    if (project.status === 'COMPLETED') {
+        throw new StateTransitionError('Cannot create a sprint inside a COMPLETED project.');
+    }
+
     return prisma.sprint.create({
         data: {
             name,
@@ -13,17 +20,27 @@ export const createSprint = async ({ name, projectId, status, createdByUserId })
     });
 };
 
-export const getSprintsByProject = async (projectId) => {
+/**
+ * @param {{ limit?: number, cursor?: string }} options
+ * limit defaults to 50, max 100. cursor is the id of the last record from the previous page.
+ */
+export const getSprintsByProject = async (projectId, { limit = 50, cursor } = {}) => {
+    const take = Math.min(Number(limit) || 50, 100);
     return prisma.sprint.findMany({
         where: { projectId },
-        orderBy: { createdAt: "desc" }
+        take: take + 1,         // fetch one extra to detect whether there's a next page
+        ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
+        orderBy: { createdAt: 'desc' },
+        select: { id: true, name: true, status: true, projectId: true, createdAt: true, createdByUserId: true },
     });
 };
 
 export const getSprintById = async (id) => {
     return prisma.sprint.findUnique({
         where: { id: String(id) },
-        include: { tasks: true }
+        // Use _count instead of include:{ tasks: true } — avoids loading an unbounded
+        // task collection. Full task list comes from GET /api/tasks?sprintId= (paginated).
+        include: { _count: { select: { tasks: true } } }
     });
 };
 
@@ -61,6 +78,8 @@ export const updateSprintStatus = async (id, targetStatus, userId, userRole) => 
     const validTransitions = {
         'PLANNING': ['ACTIVE'],
         'ACTIVE': ['CLOSED'],
+        // POLICY-PENDING: team must decide if a CLOSED sprint can be reopened.
+        // Currently permitted. Remove 'ACTIVE' here to permanently block reopening.
         'CLOSED': ['ACTIVE']
     };
 
