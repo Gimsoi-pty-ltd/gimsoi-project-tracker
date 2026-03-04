@@ -1,23 +1,44 @@
 import prisma from "../lib/prisma.js";
-import { NotFoundError, ForbiddenError } from "../utils/errors.js";
+import { StateTransitionError, NotFoundError, ForbiddenError } from "../utils/errors.js";
+import { handlePrismaError } from "../utils/prismaErrors.js";
 
 export const createTask = async ({ title, description, projectId, sprintId, reporterId, assigneeId }) => {
-    return prisma.task.create({
-        data: {
-            title,
-            description,
-            projectId,
-            sprintId,
-            reporterId,
-            assigneeId,
-            status: 'TODO'
+    // Guard: sprint must belong to the same project as the task
+    if (sprintId) {
+        const sprint = await prisma.sprint.findUnique({ where: { id: sprintId } });
+        if (!sprint) {
+            throw new NotFoundError(`Sprint ${sprintId} not found.`);
         }
-    });
+        if (sprint.projectId !== projectId) {
+            throw new StateTransitionError("Sprint does not belong to the specified project.");
+        }
+    }
+
+    try {
+        return await prisma.task.create({
+            data: {
+                title,
+                description,
+                projectId,
+                sprintId,
+                reporterId,
+                assigneeId,
+                status: 'TODO'
+            }
+        });
+    } catch (err) { handlePrismaError(err); }
 };
 
-export const getTasksByProject = async (projectId) => {
+/**
+ * @param {string} projectId
+ * @param {{ limit?: number, cursor?: string }} options
+ * limit defaults to 50. cursor is the ID of the last record from the previous page.
+ */
+export const getTasksByProject = async (projectId, { limit = 50, cursor } = {}) => {
     return prisma.task.findMany({
         where: { projectId },
+        take: limit,
+        ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
         include: {
             assignee: { select: { id: true, fullName: true, email: true } },
             reporter: { select: { id: true, fullName: true, email: true } },

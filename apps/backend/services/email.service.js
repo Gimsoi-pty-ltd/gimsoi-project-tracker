@@ -7,6 +7,20 @@ import {
 } from "./emailTemplates/emailTemplates.js";
 
 /**
+ * Escapes HTML special characters in strings inserted into email templates.
+ * Handles null/undefined by coercing to empty string.
+ * @param {unknown} str
+ * @returns {string}
+ */
+export const escapeHtml = (str) =>
+    String(str ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+
+/**
  * Send a Verification Email
  * Replaces "{verificationCode}" in the template
  */
@@ -35,9 +49,9 @@ export const sendWelcomeEmail = async (email, name) => {
         const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
         const loginURL = `${clientUrl}/login`;
 
-        const htmlContent = WELCOME_EMAIL_TEMPLATE.replace("{name}", name).replace(
+        const htmlContent = WELCOME_EMAIL_TEMPLATE.replace("{name}", escapeHtml(name)).replace(
             "{loginURL}",
-            loginURL
+            encodeURI(loginURL)
         );
 
         const mailOptions = {
@@ -69,7 +83,7 @@ export const sendPasswordResetEmail = async (email, resetURL) => {
             from: process.env.GMAIL_USER,
             to: email,
             subject: "Reset your password",
-            html: PASSWORD_RESET_REQUEST_TEMPLATE.replace("{resetURL}", resetURL),
+            html: PASSWORD_RESET_REQUEST_TEMPLATE.replace("{resetURL}", encodeURI(resetURL)),
         });
 
         console.log("Password reset email sent successfully", response.messageId);

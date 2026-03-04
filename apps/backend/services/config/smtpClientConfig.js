@@ -12,6 +12,7 @@ export const smtpClient = process.env.NODE_ENV === "test"
         host: "smtp.gmail.com",
         port: 587,
         secure: false, // true for 465, false for other ports
+        requireTLS: true,   // Abort if STARTTLS is unavailable — never send plaintext
         family: 4, // Force IPv4 to avoid IPv6 timeouts on Render
         auth: {
             user: process.env.GMAIL_USER,
@@ -26,9 +27,12 @@ export const smtpClient = process.env.NODE_ENV === "test"
 if (process.env.NODE_ENV !== "test") {
     smtpClient.verify((err, success) => {
         if (err) {
-            console.error("SMTP client verification failed:", err);
+            // Log at ERROR level so monitoring systems capture it.
+            // We do not crash the server on SMTP failure — auth flows still work,
+            // only email delivery is affected. Operators should alert on this log line.
+            console.error("[SMTP] Startup verification FAILED — email delivery unavailable:", err.message);
         } else {
-            console.log("SMTP client ready to send emails");
+            console.log("[SMTP] Ready.");
         }
     });
 }

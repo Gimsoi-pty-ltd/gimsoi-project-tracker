@@ -67,6 +67,23 @@ test.describe('Auth API Tests', () => {
             expect(data.success).toBe(false);
             expect(data.message).toBe('Invalid CSRF token');
         });
+
+        test('signup with role:ADMIN always returns role:INTERN', async ({ request }) => {
+            const email = `role-attack-${Date.now()}@example.com`;
+            const res = await request.post('/api/auth/signup', {
+                headers: { 'x-csrf-token': csrfToken },
+                data: { email, password: 'password123', fullName: 'Attacker', role: 'ADMIN' }
+            });
+            expect(res.status()).toBe(201);
+            const data = await res.json();
+            expect(data.user.role).toBe('INTERN');
+            // Confirm they cannot reach admin-only endpoints
+            const adminRes = await request.post('/api/tasks', {
+                data: { title: 'Test', projectId: 'some-id' },
+                headers: { Authorization: `Bearer ${data.token}` }
+            });
+            expect(adminRes.status()).toBe(403); // INTERN lacks CREATE_TASK (or similar), properly returning Forbidden
+        });
     });
 
     test.describe('POST /api/auth/login', () => {
@@ -170,6 +187,33 @@ test.describe('Auth API Tests', () => {
             expect(data.user).toBeDefined();
         });
 
+        test('x-user-role header is ignored — unauthenticated request denied', async ({ request }) => {
+            const res = await request.get('/api/tasks', {
+                // No token provided, but malicious header present
+                headers: { 'x-user-role': 'ADMIN' }
+            });
+            expect(res.status()).toBe(401);
+            const data = await res.json();
+            expect(data.message).toContain('no token provided');
+        });
+
+        test('x-user-role ADMIN header ignored when authenticated as INTERN', async ({ request }) => {
+            const csrfRes = await request.get('/api/auth/csrf-token');
+            const setupCsrfToken = (await csrfRes.json()).csrfToken;
+
+            const signupRes = await request.post('/api/auth/signup', {
+                headers: { 'x-csrf-token': setupCsrfToken },
+                data: { email: `intern-esc-${Date.now()}@example.com`, password: 'pw123456', fullName: 'Esc Test' }
+            });
+            const { token } = await signupRes.json();
+
+            // Attempt DELETE with forged role header
+            const delRes = await request.delete('/api/tasks/any-id', {
+                headers: { Authorization: `Bearer ${token}`, 'x-user-role': 'ADMIN' }
+            });
+            expect(delRes.status()).toBe(403);  // INTERN lacks DELETE_TASK, header ignored
+        });
+
         test('returns 401 with no token', async ({ request }) => {
             const response = await request.get('/api/auth/check-auth');
             expect(response.status()).toBe(401);
@@ -191,6 +235,16 @@ test.describe('Auth API Tests', () => {
         // Note: The 400 response for "valid token but user deleted from DB"
         // requires deleting the user manually or stubbing the DB, which is complex for this file. 
         // We are trusting the signature validation catches 99% of cases here.
+
+        test('rejects token with forged alg:none header', async ({ request }) => {
+            const header = Buffer.from(JSON.stringify({ alg: 'none', typ: 'JWT' })).toString('base64url');
+            const payload = Buffer.from(JSON.stringify({ userId: 'fake', role: 'ADMIN' })).toString('base64url');
+            const fakeToken = `${header}.${payload}.`;   // Unsigned
+            const res = await request.get('/api/auth/check-auth', {
+                headers: { Authorization: `Bearer ${fakeToken}` }
+            });
+            expect(res.status()).toBe(401);
+        });
     });
 
     test.describe('POST /api/auth/logout', () => {
@@ -254,18 +308,14 @@ test.describe('Auth API Tests', () => {
         });
 
         test('returns 200 for unknown email (prevent user enumeration)', async ({ request }) => {
-            /*
-              SECURITY: controller leaks user existence, returns 400 instead of 200 for unknown emails, 
-              this test will fail until the controller is fixed.
-            */
             const response = await request.post('/api/auth/forgot-password', {
                 headers: { 'x-csrf-token': csrfToken },
                 data: { email: 'nobody@example.com' }
             });
-            expect(response.status()).toBe(400);
+            expect(response.status()).toBe(200);
             const data = await response.json();
-            expect(data.success).toBe(false);
-            expect(data.message).toBe('User not found');
+            expect(data.success).toBe(true);
+            expect(data.message).toContain('If that email is registered');
         });
 
         test('returns 400 on missing email field', async ({ request }) => {

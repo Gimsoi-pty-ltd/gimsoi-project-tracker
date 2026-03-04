@@ -28,7 +28,7 @@ router.post("/login", loginLimiter, login);
 
 router.post("/logout", logout);
 
-router.post("/verify-email", authLimiter, verifyEmail);
+router.post("/verify-email", loginLimiter, verifyEmail);
 
 router.post("/forgot-password", authLimiter, forgotPassword);
 

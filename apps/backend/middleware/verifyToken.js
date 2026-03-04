@@ -14,7 +14,7 @@ export const verifyToken = (req, res, next) => {
             .status(401)
             .json({ success: false, message: "Unauthorized - no token provided" });
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ["HS256"] });
 
         if (!decoded)
             return res

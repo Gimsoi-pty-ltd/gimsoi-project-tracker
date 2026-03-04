@@ -13,7 +13,7 @@ import {
 const VALID_ROLES = Object.values(ROLES);
 
 export const signup = async (req, res) => {
-    const { email, password, fullName, role } = req.body;
+    const { email, password, fullName } = req.body;    // role intentionally excluded
 
     try {
         if (!email || !password || !fullName) {
@@ -28,11 +28,10 @@ export const signup = async (req, res) => {
         }
 
         const hashedPassword = await bcryptjs.hash(password, 10);
-        const verificationToken = Math.floor(
-            100000 + Math.random() * 900000
-        ).toString();
+        // crypto.randomInt(min, max) is exclusive of max — range is 100000..999999 inclusive
+        const verificationToken = crypto.randomInt(100000, 999999).toString();
 
-        const assignedRole = (role && VALID_ROLES.includes(role)) ? role : ROLES.INTERN;
+        const assignedRole = ROLES.INTERN;
 
         const user = await prisma.user.create({
             data: {
@@ -41,7 +40,7 @@ export const signup = async (req, res) => {
                 fullName,
                 role: assignedRole,
                 verificationToken,
-                verificationTokenExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+                verificationTokenExpiresAt: new Date(Date.now() + 15 * 60 * 1000),
             },
         });
 
@@ -159,9 +158,11 @@ export const forgotPassword = async (req, res) => {
         const user = await prisma.user.findUnique({ where: { email } });
 
         if (!user) {
-            return res
-                .status(400)
-                .json({ success: false, message: "User not found" });
+            // Return 200 regardless — do not reveal account existence
+            return res.status(200).json({
+                success: true,
+                message: "If that email is registered, a reset link has been sent.",
+            });
         }
 
         const resetToken = crypto.randomBytes(20).toString("hex");

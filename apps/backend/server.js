@@ -14,6 +14,9 @@ dotenv.config();
 if (!process.env.JWT_SECRET) {
   throw new Error("Missing required env var: JWT_SECRET");
 }
+if (process.env.NODE_ENV === "production" && !process.env.CLIENT_URL) {
+  throw new Error("Missing required env var: CLIENT_URL (required in production for CORS)");
+}
 
 const app = express();
 app.set("trust proxy", 1);
@@ -26,7 +29,7 @@ app.use(
     origin: process.env.CLIENT_URL || "http://localhost:5173",
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "x-user-role", "x-csrf-token"],
+    allowedHeaders: ["Content-Type", "Authorization", "x-csrf-token"],
   })
 );
 // CSRF protection — Double Submit Cookie via "csrf-csrf" package.

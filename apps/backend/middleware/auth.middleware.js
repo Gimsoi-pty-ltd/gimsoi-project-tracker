@@ -8,10 +8,10 @@ import { hasPermission } from '../constants/permissions.js';
  */
 const authorize = (requiredPermission) => {
     return (req, res, next) => {
-        const userRole = req.user?.role || req.headers['x-user-role'];
+        const userRole = req.user?.role;
 
         if (!userRole) {
-            return res.status(401).json({ success: false, message: 'Authentication required. No role found in token or headers.' });
+            return res.status(401).json({ success: false, message: 'Authentication required.' });
         }
 
         if (hasPermission(userRole, requiredPermission)) {
