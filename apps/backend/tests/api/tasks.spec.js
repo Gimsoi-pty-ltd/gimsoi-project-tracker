@@ -59,4 +59,27 @@ test.describe('Task Creation & Pipeline Validation', () => {
         expect(finishRes.status()).toBe(403);
     });
 
+    test('Updating task with invalid status returns 400 StateTransitionError', async ({ pmApi, testProject, testSprint }) => {
+        // PM creates a task they own (as reporter)
+        const taskRes = await pmApi.post('/api/tasks', {
+            data: {
+                title: "Status Validation Task",
+                projectId: testProject.id,
+                sprintId: testSprint.id
+            }
+        });
+        expect(taskRes.status()).toBe(201);
+        const taskId = (await taskRes.json()).data.id;
+
+        // Attempt to set an invalid status value
+        const updateRes = await pmApi.put(`/api/tasks/${taskId}`, {
+            data: { status: "INVALID_STATUS" }
+        });
+
+        expect(updateRes.status()).toBe(400);
+        const json = await updateRes.json();
+        expect(json.message).toContain('Invalid task status');
+        expect(json.message).toContain('INVALID_STATUS');
+    });
+
 });
