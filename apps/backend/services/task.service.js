@@ -70,6 +70,14 @@ export const updateTask = async (id, data, userId, userRole) => {
         }
     }
 
+    // Validate status transition — reject arbitrary strings before hitting the DB
+    const VALID_STATUSES = ['TODO', 'IN_PROGRESS', 'DONE'];
+    if (data.status !== undefined && !VALID_STATUSES.includes(data.status)) {
+        throw new StateTransitionError(
+            `Invalid task status '${data.status}'. Allowed values: ${VALID_STATUSES.join(', ')}`
+        );
+    }
+
     return prisma.task.update({
         where: { id },
         data: {
