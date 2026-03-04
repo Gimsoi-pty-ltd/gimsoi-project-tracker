@@ -13,9 +13,16 @@ export const createProject = async ({ name, clientId, status, createdByUserId })
   });
 };
 
-export const getProjects = async () => {
+/**
+ * @param {{ limit?: number, cursor?: string }} options
+ * limit defaults to 50, max 100. cursor is the id of the last record from the previous page.
+ */
+export const getProjects = async ({ limit = 50, cursor } = {}) => {
+  const take = Math.min(Number(limit) || 50, 100);
   return prisma.project.findMany({
-    orderBy: { createdAt: "desc" },
+    take: take + 1,         // fetch one extra to detect whether there's a next page
+    ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
+    orderBy: { createdAt: 'desc' },
     include: { client: true },
   });
 };
@@ -38,6 +45,8 @@ export const updateProject = async (id, data, userId, userRole) => {
       const validTransitions = {
         'DRAFT': ['ACTIVE', 'COMPLETED'],
         'ACTIVE': ['COMPLETED', 'DRAFT'],
+        // POLICY-PENDING: team must decide if a COMPLETED project can revert to ACTIVE.
+        // Currently permitted. Remove 'ACTIVE' here to permanently block regression.
         'COMPLETED': ['ACTIVE']
       };
 
@@ -55,4 +64,34 @@ export const updateProject = async (id, data, userId, userRole) => {
       ...(data.status !== undefined ? { status: data.status } : {}),
     },
   });
+};
+
+/**
+ * Returns task completion counts for a project in a single aggregation query.
+ * POLICY-PENDING: whether CLIENT role should receive full breakdown vs percentComplete only.
+ *
+ * @param {string} projectId
+ * @returns {{ TODO: number, IN_PROGRESS: number, DONE: number, total: number, percentComplete: number }}
+ */
+export const getProjectProgress = async (projectId) => {
+  const project = await prisma.project.findUnique({ where: { id: String(projectId) } });
+  if (!project) return null;
+
+  const groups = await prisma.task.groupBy({
+    by: ['status'],
+    where: { projectId: String(projectId) },
+    _count: { status: true },
+  });
+
+  const totals = { TODO: 0, IN_PROGRESS: 0, DONE: 0 };
+  for (const g of groups) {
+    if (g.status in totals) totals[g.status] = g._count.status;
+  }
+
+  const total = totals.TODO + totals.IN_PROGRESS + totals.DONE;
+  return {
+    ...totals,
+    total,
+    percentComplete: total ? Math.round((totals.DONE / total) * 100) : 0,
+  };
 };
