@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 const BlockedTasks = () => {
     // Task data array
@@ -48,7 +49,8 @@ const BlockedTasks = () => {
     ];
 
     return (
-        <section className="bg-white rounded-[20px] p-6 shadow-sm border border-gray-100 w-full h-full hover:shadow-md transition-shadow">
+        <Link to="/tasks/blocked" className="block h-full no-underline">
+        <section className="bg-white rounded-[20px] p-6 shadow-sm border border-gray-100 w-full h-full hover:shadow-md transition-shadow cursor-pointer">
             {/* Header */}
             <h3 className="text-[#1A75FF] font-bold text-md mb-4 uppercase tracking-wider text-center">
                 Blocked Tasks
@@ -93,6 +95,7 @@ const BlockedTasks = () => {
                 ))}
             </ul>
         </section>
+        </Link>
     );
 };
 
