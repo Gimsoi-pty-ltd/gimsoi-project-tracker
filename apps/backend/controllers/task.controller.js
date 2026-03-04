@@ -28,15 +28,20 @@ export const getTasks = async (req, res) => {
     try {
         const { projectId } = req.query;
 
-        const limit = Math.min(parseInt(req.query.limit) || 50, 100); // max 100
+        const limit = Math.min(parseInt(req.query.limit) || 50, 100);
         const cursor = req.query.cursor || undefined;
 
         if (!projectId) {
             return res.status(400).json({ success: false, message: "projectId query parameter is required" });
         }
 
-        const tasks = await taskService.getTasksByProject(projectId, { limit, cursor });
-        return res.status(200).json({ success: true, data: tasks });
+        const records = await taskService.getTasksByProject(projectId, { limit, cursor });
+
+        const hasMore = records.length > limit;
+        const data = hasMore ? records.slice(0, limit) : records;
+        const nextCursor = hasMore ? data[data.length - 1].id : null;
+
+        return res.status(200).json({ success: true, data, nextCursor });
     } catch (err) {
         const statusCode = err.statusCode || 500;
         return res.status(statusCode).json({ success: false, message: err.message || "Failed to fetch tasks" });
