@@ -1,14 +1,14 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 
-// ─── AUTH PAGES — RESTORED ─────────────────────────────
+// ─── AUTH PAGES ─────────────────────────────
 import LoginPage from './Pages/LogInOut flow/LoginPage';
 import SignUpPage from './Pages/LogInOut flow/SignUpPage';
 import ResetPassword from './Pages/LogInOut flow/ResetPassword';
 import EmailVerification from './Pages/LogInOut flow/EmailVerification';
 import ForgotEmailPage from './Pages/LogInOut flow/ForgotEmailPage';
 
-// ─── DASHBOARD LAYOUT & PAGES — UNCHANGED ─────────────────────────────
+// ─── DASHBOARD LAYOUT & PAGES  ─────────────────────────────
 import DashboardLayout from "./Layouts/DashboardLayout";
 
 // Dashboard & Overview
@@ -57,7 +57,7 @@ import HelpSupport from './Pages/Help/HelpSupport';
 
 import { useAuthStore } from "./store/authStore";
 
-// ─── Auth Guard Components — RESTORED ─────────────────────────────
+// ─── Auth Guard Components  ─────────────────────────────
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, user } = useAuthStore();
 
@@ -95,7 +95,7 @@ function App() {
   return (
     <Router>
       <Routes>
-        {/* === AUTH ROUTES — RESTORED (flat, unchanged) === */}
+        {/* === AUTH ROUTES  === */}
         <Route path="/login" element={
           <RedirectAuthenticatedUser>
             <LoginPage />
@@ -122,10 +122,10 @@ function App() {
           </RedirectAuthenticatedUser>
         } />
 
-        {/* === ROOT REDIRECT — Now goes to login when unauthenticated === */}
+        {/* === ROOT REDIRECT  === */}
         <Route path="/" element={<Navigate to="/login" replace />} />
 
-        {/* === DASHBOARD ROUTES — EXACTLY AS YOU HAD THEM (flat + ProtectedRoute) === */}
+        {/* === DASHBOARD ROUTES  === */}
         
         {/* Dashboard & Overview */}
         <Route path="/dashboard" element={
