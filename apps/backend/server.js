@@ -8,15 +8,15 @@ import { csrfProtection, csrfErrorHandler } from "./middleware/csrf.middleware.j
 import clientRoutes from "./routes/client.route.js";
 import projectRoutes from "./routes/project.route.js";
 import sprintRoutes from "./routes/sprint.route.js";
+import { validateEnv } from "./utils/validateEnv.js";
 
 
 import aiRoutes from "./AI/ai.routes.js";
 
 dotenv.config();
 
-if (!process.env.JWT_SECRET) {
-  throw new Error("Missing required env var: JWT_SECRET");
-}
+validateEnv();
+// CLIENT_URL is only required in production
 if (process.env.NODE_ENV === "production" && !process.env.CLIENT_URL) {
   throw new Error("Missing required env var: CLIENT_URL (required in production for CORS)");
 }
@@ -41,7 +41,7 @@ app.use(
 );
 // CSRF protection — Double Submit Cookie via "csrf-csrf" package.
 // Automatically skips safe methods (GET, HEAD, OPTIONS).
-// See middleware/csrfProtection.js for configuration.
+// See middleware/csrf.middleware.js for configuration.
 app.use(csrfProtection);
 
 // Routes

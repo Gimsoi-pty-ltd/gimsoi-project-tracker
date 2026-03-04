@@ -1,11 +1,7 @@
 import express from "express";
-import {
-  createTask, getAllTasks, getTaskById,
-  updateTask, deleteTask
-} from '../controllers/task.controller.js';
-import { verifyToken } from "../middleware/verifyToken.js";
-import authorize from "../middleware/authMiddleware.js";
-import { readLimiter, writeLimiter } from "../middleware/rateLimiter.js";
+import { verifyToken } from "../middleware/verify-token.middleware.js";
+import authorize from "../middleware/auth.middleware.js";
+import { readLimiter, writeLimiter } from "../middleware/rate-limiter.middleware.js";
 import { createTask, getTasks, updateTask, deleteTask } from "../controllers/task.controller.js";
 
 const router = express.Router();
