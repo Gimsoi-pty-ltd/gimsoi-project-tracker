@@ -63,10 +63,39 @@ if (process.env.NODE_ENV === 'test') {
 }
 
 // Start
-
 const PORT = process.env.PORT || 5001;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+
+// Surface any unhandled async error that would otherwise silently kill the process
+process.on('unhandledRejection', (reason) => {
+  console.error('[process] Unhandled rejection — server shutting down:', reason);
+  process.exit(1);
 });
+
+(async () => {
+  // Probe the DB connection before accepting requests.
+  // Gives a clear error immediately if DATABASE_URL is wrong or unreachable.
+  const prisma = (await import('./lib/prisma.js')).default;
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    console.log('[db] Connected.');
+  } catch (err) {
+    console.error(
+      `\n[db] Cannot connect to the database.\n` +
+      `     Check DATABASE_URL in your .env file.\n` +
+      `     Reason: ${err.message}\n`
+    );
+    process.exit(1);
+  }
+
+  const server = app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+
+  // Surface listen errors (e.g. port already in use) instead of silently exiting
+  server.on('error', (err) => {
+    console.error(`\n[server] Failed to start: ${err.message}\n`);
+    process.exit(1);
+  });
+})();
 
 export default app;
