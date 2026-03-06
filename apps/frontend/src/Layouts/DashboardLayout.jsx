@@ -1,12 +1,17 @@
 import { useState } from "react";
+import { Outlet } from "react-router-dom";
 import Sidebar from "../Components/Common/SideBar";
 import TopBar from "../Components/Common/TopBar";
 
+console.log('DashboardLayout component loading...');
+
 const DashboardLayout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  
+  console.log('DashboardLayout rendering...');
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC]">
+    <div className="min-h-screen bg-[#F8FAFC]" style={{ fontFamily: 'Arial, sans-serif' }}>
       {/* Top Bar */}
       <TopBar onMenuClick={() => setSidebarOpen(true)} />
 
@@ -26,13 +31,11 @@ const DashboardLayout = ({ children }) => {
       )}
 
       {/* Main Content Area */}
-      <main className="p-4 md:p-6 lg:p-8">
-        <div className="max-w-[1400px] mx-auto">
-          {children}
-        </div>
-      </main>
+      {children || <Outlet />}
     </div>
   );
 };
+
+console.log('DashboardLayout component defined');
 
 export default DashboardLayout;

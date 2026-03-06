@@ -5,11 +5,9 @@ import DashboardLayout from "../../Layouts/DashboardLayout";
 
 const Dashboard = () => {
     return (
-        <DashboardLayout>
             
             <DashboardCards />
 
-        </DashboardLayout>
     );
 };
 
