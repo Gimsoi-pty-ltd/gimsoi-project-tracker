@@ -14,28 +14,31 @@ const sharedOptions = {
     legacyHeaders: false,
 };
 
-export const readLimiter = rateLimit({
+const isTestEnv = process.env.NODE_ENV === 'test';
+const passThrough = (req, res, next) => next();
+
+export const readLimiter = isTestEnv ? passThrough : rateLimit({
     ...sharedOptions,
     windowMs: 15 * 60 * 1000,
     max: 100,
     message: { success: false, message: "Too many requests. Please try again later." },
 });
 
-export const writeLimiter = rateLimit({
+export const writeLimiter = isTestEnv ? passThrough : rateLimit({
     ...sharedOptions,
     windowMs: 15 * 60 * 1000,
     max: 30,
     message: { success: false, message: "Too many requests. Please try again later." },
 });
 
-export const authLimiter = rateLimit({
+export const authLimiter = isTestEnv ? passThrough : rateLimit({
     ...sharedOptions,
     windowMs: 15 * 60 * 1000,
     max: 20,
     message: { success: false, message: "Too many requests. Please try again later." },
 });
 
-export const loginLimiter = rateLimit({
+export const loginLimiter = isTestEnv ? passThrough : rateLimit({
     ...sharedOptions,
     windowMs: 15 * 60 * 1000,
     max: 5,
