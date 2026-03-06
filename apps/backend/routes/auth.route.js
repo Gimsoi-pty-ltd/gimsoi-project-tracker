@@ -8,9 +8,9 @@ import {
     resetPassword,
     checkAuth,
 } from "../controllers/auth.controller.js";
-import { verifyToken } from "../middleware/verifyToken.js";
-import { authLimiter, loginLimiter } from "../middleware/rateLimiter.js";
-import { generateCsrfToken } from "../middleware/csrfProtection.js";
+import { verifyToken } from "../middleware/verify-token.middleware.js";
+import { authLimiter, loginLimiter, readLimiter } from "../middleware/rate-limiter.middleware.js";
+import { generateCsrfToken } from "../middleware/csrf.middleware.js";
 
 const router = express.Router();
 
@@ -20,7 +20,7 @@ router.get("/csrf-token", (req, res) => {
     res.json({ success: true, csrfToken: token });
 });
 
-router.get("/check-auth", verifyToken, checkAuth);
+router.get("/check-auth", readLimiter, verifyToken, checkAuth);
 
 router.post("/signup", authLimiter, signup);
 
@@ -28,7 +28,7 @@ router.post("/login", loginLimiter, login);
 
 router.post("/logout", logout);
 
-router.post("/verify-email", authLimiter, verifyEmail);
+router.post("/verify-email", loginLimiter, verifyEmail);
 
 router.post("/forgot-password", authLimiter, forgotPassword);
 

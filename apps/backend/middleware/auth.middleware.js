@@ -1,25 +1,28 @@
-import jwt from "jsonwebtoken";
+import { hasPermission } from '../constants/permissions.js';
 
-export const authenticateJWT = (req, res, next) => {
-  const authHeader = req.headers.authorization || "";
-  const [scheme, token] = authHeader.split(" ");
+/**
+ * Middleware to restrict access based on permissions.
+ * Reads the user role from req.userRole (set by verifyToken middleware)
+ * with a fallback to x-user-role header for backward compatibility.
+ * @param {string} requiredPermission 
+ */
+const authorize = (requiredPermission) => {
+    return (req, res, next) => {
+        const userRole = req.user?.role;
 
-  if (scheme !== "Bearer" || !token) {
-    return res.status(401).json({ message: "Missing or invalid Authorization header" });
-  }
+        if (!userRole) {
+            return res.status(401).json({ success: false, message: 'Authentication required.' });
+        }
 
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    // DevOps rule: never log token or decoded payload
-    req.user = {
-      id: decoded.sub,
-      email: decoded.email,
-      role: decoded.role,
+        if (hasPermission(userRole, requiredPermission)) {
+            next();
+        } else {
+            res.status(403).json({
+                success: false,
+                message: `Access denied. Role '${userRole}' does not have '${requiredPermission}' permission.`
+            });
+        }
     };
-
-    return next();
-  } catch {
-    return res.status(401).json({ message: "Invalid or expired token" });
-  }
 };
+
+export default authorize;
