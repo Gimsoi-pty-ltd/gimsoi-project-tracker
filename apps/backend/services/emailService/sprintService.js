@@ -5,6 +5,10 @@ export async function createSprint(data) {
     return prisma.sprint.create({ data });
 }
 
+export async function getAllSprints() {
+    return prisma.sprint.findMany();
+}
+
 //Lifecycle Validation
 function validatetransition(current, next) {
     const allowed = {
@@ -13,7 +17,7 @@ function validatetransition(current, next) {
         completed: []
     };
 
-    if (!allowed[current].include(next)) {
+    if (!allowed[current].includes(next)) {
         throw new Error(`Cannot change sprint from ${current} -> ${next}`);
     }
 }
@@ -42,16 +46,15 @@ return prisma.sprint.update({
 }
 
 //Progress Calculation
-task.sprintId
-task.status
+
 
 async function calculateProgress(sprintId) {
-    const tasks = await prisma.task.findmany({
+    const tasks = await prisma.task.findMany({
         where: { sprintId }
     });
 
-    const total = tasks.lenght;
-    const done = tasks.filter(t => t.status === "done").lenght;
+    const total = tasks.length;
+    const done = tasks.filter(t => t.status === "done").length;
 
     if (total === 0) return 0;
     return Math.round((done / total) * 100);
@@ -59,8 +62,10 @@ async function calculateProgress(sprintId) {
 
 export async function getSprintWithProgress(id) {
     const sprint = await prisma.sprint.findUnique({
-        where: { id }
+        where: { id: Number(id) }
     });
+
+    if (!sprint) throw new Error("Sprint not found");
 
     const progress = await calculateProgress(id);
 

@@ -4,6 +4,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import authRoutes from "./routes/auth.route.js";
 import tasksRoutes from "./routes/tasks.route.js";
+import sprintRoutes from "./routes/sprint.route.js";
 import { csrfProtection, csrfErrorHandler } from "./middleware/csrfProtection.js";
 
 dotenv.config();
