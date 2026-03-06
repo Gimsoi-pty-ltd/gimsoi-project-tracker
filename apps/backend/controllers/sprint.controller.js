@@ -4,32 +4,6 @@ export const createSprint = async (req, res) => {
     try {
         const { name, projectId, status } = req.body;
 
-<<<<<<< HEAD
-export async function createSprint(req, res) {
-    try{
-    const sprint = await sprintService.createSprint(req.body);
-    res.json(sprint);
-    }catch(error) {
-        res.status(500).json({ error: error.message });
-    }
-}
-
-export async function getSprintById(req, res) {
-    try{
-    const sprint = await sprintService.getSprintWithProgress(req.params.id);
-    res.json(sprint);
-    }catch(error) {
-        res.status(500).json({ error: error.message });
-    }
-};
-
-export async function updateSprint(req, res) {
-    try{
-        const sprint = await sprintService.updateSprint(req.params.id, req.body);
-        res.json(sprint);
-    } catch(error) {
-        res.status(500).json({ error: error.message });
-=======
         if (!name || !projectId) {
             return res.status(400).json({ success: false, message: "Sprint name and projectId are required" });
         }
@@ -45,7 +19,6 @@ export async function updateSprint(req, res) {
     } catch (err) {
         const statusCode = err.statusCode || 500;
         return res.status(statusCode).json({ success: false, message: err.message || "Failed to create sprint" });
->>>>>>> a8b2740d92f1da13adcfc121fd03cb9c16534d24
     }
 };
 
