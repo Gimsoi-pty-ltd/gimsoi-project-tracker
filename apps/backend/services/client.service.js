@@ -1,6 +1,4 @@
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import prisma from "../lib/prisma.js";
 
 export const createClient = async ({ name, contactEmail, createdByUserId }) => {
   // Adjust model name if your schema uses a different one
