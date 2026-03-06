@@ -3,7 +3,7 @@ import dotenv from "dotenv";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import authRoutes from "./routes/auth.route.js";
-import tasksRoutes from "./routes/tasks.route.js";
+import tasksRoutes from "./routes/task.route.js";
 import { csrfProtection, csrfErrorHandler } from "./middleware/csrf.middleware.js";
 import clientRoutes from "./routes/client.route.js";
 import projectRoutes from "./routes/project.route.js";
