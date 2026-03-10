@@ -55,6 +55,12 @@ import SecuritySection from './Pages/Settings Page/SecuritySection';
 // Help
 import HelpSupport from './Pages/Help/HelpSupport';
 
+// User Management
+import Usermanagement from "./Pages/Users/UserManagementPage";
+import Users from "./Pages/Users/Users";
+import Teams from "./Pages/Users/Teams";
+import Clients from "./Pages/Users/Clients";
+
 import { useAuthStore } from "./store/authStore";
 
 // ─── Auth Guard Components  ─────────────────────────────
@@ -272,6 +278,28 @@ function App() {
         <Route path="/help" element={
           <ProtectedRoute>
             <DashboardLayout><HelpSupport /></DashboardLayout>
+          </ProtectedRoute>
+        } />
+
+        {/* User Management */}
+        <Route path="/users" element= {
+          <ProtectedRoute>
+            <DashboardLayout><Usermanagement /></DashboardLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/clients" element= {
+          <ProtectedRoute>
+            <DashboardLayout><Clients /></DashboardLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/teams" element= {
+          <ProtectedRoute>
+            <DashboardLayout><Teams /></DashboardLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/users-list" element= {
+          <ProtectedRoute>
+            <DashboardLayout><Users /></DashboardLayout>
           </ProtectedRoute>
         } />
 
