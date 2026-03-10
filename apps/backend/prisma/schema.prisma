@@ -28,6 +28,13 @@ enum TaskStatus {
   DONE
 }
 
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
 model User {
   id                         String    @id @default(uuid())
   email                      String    @unique
@@ -47,6 +54,8 @@ model User {
 
   assignedTasks Task[] @relation("TaskAssignee")
   reportedTasks Task[] @relation("TaskReporter")
+  comments      Comment[]
+  efforts       Effort[]
 }
 
 model Client {
@@ -109,7 +118,41 @@ model Task {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  priority  TaskPriority @default(MEDIUM)
+  comments  Comment[]
+  efforts   Effort[]
+
   @@index([projectId])
   @@index([sprintId])
   @@index([assigneeId])
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  content   String
+  createdAt DateTime @default(now())
+  
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id])
+  
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([taskId])
+  @@index([userId])
+}
+
+model Effort {
+  id          String   @id @default(uuid())
+  hoursLogged Float
+  date        DateTime @default(now())
+  
+  taskId      String
+  task        Task     @relation(fields: [taskId], references: [id])
+  
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@index([taskId])
+  @@index([userId])
 }
