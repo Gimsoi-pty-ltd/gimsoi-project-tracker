@@ -1,4 +1,5 @@
 import { test, expect } from '../fixtures/authFixtures.js';
+import jwt from 'jsonwebtoken';
 
 test.describe('Task Creation & Pipeline Validation', () => {
 
@@ -17,7 +18,7 @@ test.describe('Task Creation & Pipeline Validation', () => {
     });
 
     test('PM Completes Task', async ({ pmApi, testProject, testSprint }) => {
-        // Create the task
+        // Create the task — defaults to TODO
         const taskRes = await pmApi.post('/api/tasks', {
             data: {
                 title: "Task to complete",
@@ -25,17 +26,22 @@ test.describe('Task Creation & Pipeline Validation', () => {
                 sprintId: testSprint.id
             }
         });
-        const taskData = await taskRes.json();
-        const taskId = taskData.data.id;
+        expect(taskRes.status()).toBe(201);
+        const taskId = (await taskRes.json()).data.id;
 
-        // Finish It
-        const finishRes = await pmApi.put(`/api/tasks/${taskId}`, {
+        // Legal transition 1: TODO → IN_PROGRESS
+        const startRes = await pmApi.patch(`/api/tasks/${taskId}`, {
+            data: { status: "IN_PROGRESS" }
+        });
+        expect(startRes.status()).toBe(200);
+        expect((await startRes.json()).data.status).toBe('IN_PROGRESS');
+
+        // Legal transition 2: IN_PROGRESS → DONE
+        const finishRes = await pmApi.patch(`/api/tasks/${taskId}`, {
             data: { status: "DONE" }
         });
-
         expect(finishRes.status()).toBe(200);
-        const json = await finishRes.json();
-        expect(json.data.status).toBe('DONE');
+        expect((await finishRes.json()).data.status).toBe('DONE');
     });
 
     test('Non-reporter Intern is blocked from updating a task via 403 Forbidden', async ({ pmApi, internApi, testProject, testSprint }) => {
@@ -51,7 +57,7 @@ test.describe('Task Creation & Pipeline Validation', () => {
         const taskId = taskData.data.id;
 
         // Intern attempts to update the task they didn't report
-        const finishRes = await internApi.put(`/api/tasks/${taskId}`, {
+        const finishRes = await internApi.patch(`/api/tasks/${taskId}`, {
             data: { status: "DONE" }
         });
 
@@ -72,7 +78,7 @@ test.describe('Task Creation & Pipeline Validation', () => {
         const taskId = (await taskRes.json()).data.id;
 
         // Attempt to set an invalid status value
-        const updateRes = await pmApi.put(`/api/tasks/${taskId}`, {
+        const updateRes = await pmApi.patch(`/api/tasks/${taskId}`, {
             data: { status: "INVALID_STATUS" }
         });
 
@@ -80,6 +86,302 @@ test.describe('Task Creation & Pipeline Validation', () => {
         const json = await updateRes.json();
         expect(json.message).toContain('Invalid task status');
         expect(json.message).toContain('INVALID_STATUS');
+    });
+
+    /**
+     * STEP 0 — Acceptance test written BEFORE any service changes.
+     * Purpose: defines the desired end-to-end behaviour and acts as a
+     * regression guard for all subsequent steps.
+     *
+     * If this test FAILS at baseline it means the service somehow already
+     * blocks a valid transition — investigate before proceeding.
+     * If this test PASSES at baseline that is expected (TODO→IN_PROGRESS→DONE
+     * is the only path that should work). The service changes in Steps 1-5 must
+     * NOT break this happy path.
+     */
+    test('Full lifecycle: TODO → IN_PROGRESS → DONE happy path', async ({ pmApi, testProject, testSprint }) => {
+        // A: create task — must default to TODO
+        const taskRes = await pmApi.post('/api/tasks', {
+            data: {
+                title: 'Lifecycle Acceptance Task',
+                projectId: testProject.id,
+                sprintId: testSprint.id,
+            }
+        });
+        expect(taskRes.status()).toBe(201);
+        const task = (await taskRes.json()).data;
+        expect(task.status).toBe('TODO');
+
+        // B: advance to IN_PROGRESS
+        const toInProgress = await pmApi.patch(`/api/tasks/${task.id}`, {
+            data: { status: 'IN_PROGRESS' }
+        });
+        expect(toInProgress.status()).toBe(200);
+        const inProgressData = (await toInProgress.json()).data;
+        expect(inProgressData.status).toBe('IN_PROGRESS');
+
+        // C: advance to DONE
+        const toDone = await pmApi.patch(`/api/tasks/${task.id}`, {
+            data: { status: 'DONE' }
+        });
+        expect(toDone.status()).toBe(200);
+        const doneData = (await toDone.json()).data;
+        expect(doneData.status).toBe('DONE');
+    });
+
+    // --- Step 1 tests ---
+
+    test('TODO → IN_PROGRESS is a valid transition', async ({ pmApi, testProject, testSprint }) => {
+        const taskRes = await pmApi.post('/api/tasks', {
+            data: { title: 'Transition Test Task', projectId: testProject.id, sprintId: testSprint.id }
+        });
+        expect(taskRes.status()).toBe(201);
+        const taskId = (await taskRes.json()).data.id;
+
+        const updateRes = await pmApi.patch(`/api/tasks/${taskId}`, {
+            data: { status: 'IN_PROGRESS' }
+        });
+        expect(updateRes.status()).toBe(200);
+        expect((await updateRes.json()).data.status).toBe('IN_PROGRESS');
+    });
+
+    test('Setting the same status is a no-op (200, status unchanged)', async ({ pmApi, testProject, testSprint }) => {
+        const taskRes = await pmApi.post('/api/tasks', {
+            data: { title: 'No-op Status Task', projectId: testProject.id, sprintId: testSprint.id }
+        });
+        expect(taskRes.status()).toBe(201);
+        const taskId = (await taskRes.json()).data.id;
+
+        // Send TODO again on a TODO task — must be a silent no-op
+        const noOpRes = await pmApi.patch(`/api/tasks/${taskId}`, {
+            data: { status: 'TODO' }
+        });
+        expect(noOpRes.status()).toBe(200);
+        expect((await noOpRes.json()).data.status).toBe('TODO');
+    });
+
+    // --- Step 2 tests ---
+
+    test('DONE → TODO is blocked (400)', async ({ pmApi, testProject, testSprint }) => {
+        // Create -> IN_PROGRESS -> DONE
+        const taskRes = await pmApi.post('/api/tasks', {
+            data: { title: 'Test DONE to TODO', projectId: testProject.id, sprintId: testSprint.id }
+        });
+        const taskId = (await taskRes.json()).data.id;
+        await pmApi.patch(`/api/tasks/${taskId}`, { data: { status: 'IN_PROGRESS' } });
+        await pmApi.patch(`/api/tasks/${taskId}`, { data: { status: 'DONE' } });
+
+        // Attempt illegal regression
+        const regressRes = await pmApi.patch(`/api/tasks/${taskId}`, { data: { status: 'TODO' } });
+        expect(regressRes.status()).toBe(400);
+        expect((await regressRes.json()).message).toContain('Cannot modify');
+    });
+
+    test('DONE → IN_PROGRESS is blocked (400)', async ({ pmApi, testProject, testSprint }) => {
+        // Create -> IN_PROGRESS -> DONE
+        const taskRes = await pmApi.post('/api/tasks', {
+            data: { title: 'Test DONE to IN_PROGRESS', projectId: testProject.id, sprintId: testSprint.id }
+        });
+        const taskId = (await taskRes.json()).data.id;
+        await pmApi.patch(`/api/tasks/${taskId}`, { data: { status: 'IN_PROGRESS' } });
+        await pmApi.patch(`/api/tasks/${taskId}`, { data: { status: 'DONE' } });
+
+        // Attempt illegal regression
+        const regressRes = await pmApi.patch(`/api/tasks/${taskId}`, { data: { status: 'IN_PROGRESS' } });
+        expect(regressRes.status()).toBe(400);
+        expect((await regressRes.json()).message).toContain('Cannot modify');
+    });
+
+    test('IN_PROGRESS → TODO is blocked (400)', async ({ pmApi, testProject, testSprint }) => {
+        // Create -> IN_PROGRESS
+        const taskRes = await pmApi.post('/api/tasks', {
+            data: { title: 'Test IN_PROGRESS to TODO', projectId: testProject.id, sprintId: testSprint.id }
+        });
+        const taskId = (await taskRes.json()).data.id;
+        await pmApi.patch(`/api/tasks/${taskId}`, { data: { status: 'IN_PROGRESS' } });
+
+        // Attempt illegal regression
+        const regressRes = await pmApi.patch(`/api/tasks/${taskId}`, { data: { status: 'TODO' } });
+        expect(regressRes.status()).toBe(400);
+        expect((await regressRes.json()).message).toContain('Illegal task transition');
+    });
+
+    // --- Step 3 tests ---
+
+    test('Title change on DONE task is blocked (400)', async ({ pmApi, testProject, testSprint }) => {
+        // Create -> IN_PROGRESS -> DONE
+        const taskRes = await pmApi.post('/api/tasks', {
+            data: { title: 'Test Title Lock', projectId: testProject.id, sprintId: testSprint.id }
+        });
+        const taskId = (await taskRes.json()).data.id;
+        await pmApi.patch(`/api/tasks/${taskId}`, { data: { status: 'IN_PROGRESS' } });
+        await pmApi.patch(`/api/tasks/${taskId}`, { data: { status: 'DONE' } });
+
+        // Attempt illegal field mutation
+        const editRes = await pmApi.patch(`/api/tasks/${taskId}`, { data: { title: 'Hacked Title' } });
+        expect(editRes.status()).toBe(400);
+        expect((await editRes.json()).message).toContain('Cannot modify');
+    });
+
+    test('Assignee change on DONE task is blocked (400)', async ({ pmApi, testProject, testSprint }) => {
+        // Create -> IN_PROGRESS -> DONE
+        const taskRes = await pmApi.post('/api/tasks', {
+            data: { title: 'Test Assignee Lock', projectId: testProject.id, sprintId: testSprint.id }
+        });
+        const taskId = (await taskRes.json()).data.id;
+        await pmApi.patch(`/api/tasks/${taskId}`, { data: { status: 'IN_PROGRESS' } });
+        await pmApi.patch(`/api/tasks/${taskId}`, { data: { status: 'DONE' } });
+
+        // Attempt illegal field mutation (using dummy UUID for assignee)
+        const editRes = await pmApi.patch(`/api/tasks/${taskId}`, { 
+            data: { assigneeId: '00000000-0000-0000-0000-000000000000' } 
+        });
+        expect(editRes.status()).toBe(400);
+        expect((await editRes.json()).message).toContain('Cannot modify');
+    });
+
+    // --- Step 4 & 4a tests ---
+
+    test('Task creation inside a COMPLETED project is blocked (400)', async ({ pmApi, testClient }) => {
+        // Create and complete a project
+        const projRes = await pmApi.post('/api/projects', {
+            data: { name: 'Completed Project for Task', clientId: testClient.id }
+        });
+        const projectId = (await projRes.json()).data.id;
+        await pmApi.patch(`/api/projects/${projectId}`, { data: { status: 'COMPLETED' } });
+
+        // Attempt to create a task in it
+        const taskRes = await pmApi.post('/api/tasks', {
+            data: { title: 'Illegal Task', projectId }
+        });
+        expect(taskRes.status()).toBe(400);
+        expect((await taskRes.json()).message).toContain('COMPLETED');
+    });
+
+    test('Task creation inside an ACTIVE project succeeds (201)', async ({ pmApi, testClient }) => {
+        // Create and activate a project
+        const projRes = await pmApi.post('/api/projects', {
+            data: { name: 'Active Project for Task', clientId: testClient.id }
+        });
+        const projectId = (await projRes.json()).data.id;
+        await pmApi.patch(`/api/projects/${projectId}`, { data: { status: 'ACTIVE' } });
+
+        const taskRes = await pmApi.post('/api/tasks', {
+            data: { title: 'Legal Task', projectId }
+        });
+        expect(taskRes.status()).toBe(201);
+    });
+
+    test('Task update inside a COMPLETED project is blocked (400)', async ({ pmApi, testClient }) => {
+        // Create project, activate, create sprint & task
+        const projRes = await pmApi.post('/api/projects', {
+            data: { name: 'Update Lock Project', clientId: testClient.id }
+        });
+        const projectId = (await projRes.json()).data.id;
+        await pmApi.patch(`/api/projects/${projectId}`, { data: { status: 'ACTIVE' } });
+
+        const sprintRes = await pmApi.post('/api/sprints', {
+            data: { name: 'Update Lock Sprint', projectId }
+        });
+        const sprintId = (await sprintRes.json()).data.id;
+
+        const taskRes = await pmApi.post('/api/tasks', {
+            data: { title: 'Pre-completion Task', projectId, sprintId }
+        });
+        const taskId = (await taskRes.json()).data.id;
+
+        // Now complete the project
+        await pmApi.patch(`/api/projects/${projectId}`, { data: { status: 'COMPLETED' } });
+
+        // Attempt to update the task
+        const editRes = await pmApi.patch(`/api/tasks/${taskId}`, { data: { title: 'Hacked Title' } });
+        expect(editRes.status()).toBe(400);
+        expect((await editRes.json()).message).toContain('COMPLETED');
+    });
+
+    // --- Step 5 tests ---
+
+    test('An unauthorized user cannot transition a task (403)', async ({ pmApi, internApi, testProject, testSprint }) => {
+        // PM creates the task (so PM is the reporter)
+        const taskRes = await pmApi.post('/api/tasks', {
+            data: { title: 'Auth Transition Task', projectId: testProject.id, sprintId: testSprint.id }
+        });
+        const taskId = (await taskRes.json()).data.id;
+
+        // Intern (different user, not the reporter) attempts to transition it to IN_PROGRESS
+        const editRes = await internApi.patch(`/api/tasks/${taskId}`, { data: { status: 'IN_PROGRESS' } });
+        expect(editRes.status()).toBe(403);
+    });
+
+    // --- Sprint 3 Step 3 tests ---
+
+    test('Partial update: send a PATCH request with only the priority field', async ({ pmApi, testProject, testSprint }) => {
+        // Create initial task
+        const taskRes = await pmApi.post('/api/tasks', {
+            data: { title: 'Baseline Title', projectId: testProject.id, sprintId: testSprint.id }
+        });
+        const taskId = (await taskRes.json()).data.id;
+
+        // Partial update: only priority
+        const patchRes = await pmApi.patch(`/api/tasks/${taskId}`, {
+            data: { priority: 'HIGH' }
+        });
+        expect(patchRes.status()).toBe(200);
+
+        // Assert response shape contains changes while preserving others
+        const body = await patchRes.json();
+        expect(body.data.priority).toBe('HIGH');
+        expect(body.data.title).toBe('Baseline Title');
+        expect(body.data.status).toBe('TODO');
+    });
+
+    // --- Sprint 3 Step 2 tests ---
+
+    test.describe('GET /api/tasks/:id', () => {
+        test('Happy path: an Admin or PM retrieves a valid task by id', async ({ pmApi, testProject, testSprint }) => {
+            const taskRes = await pmApi.post('/api/tasks', {
+                data: { title: 'GET Task Demo', projectId: testProject.id, sprintId: testSprint.id }
+            });
+            const taskId = (await taskRes.json()).data.id;
+
+            const res = await pmApi.get(`/api/tasks/${taskId}`);
+            expect(res.status()).toBe(200);
+            const body = await res.json();
+            expect(body.data.id).toBe(taskId);
+            expect(body.data.title).toBe('GET Task Demo');
+        });
+
+        test('Not found: request a randomly generated UUID', async ({ pmApi }) => {
+            const randomId = '123e4567-e89b-12d3-a456-426614174000';
+            const res = await pmApi.get(`/api/tasks/${randomId}`);
+            expect(res.status()).toBe(404);
+        });
+
+        test('Unauthorized: request without a token', async ({ request, pmApi, testProject, testSprint }) => {
+            const taskRes = await pmApi.post('/api/tasks', {
+                data: { title: 'Unauthorized Test', projectId: testProject.id, sprintId: testSprint.id }
+            });
+            const taskId = (await taskRes.json()).data.id;
+
+            const res = await request.get(`/api/tasks/${taskId}`);
+            expect(res.status()).toBe(401);
+        });
+
+        test('Forbidden: request with a role that does not have VIEW_PROGRESS permission', async ({ request, pmApi, testProject, testSprint }) => {
+            const taskRes = await pmApi.post('/api/tasks', {
+                data: { title: 'Forbidden Test Task', projectId: testProject.id, sprintId: testSprint.id }
+            });
+            const taskId = (await taskRes.json()).data.id;
+            
+            // Forge a validly signed token with an invalid role to trigger 403 Forbidden
+            const secret = process.env.JWT_SECRET || 'gs#secret';
+            const forbiddenToken = jwt.sign({ id: 'fake-id', role: 'INVALID_ROLE' }, secret, { expiresIn: '1h' });
+
+            const res = await request.get(`/api/tasks/${taskId}`, {
+                headers: { 'Authorization': `Bearer ${forbiddenToken}` }
+            });
+            expect(res.status()).toBe(403);
+        });
     });
 
 });
