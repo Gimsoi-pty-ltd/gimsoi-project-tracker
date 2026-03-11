@@ -16,6 +16,7 @@ import Dashboard from './Pages/LoginOut Flow/Dashboard';
 import DashboardCards from "./Components/Dashboard/DashboardCards";
 import DaysRemainingPage from "./Components/Dashboard/DaysRemainingPage";
 import SprintOverview from './Pages/Sprints/SprintOverview';
+import SprintVelocityPage from './Pages/Sprints/SprintVelocity';
 
 // Tasks
 import TasksPage from './Pages/Tasks/TasksPage';
@@ -152,6 +153,11 @@ function App() {
         <Route path="/sprint-overview" element={
           <ProtectedRoute>
             <DashboardLayout><SprintOverview /></DashboardLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/sprint-velocity" element={
+          <ProtectedRoute>
+            <DashboardLayout><SprintVelocityPage /></DashboardLayout>
           </ProtectedRoute>
         } />
 
