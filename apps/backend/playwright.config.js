@@ -11,6 +11,6 @@ export default defineConfig({
     webServer: {
         command: 'npx cross-env NODE_ENV=test npm run start',
         port: 5001,
-        reuseExistingServer: false,
+        reuseExistingServer: true,
     },
 });

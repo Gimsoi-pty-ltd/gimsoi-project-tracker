@@ -142,4 +142,24 @@ test.describe('Project Lifecycle & Ownership Validation', () => {
         expect(json2.data[0].id).not.toBe(json.data[0].id);
     });
 
+    test('Cannot mutate fields on a COMPLETED project', async ({ pmApi, testClient }) => {
+        // Create a new project
+        const createRes = await pmApi.post('/api/projects', {
+            data: { name: "Mutation Lock Project", clientId: testClient.id }
+        });
+        const projectId = (await createRes.json()).data.id;
+
+        // Complete the project
+        await pmApi.patch(`/api/projects/${projectId}`, { data: { status: "COMPLETED" } });
+
+        // Attempt to edit a field (name) on the completed project
+        const editRes = await pmApi.patch(`/api/projects/${projectId}`, {
+            data: { name: "Edited Name" }
+        });
+
+        expect(editRes.status()).toBe(400);
+        const json = await editRes.json();
+        expect(json.message).toContain('Cannot modify fields on a COMPLETED project');
+    });
+
 });

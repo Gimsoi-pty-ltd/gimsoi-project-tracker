@@ -2,6 +2,8 @@ import prisma from "../lib/prisma.js";
 import { StateTransitionError, NotFoundError, ForbiddenError } from "../utils/errors.js";
 import { handlePrismaError } from "../utils/prismaErrors.js";
 
+import { TASK_TRANSITIONS } from "../utils/stateMachines.js";
+
 export const createTask = async ({ title, description, projectId, sprintId, reporterId, assigneeId, priority }) => {
     // POLICY-PENDING: Missing authorization check — ensure the user creating the task has permission 
     // to add tasks to this project, and verify if the requesting userId must match the reporterId.
@@ -97,13 +99,6 @@ export const updateTask = async (id, data, userId, userRole) => {
         throw new StateTransitionError('Cannot modify a task that is already DONE.');
     }
 
-    // Directional state machine — only permitted transitions are allowed.
-    // Setting the same status is a silent no-op (data.status === existing.status).
-    const TASK_TRANSITIONS = {
-        TODO:        ['IN_PROGRESS'],
-        IN_PROGRESS: ['DONE'],
-        DONE:        [],
-    };
     const ALL_STATUSES = Object.keys(TASK_TRANSITIONS);
 
     if (data.status !== undefined && data.status !== existing.status) {

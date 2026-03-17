@@ -54,4 +54,27 @@ test.describe('Sprint Lifecycle Validations', () => {
         expect(response.status()).toBe(200);
     });
 
+    test('Invalid State Transition: PM Attempts to regress a CLOSED sprint', async ({ pmApi, testProject }) => {
+        // Create sprint
+        const createRes = await pmApi.post('/api/sprints', {
+            data: { name: "Regression Test Sprint", projectId: testProject.id }
+        });
+        const sprintId = (await createRes.json()).data.id;
+
+        // Activate sprint
+        await pmApi.patch(`/api/sprints/${sprintId}/status`, { data: { status: "ACTIVE" } });
+
+        // Close sprint
+        await pmApi.patch(`/api/sprints/${sprintId}/status`, { data: { status: "CLOSED" } });
+
+        // Attempt to regress sprint back to ACTIVE
+        const regressRes = await pmApi.patch(`/api/sprints/${sprintId}/status`, {
+            data: { status: "ACTIVE" }
+        });
+
+        expect(regressRes.status()).toBe(400);
+        const json = await regressRes.json();
+        expect(json.message).toContain('Illegal sprint state transition');
+    });
+
 });

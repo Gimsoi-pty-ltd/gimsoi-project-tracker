@@ -2,6 +2,8 @@ import prisma from "../lib/prisma.js";
 import { StateTransitionError, NotFoundError } from '../utils/errors.js';
 import { assertOwnership } from "../utils/ownership.js";
 
+import { SPRINT_TRANSITIONS } from "../utils/stateMachines.js";
+
 export const createSprint = async ({ name, projectId, status, createdByUserId }) => {
     // Guard: prevent creating sprints inside a COMPLETED project
     const project = await prisma.project.findUnique({ where: { id: projectId } });
@@ -75,15 +77,7 @@ export const updateSprintStatus = async (id, targetStatus, userId, userRole) => 
 
     const currentStatus = sprint.status;
 
-    const validTransitions = {
-        'PLANNING': ['ACTIVE'],
-        'ACTIVE': ['CLOSED'],
-        // POLICY-PENDING: team must decide if a CLOSED sprint can be reopened.
-        // Currently permitted. Remove 'ACTIVE' here to permanently block reopening.
-        'CLOSED': ['ACTIVE']
-    };
-
-    const allowed = validTransitions[currentStatus] || [];
+    const allowed = SPRINT_TRANSITIONS[currentStatus] || [];
     if (!allowed.includes(targetStatus)) {
         throw new StateTransitionError(`Illegal sprint state transition from ${currentStatus} to ${targetStatus}`);
     }
