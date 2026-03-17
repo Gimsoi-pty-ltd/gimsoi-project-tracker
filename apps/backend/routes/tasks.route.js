@@ -1,4 +1,8 @@
 import express from "express";
+import {
+  createTask, getAllTasks, getTaskById,
+  updateTask, deleteTask
+} from '../controllers/task.controller.js';
 import { verifyToken } from "../middleware/verifyToken.js";
 import authorize from "../middleware/authMiddleware.js";
 import { readLimiter, writeLimiter } from "../middleware/rateLimiter.js";
