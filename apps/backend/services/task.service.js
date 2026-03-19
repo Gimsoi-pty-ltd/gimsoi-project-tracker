@@ -2,6 +2,46 @@ import prisma from "../lib/prisma.js";
 import { StateTransitionError, NotFoundError, ForbiddenError } from "../utils/errors.js";
 import { handlePrismaError } from "../utils/prismaErrors.js";
 
+const TASK_TRANSITIONS = {
+    TODO: ['IN_PROGRESS'],
+    IN_PROGRESS: ['DONE'],
+    DONE: [],
+};
+
+const ALL_STATUSES = Object.keys(TASK_TRANSITIONS);
+
+const canModifyTask = (existingTask, userId, userRole, updates = {}) => {
+    if (!userId || !userRole) {
+        return true;
+    }
+
+    // Admin can do anything
+    if (userRole === 'ADMIN') {
+        return true;
+    }
+
+    // PM can update tasks
+    if (userRole === 'PM') {
+        return true;
+    }
+
+    // Intern can only update their own assigned task, and only status
+    if (userRole === 'INTERN') {
+        const isAssignedToUser = existingTask.assigneeId === userId;
+        const isOnlyChangingStatus =
+            Object.keys(updates).every((key) => key === 'status');
+
+        return isAssignedToUser && isOnlyChangingStatus;
+    }
+
+    // Reporter can still modify their own task
+    if (existingTask.reporterId === userId) {
+        return true;
+    }
+
+    return false;
+};
+
 export const createTask = async ({ title, description, projectId, sprintId, reporterId, assigneeId, priority }) => {
     // POLICY-PENDING: Missing authorization check — ensure the user creating the task has permission 
     // to add tasks to this project, and verify if the requesting userId must match the reporterId.
