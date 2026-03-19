@@ -9,7 +9,7 @@ export default function TopBar({ onMenuClick }) {
   const navItems = [
     { label: "Dashboard", href: "/" },
     { label: "Tasks", href: "/tasks" },
-    { label: "Users", href: "#" },
+    { label: "Users", href: "/users" },
     { label: "Reports", href: "/reports" },
     { label: "Documents", href: "/documents" },
     { label: "Phases", href: "/phases" },

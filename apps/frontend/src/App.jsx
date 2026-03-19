@@ -16,6 +16,7 @@ import Dashboard from './Pages/LoginOut Flow/Dashboard';
 import DashboardCards from "./Components/Dashboard/DashboardCards";
 import DaysRemainingPage from "./Components/Dashboard/DaysRemainingPage";
 import SprintOverview from './Pages/Sprints/SprintOverview';
+import SprintVelocityPage from './Pages/Sprints/SprintVelocity';
 
 // Tasks
 import TasksPage from './Pages/Tasks/TasksPage';
@@ -54,6 +55,12 @@ import SecuritySection from './Pages/Settings Page/SecuritySection';
 
 // Help
 import HelpSupport from './Pages/Help/HelpSupport';
+
+// User Management
+import Usermanagement from "./Pages/Users/UserManagementPage";
+import Users from "./Pages/Users/Users";
+import Teams from "./Pages/Users/Teams";
+import Clients from "./Pages/Users/Clients";
 
 import { useAuthStore } from "./store/authStore";
 
@@ -146,6 +153,11 @@ function App() {
         <Route path="/sprint-overview" element={
           <ProtectedRoute>
             <DashboardLayout><SprintOverview /></DashboardLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/sprint-velocity" element={
+          <ProtectedRoute>
+            <DashboardLayout><SprintVelocityPage /></DashboardLayout>
           </ProtectedRoute>
         } />
 
@@ -272,6 +284,28 @@ function App() {
         <Route path="/help" element={
           <ProtectedRoute>
             <DashboardLayout><HelpSupport /></DashboardLayout>
+          </ProtectedRoute>
+        } />
+
+        {/* User Management */}
+        <Route path="/users" element= {
+          <ProtectedRoute>
+            <DashboardLayout><Usermanagement /></DashboardLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/clients" element= {
+          <ProtectedRoute>
+            <DashboardLayout><Clients /></DashboardLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/teams" element= {
+          <ProtectedRoute>
+            <DashboardLayout><Teams /></DashboardLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/users-list" element= {
+          <ProtectedRoute>
+            <DashboardLayout><Users /></DashboardLayout>
           </ProtectedRoute>
         } />
 
