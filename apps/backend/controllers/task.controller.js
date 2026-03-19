@@ -14,7 +14,8 @@ export const createTask = async (req, res) => {
             projectId,
             sprintId,
             assigneeId,
-            reporterId: req.user.id
+            reporterId: req.user.id,
+            userRole: req.user.role
         });
 
         return res.status(201).json({ success: true, message: "Task created successfully", data: task });
@@ -26,7 +27,7 @@ export const createTask = async (req, res) => {
 
 export const getTasks = async (req, res) => {
     try {
-        const { projectId } = req.query;
+        const { projectId, status, isBlocked } = req.query;
 
         const limit = Math.min(parseInt(req.query.limit) || 50, 100);
         const cursor = req.query.cursor || undefined;
@@ -35,7 +36,17 @@ export const getTasks = async (req, res) => {
             return res.status(400).json({ success: false, message: "projectId query parameter is required" });
         }
 
-        const records = await taskService.getTasksByProject(projectId, { limit, cursor });
+        // Handle isBlocked boolean conversion
+        let blockedFilter = undefined;
+        if (isBlocked === 'true') blockedFilter = true;
+        if (isBlocked === 'false') blockedFilter = false;
+
+        const records = await taskService.getTasksByProject(projectId, { 
+            limit, 
+            cursor, 
+            status, 
+            isBlocked: blockedFilter 
+        });
 
         const hasMore = records.length > limit;
         const data = hasMore ? records.slice(0, limit) : records;
@@ -51,7 +62,7 @@ export const getTasks = async (req, res) => {
 export const getTaskById = async (req, res, next) => {
     try {
         const task = await taskService.getTaskById(req.params.id);
-        res.status(200).json({ data: task });
+        res.status(200).json({ success: true, data: task });
     } catch (err) {
         next(err);
     }
@@ -82,5 +93,16 @@ export const deleteTask = async (req, res) => {
     } catch (err) {
         const statusCode = err.statusCode || 500;
         return res.status(statusCode).json({ success: false, message: err.message || "Failed to delete task" });
+    }
+};
+
+export const getTaskSummary = async (req, res) => {
+    try {
+        const { projectId } = req.params;
+        const summary = await taskService.getProjectTaskSummary(projectId);
+        return res.status(200).json({ success: true, data: summary });
+    } catch (err) {
+        const statusCode = err.statusCode || 500;
+        return res.status(statusCode).json({ success: false, message: err.message || "Failed to fetch task summary" });
     }
 };
