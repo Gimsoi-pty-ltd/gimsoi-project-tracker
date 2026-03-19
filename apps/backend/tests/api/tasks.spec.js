@@ -17,6 +17,24 @@ test.describe('Task Creation & Pipeline Validation', () => {
         expect(json.data.status).toBe('TODO');
     });
 
+    test('Task creation returns default tracking fields (Phase 1 Baseline)', async ({ pmApi, testProject, testSprint }) => {
+        const response = await pmApi.post('/api/tasks', {
+            data: {
+                title: "Baseline Tracking Task",
+                projectId: testProject.id,
+                sprintId: testSprint.id
+            }
+        });
+
+        expect(response.status()).toBe(201);
+        const json = await response.json();
+        
+        // Assert new tracking fields exist with default values
+        expect(json.data).toHaveProperty('dueDate', null);
+        expect(json.data).toHaveProperty('isBlocked', false);
+        expect(json.data).toHaveProperty('blockedReason', null);
+    });
+
     test('PM Completes Task', async ({ pmApi, testProject, testSprint }) => {
         // Create the task — defaults to TODO
         const taskRes = await pmApi.post('/api/tasks', {
@@ -311,6 +329,200 @@ test.describe('Task Creation & Pipeline Validation', () => {
         // Intern (different user, not the reporter) attempts to transition it to IN_PROGRESS
         const editRes = await internApi.patch(`/api/tasks/${taskId}`, { data: { status: 'IN_PROGRESS' } });
         expect(editRes.status()).toBe(403);
+    });
+
+    // --- Phase 2: Security & Authorization ---
+
+    test('Unauthorized user (non-owner PM) cannot create a task in a project they do not own (Phase 2)', async ({ pmApi, adminApi, testClient }) => {
+        // Admin creates a project
+        const projRes = await adminApi.post('/api/projects', {
+            data: { name: 'Admin Private Project', clientId: testClient.id }
+        });
+        const projectId = (await projRes.json()).data.id;
+
+        // PM (not the owner) attempts to create a task in Admin's project
+        const taskRes = await pmApi.post('/api/tasks', {
+            data: { title: 'Intruder Task', projectId }
+        });
+
+        expect(taskRes.status()).toBe(403);
+        const json = await taskRes.json();
+        expect(json.message).toContain('Unauthorized access to project boundaries');
+    });
+
+    test('Unauthorized user (non-owner PM) cannot update a task in a project they do not own (Phase 2)', async ({ pmApi, adminApi, testClient }) => {
+        // Admin creates a project and a task
+        const projRes = await adminApi.post('/api/projects', {
+            data: { name: 'Admin Project for Update Lock', clientId: testClient.id }
+        });
+        const projectId = (await projRes.json()).data.id;
+        
+        const taskRes = await adminApi.post('/api/tasks', {
+            data: { title: 'Original Task', projectId }
+        });
+        const taskId = (await taskRes.json()).data.id;
+
+        // PM (not the owner, not the reporter) attempts to update the task in Admin's project
+        const editRes = await pmApi.patch(`/api/tasks/${taskId}`, {
+            data: { title: 'Hacked Title' }
+        });
+
+        expect(editRes.status()).toBe(403);
+        const json = await editRes.json();
+        expect(json.message).toContain('Unauthorized access to project boundaries');
+    });
+
+    // --- Phase 3: Overdue Tasks ---
+
+    test('Task creation and update with dueDate (Phase 3)', async ({ pmApi, testProject }) => {
+        const futureDate = new Date();
+        futureDate.setDate(futureDate.getUTCDate() + 7);
+        futureDate.setUTCMilliseconds(0);
+        const isoDate = futureDate.toISOString();
+
+        // Create with dueDate
+        const createRes = await pmApi.post('/api/tasks', {
+            data: { title: 'Future Task', projectId: testProject.id, dueDate: isoDate }
+        });
+        expect(createRes.status()).toBe(201);
+        const task = (await createRes.json()).data;
+        expect(new Date(task.dueDate).toISOString()).toBe(isoDate);
+
+        // Update dueDate
+        const nextWeek = new Date();
+        nextWeek.setDate(nextWeek.getUTCDate() + 14);
+        nextWeek.setUTCMilliseconds(0);
+        const nextIso = nextWeek.toISOString();
+
+        const updateRes = await pmApi.patch(`/api/tasks/${task.id}`, {
+            data: { dueDate: nextIso }
+        });
+        expect(updateRes.status()).toBe(200);
+        expect(new Date((await updateRes.json()).data.dueDate).toISOString()).toBe(nextIso);
+    });
+
+    test('Filter overdue tasks strictly returns incomplete past tasks (Phase 3)', async ({ pmApi, testProject }) => {
+        const pastDate = new Date();
+        pastDate.setDate(pastDate.getUTCDate() - 1);
+        const pastIso = pastDate.toISOString();
+
+        const futureDate = new Date();
+        futureDate.setDate(futureDate.getUTCDate() + 1);
+        const futureIso = futureDate.toISOString();
+
+        // 1. Task in the past (Overdue)
+        await pmApi.post('/api/tasks', {
+            data: { title: 'Overdue Task', projectId: testProject.id, dueDate: pastIso }
+        });
+
+        // 2. Task in the future (Not Overdue)
+        await pmApi.post('/api/tasks', {
+            data: { title: 'Future Task', projectId: testProject.id, dueDate: futureIso }
+        });
+
+        // 3. Task in the past but DONE (Not Overdue)
+        const doneRes = await pmApi.post('/api/tasks', {
+            data: { title: 'Done Past Task', projectId: testProject.id, dueDate: pastIso }
+        });
+        const doneTaskId = (await doneRes.json()).data.id;
+        await pmApi.patch(`/api/tasks/${doneTaskId}`, { data: { status: 'IN_PROGRESS' } });
+        await pmApi.patch(`/api/tasks/${doneTaskId}`, { data: { status: 'DONE' } });
+
+        // Query overdue
+        const queryRes = await pmApi.get(`/api/tasks?projectId=${testProject.id}&filter=overdue`);
+        expect(queryRes.status()).toBe(200);
+        const data = (await queryRes.json()).data;
+
+        expect(data.length).toBe(1);
+        expect(data[0].title).toBe('Overdue Task');
+    });
+
+    // --- Phase 4: Blocked Tasks ---
+
+    test('Task can be toggled into and out of blocked state (Phase 4)', async ({ pmApi, testProject }) => {
+        // Create blocked task
+        const createRes = await pmApi.post('/api/tasks', {
+            data: { 
+                title: 'Blocked Task', 
+                projectId: testProject.id, 
+                isBlocked: true, 
+                blockedReason: 'Awaiting designs' 
+            }
+        });
+        expect(createRes.status()).toBe(201);
+        let task = (await createRes.json()).data;
+        expect(task.isBlocked).toBe(true);
+        expect(task.blockedReason).toBe('Awaiting designs');
+
+        // Unblock task
+        const unblockRes = await pmApi.patch(`/api/tasks/${task.id}`, {
+            data: { isBlocked: false, blockedReason: null }
+        });
+        expect(unblockRes.status()).toBe(200);
+        task = (await unblockRes.json()).data;
+        expect(task.isBlocked).toBe(false);
+        expect(task.blockedReason).toBe(null);
+    });
+
+    test('Filter by isBlocked returns only blocked tasks (Phase 4)', async ({ pmApi, testProject }) => {
+        // 1. Blocked task
+        await pmApi.post('/api/tasks', {
+            data: { title: 'Actually Blocked', projectId: testProject.id, isBlocked: true }
+        });
+
+        // 2. Normal task
+        await pmApi.post('/api/tasks', {
+            data: { title: 'Normal Task', projectId: testProject.id, isBlocked: false }
+        });
+
+        // Query blocked
+        const queryRes = await pmApi.get(`/api/tasks?projectId=${testProject.id}&isBlocked=true`);
+        expect(queryRes.status()).toBe(200);
+        const data = (await queryRes.json()).data;
+
+        expect(data.length).toBe(1);
+        expect(data[0].title).toBe('Actually Blocked');
+    });
+
+    // --- Phase 5: Aggregation Endpoint ---
+
+    test('Project task summary returns consolidated metrics (Phase 5)', async ({ pmApi, testProject }) => {
+        const pastDate = new Date();
+        pastDate.setDate(pastDate.getUTCDate() - 5);
+        const pastIso = pastDate.toISOString();
+
+        // 1. Overdue & TODO
+        await pmApi.post('/api/tasks', {
+            data: { title: 'T1', projectId: testProject.id, dueDate: pastIso }
+        });
+
+        // 2. Blocked & IN_PROGRESS
+        const t2Res = await pmApi.post('/api/tasks', {
+            data: { title: 'T2', projectId: testProject.id, isBlocked: true }
+        });
+        const t2Id = (await t2Res.json()).data.id;
+        await pmApi.patch(`/api/tasks/${t2Id}`, { data: { status: 'IN_PROGRESS' } });
+
+        // 3. DONE (not overdue even if date is past)
+        const doneRes = await pmApi.post('/api/tasks', {
+            data: { title: 'T3', projectId: testProject.id, dueDate: pastIso }
+        });
+        const doneId = (await doneRes.json()).data.id;
+        await pmApi.patch(`/api/tasks/${doneId}`, { data: { status: 'IN_PROGRESS' } });
+        await pmApi.patch(`/api/tasks/${doneId}`, { data: { status: 'DONE' } });
+
+        // Query summary
+        const res = await pmApi.get(`/api/tasks/projects/${testProject.id}/summary`);
+        expect(res.status()).toBe(200);
+        const json = await res.json();
+        const summary = json.data;
+
+        expect(summary.total).toBe(3);
+        expect(summary.overdueCount).toBe(1); // Only T1 (T3 is DONE)
+        expect(summary.blockedCount).toBe(1); // Only T2
+        expect(summary.statusBreakdown.TODO).toBe(1);
+        expect(summary.statusBreakdown.IN_PROGRESS).toBe(1);
+        expect(summary.statusBreakdown.DONE).toBe(1);
     });
 
     // --- Sprint 3 Step 3 tests ---
