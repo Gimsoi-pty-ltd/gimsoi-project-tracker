@@ -9,13 +9,14 @@ export const createTask = async (req, res) => {
         }
 
         const task = await taskService.createTask({
-            title,
-            description,
-            projectId,
-            sprintId,
-            assigneeId,
-            reporterId: req.user.id
-        });
+    title,
+    description,
+    projectId,
+    sprintId,
+    assigneeId,
+    priority,
+    reporterId: req.user.id
+});
 
         return res.status(201).json({ success: true, message: "Task created successfully", data: task });
     } catch (err) {
@@ -51,7 +52,7 @@ export const getTasks = async (req, res) => {
 export const getTaskById = async (req, res, next) => {
     try {
         const task = await taskService.getTaskById(req.params.id);
-        res.status(200).json({ data: task });
+        res.status(200).json({ success: true, data: task });
     } catch (err) {
         next(err);
     }
