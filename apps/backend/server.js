@@ -41,6 +41,7 @@ app.use(csrfProtection);
 app.get("/api/status", (req, res) => res.json({ status: "ok" }));
 app.use("/api/auth", authRoutes);
 app.use("/api/tasks", tasksRoutes);
+app.use("/api/sprints", sprintRoutes);
 app.use("/api/clients", clientRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/sprints", sprintRoutes);
