@@ -28,8 +28,9 @@ const canModifyTask = (existingTask, userId, userRole, updates = {}) => {
     // Intern can only update their own assigned task, and only status
     if (userRole === 'INTERN') {
         const isAssignedToUser = existingTask.assigneeId === userId;
+        const keysChanging = Object.keys(updates).filter(k => updates[k] !== undefined);
         const isOnlyChangingStatus =
-            Object.keys(updates).every((key) => key === 'status');
+            keysChanging.length > 0 && keysChanging.every((key) => key === 'status');
 
         return isAssignedToUser && isOnlyChangingStatus;
     }
@@ -42,9 +43,11 @@ const canModifyTask = (existingTask, userId, userRole, updates = {}) => {
     return false;
 };
 
-export const createTask = async ({ title, description, projectId, sprintId, reporterId, assigneeId, priority }) => {
-    // POLICY-PENDING: Missing authorization check — ensure the user creating the task has permission 
-    // to add tasks to this project, and verify if the requesting userId must match the reporterId.
+export const createTask = async ({ title, description, projectId, sprintId, reporterId, assigneeId, priority, userRole }) => {
+    // Project-level authorization: Only ADMIN and PM can create tasks.
+    if (userRole && userRole !== 'ADMIN' && userRole !== 'PM') {
+        throw new ForbiddenError(`Role '${userRole}' is not authorized to create tasks.`);
+    }
 
     // Guard: sprint must belong to the same project as the task
     if (sprintId) {
@@ -84,13 +87,16 @@ export const createTask = async ({ title, description, projectId, sprintId, repo
 
 /**
  * @param {string} projectId
- * @param {{ limit?: number, cursor?: string }} options
- * limit defaults to 50. cursor is the ID of the last record from the previous page.
+ * @param {{ limit?: number, cursor?: string, status?: string, isBlocked?: boolean }} options
  */
-export const getTasksByProject = async (projectId, { limit = 50, cursor } = {}) => {
+export const getTasksByProject = async (projectId, { limit = 50, cursor, status, isBlocked } = {}) => {
+    const where = { projectId };
+    if (status) where.status = status;
+    if (isBlocked !== undefined) where.isBlocked = isBlocked;
+
     return prisma.task.findMany({
-        where: { projectId },
-        take: limit,
+        where,
+        take: limit + 1, // Fetch one extra to determine if there's a next page
         ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
         include: {
             assignee: { select: { id: true, fullName: true, email: true } },
@@ -128,8 +134,8 @@ export const updateTask = async (id, data, userId, userRole) => {
     }
 
     if (userId && userRole) {
-        if (userRole !== 'ADMIN' && existing.reporterId !== userId) {
-            throw new ForbiddenError("Only the reporter or an ADMIN can modify this task.");
+        if (!canModifyTask(existing, userId, userRole, data)) {
+            throw new ForbiddenError("You do not have permission to modify this task.");
         }
     }
 
@@ -180,11 +186,33 @@ export const deleteTask = async (id, userId, userRole) => {
     }
 
     if (userId && userRole) {
-        if (userRole !== 'ADMIN' && existing.reporterId !== userId) {
-            throw new ForbiddenError("Only the reporter or an ADMIN can modify this task.");
+        if (!canModifyTask(existing, userId, userRole)) {
+            throw new ForbiddenError("You do not have permission to delete this task.");
         }
     }
 
     await prisma.task.delete({ where: { id } });
     return true;
+};
+
+export const getProjectTaskSummary = async (projectId) => {
+    const counts = await prisma.task.groupBy({
+        by: ['status'],
+        where: { projectId },
+        _count: { _all: true }
+    });
+
+    const summary = {
+        TODO: 0,
+        IN_PROGRESS: 0,
+        DONE: 0
+    };
+
+    counts.forEach((c) => {
+        if (summary[c.status] !== undefined) {
+            summary[c.status] = c._count._all;
+        }
+    });
+
+    return summary;
 };
