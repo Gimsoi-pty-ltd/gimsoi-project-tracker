@@ -127,7 +127,7 @@ export const updateTask = async (id, data, userId, userRole) => {
         throw new StateTransitionError('Cannot modify a task inside a COMPLETED project.');
     }
 
-    // Prevent updates to completed tasks
+    
     if (existing.status === 'DONE') {
         throw new StateTransitionError('Cannot modify a task that is already DONE.');
     }
@@ -137,7 +137,7 @@ export const updateTask = async (id, data, userId, userRole) => {
         throw new ForbiddenError("You do not have permission to modify this task.");
     }
 
-    // Validate task status transition
+    
     if (data.status !== undefined && data.status !== existing.status) {
         if (!ALL_STATUSES.includes(data.status)) {
             throw new StateTransitionError(
@@ -153,7 +153,7 @@ export const updateTask = async (id, data, userId, userRole) => {
         }
     }
 
-    // If sprint is being changed, make sure it belongs to the same project
+   
     if (data.sprintId !== undefined && data.sprintId !== null) {
         const sprint = await prisma.sprint.findUnique({ where: { id: data.sprintId } });
         if (!sprint) {
