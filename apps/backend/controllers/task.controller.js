@@ -2,20 +2,21 @@ import * as taskService from "../services/task.service.js";
 
 export const createTask = async (req, res) => {
     try {
-        const { title, description, projectId, sprintId, assigneeId } = req.body;
+        const { title, description, projectId, sprintId, assigneeId, priority } = req.body;
 
         if (!title || !projectId) {
             return res.status(400).json({ success: false, message: "Task title and projectId are required" });
         }
 
         const task = await taskService.createTask({
-            title,
-            description,
-            projectId,
-            sprintId,
-            assigneeId,
-            reporterId: req.user.id
-        });
+    title,
+    description,
+    projectId,
+    sprintId,
+    assigneeId,
+    priority,
+    reporterId: req.user.id
+});
 
         return res.status(201).json({ success: true, message: "Task created successfully", data: task });
     } catch (err) {
@@ -48,13 +49,22 @@ export const getTasks = async (req, res) => {
     }
 };
 
+export const getTaskById = async (req, res, next) => {
+    try {
+        const task = await taskService.getTaskById(req.params.id);
+        res.status(200).json({ success: true, data: task });
+    } catch (err) {
+        next(err);
+    }
+};
+
 export const updateTask = async (req, res) => {
     try {
         const { id } = req.params;
-        const { title, description, status, sprintId, assigneeId } = req.body;
+        const { title, description, status, sprintId, assigneeId, priority } = req.body;
 
         const updated = await taskService.updateTask(id, {
-            title, description, status, sprintId, assigneeId
+            title, description, status, sprintId, assigneeId, priority
         }, req.user?.id, req.user?.role);
 
         return res.status(200).json({ success: true, message: "Task updated successfully", data: updated });
