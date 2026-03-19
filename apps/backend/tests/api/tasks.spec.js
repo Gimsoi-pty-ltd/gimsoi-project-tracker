@@ -384,4 +384,108 @@ test.describe('Task Creation & Pipeline Validation', () => {
         });
     });
 
+    test.describe('Task Filtering & Summaries', () => {
+
+        test('Project task summary returns correct status counts', async ({ pmApi, testProject, testSprint }) => {
+            // A: Create 2 TODO, 1 IN_PROGRESS, 1 DONE
+            const create = async (title, status) => {
+                const res = await pmApi.post('/api/tasks', {
+                    data: { title, projectId: testProject.id, sprintId: testSprint.id }
+                });
+                const task = (await res.json()).data;
+                if (status === 'IN_PROGRESS') {
+                    await pmApi.patch(`/api/tasks/${task.id}`, { data: { status: 'IN_PROGRESS' } });
+                } else if (status === 'DONE') {
+                    await pmApi.patch(`/api/tasks/${task.id}`, { data: { status: 'IN_PROGRESS' } });
+                    await pmApi.patch(`/api/tasks/${task.id}`, { data: { status: 'DONE' } });
+                }
+            };
+
+            await create('T1', 'TODO');
+            await create('T2', 'TODO');
+            await create('T3', 'IN_PROGRESS');
+            await create('T4', 'DONE');
+
+            const res = await pmApi.get(`/api/tasks/projects/${testProject.id}/summary`);
+            expect(res.status()).toBe(200);
+            const body = await res.json();
+            
+            expect(body.success).toBe(true);
+            expect(body.data.TODO).toBe(2);
+            expect(body.data.IN_PROGRESS).toBe(1);
+            expect(body.data.DONE).toBe(1);
+        });
+
+        test('Filtering by status works correctly', async ({ pmApi, testProject, testSprint }) => {
+            // Create a DONE task
+            const createRes = await pmApi.post('/api/tasks', {
+                data: { title: 'Filter Done Task', projectId: testProject.id, sprintId: testSprint.id }
+            });
+            const task = (await createRes.json()).data;
+            await pmApi.patch(`/api/tasks/${task.id}`, { data: { status: 'IN_PROGRESS' } });
+            await pmApi.patch(`/api/tasks/${task.id}`, { data: { status: 'DONE' } });
+
+            // Request only DONE tasks
+            const res = await pmApi.get(`/api/tasks?projectId=${testProject.id}&status=DONE`);
+            expect(res.status()).toBe(200);
+            const body = await res.json();
+            
+            expect(body.data.length).toBeGreaterThan(0);
+            body.data.forEach(t => expect(t.status).toBe('DONE'));
+        });
+
+        test('Pagination: limit and nextCursor logic works', async ({ pmApi, testProject, testSprint }) => {
+            // Create 3 tasks
+            await pmApi.post('/api/tasks', { data: { title: 'P1', projectId: testProject.id } });
+            await pmApi.post('/api/tasks', { data: { title: 'P2', projectId: testProject.id } });
+            await pmApi.post('/api/tasks', { data: { title: 'P3', projectId: testProject.id } });
+
+            // Request with limit=2
+            const res1 = await pmApi.get(`/api/tasks?projectId=${testProject.id}&limit=2`);
+            const body1 = await res1.json();
+            expect(body1.data.length).toBe(2);
+            expect(body1.nextCursor).not.toBeNull();
+
+            // Request next page
+            const res2 = await pmApi.get(`/api/tasks?projectId=${testProject.id}&limit=2&cursor=${body1.nextCursor}`);
+            const body2 = await res2.json();
+            expect(body2.data.length).toBeGreaterThan(0);
+            expect(body2.data[0].id).not.toBe(body1.data[0].id);
+        });
+
+        test('INTERN is forbidden from creating tasks', async ({ internApi, testProject }) => {
+            const res = await internApi.post('/api/tasks', {
+                data: { title: 'Intern Task', projectId: testProject.id }
+            });
+            expect(res.status()).toBe(403);
+            const body = await res.json();
+            expect(body.message).toMatch(/not have 'CREATE_TASK' permission|is not authorized to create tasks/);
+        });
+
+        test('INTERN (Assignee) can update status but NOT title', async ({ pmApi, internApi, testProject }) => {
+            const authRes = await internApi.get('/api/auth/check-auth');
+            const internUser = (await authRes.json()).user;
+
+            // 1. PM creates task and assigns to Intern
+            const createRes = await pmApi.post('/api/tasks', {
+                data: { title: 'Editable Task', projectId: testProject.id, assigneeId: internUser.id }
+            });
+            const task = (await createRes.json()).data;
+
+            // 2. Intern attempts to update title -> 403
+            const res1 = await internApi.patch(`/api/tasks/${task.id}`, {
+                data: { title: 'Intern Changed Title' }
+            });
+            expect(res1.status()).toBe(403);
+
+            // 3. Intern attempts to update status -> 200 (Success via canModifyTask logic)
+            const res2 = await internApi.patch(`/api/tasks/${task.id}`, {
+                data: { status: 'IN_PROGRESS' }
+            });
+            expect(res2.status()).toBe(200);
+            const body2 = await res2.json();
+            expect(body2.data.status).toBe('IN_PROGRESS');
+        });
+    });
+
 });
