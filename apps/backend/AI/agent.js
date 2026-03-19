@@ -10,11 +10,17 @@ export const ai = genkit({
 });
 
 export async function generateResponse(prompt) {
-  const response = await ai.generate({ prompt });
-  return response.text;
-}
+  if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === 'your_gemini_api_key_here') {
+    return "AI agent not yet implemented";
+  }
 
-// TEMP TEST — delete this after it works
-generateResponse("Say hello from Gimsoi project tracker in one sentence.")
-  .then(response => console.log("AI Response:", response))
-  .catch(err => console.error("Error:", err.message));
+  try {
+    const response = await ai.generate({ prompt });
+    return response.text;
+  } catch (err) {
+    if (err.message.includes('API key not valid') || err.message.includes('API_KEY_INVALID')) {
+      return "AI agent not yet implemented";
+    }
+    throw err;
+  }
+}
