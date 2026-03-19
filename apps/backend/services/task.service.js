@@ -90,7 +90,7 @@ export const createTask = async ({ title, description, projectId, sprintId, repo
 export const getTasksByProject = async (projectId, { limit = 50, cursor } = {}) => {
     return prisma.task.findMany({
         where: { projectId },
-        take: limit,
+        take: limit + 1,
         ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
         include: {
             assignee: { select: { id: true, fullName: true, email: true } },
@@ -127,31 +127,24 @@ export const updateTask = async (id, data, userId, userRole) => {
         throw new StateTransitionError('Cannot modify a task inside a COMPLETED project.');
     }
 
-    if (userId && userRole) {
-        if (userRole !== 'ADMIN' && existing.reporterId !== userId) {
-            throw new ForbiddenError("Only the reporter or an ADMIN can modify this task.");
-        }
-    }
-
+    // Prevent updates to completed tasks
     if (existing.status === 'DONE') {
         throw new StateTransitionError('Cannot modify a task that is already DONE.');
     }
 
-    // Directional state machine — only permitted transitions are allowed.
-    // Setting the same status is a silent no-op (data.status === existing.status).
-    const TASK_TRANSITIONS = {
-        TODO:        ['IN_PROGRESS'],
-        IN_PROGRESS: ['DONE'],
-        DONE:        [],
-    };
-    const ALL_STATUSES = Object.keys(TASK_TRANSITIONS);
+    // Permission checks
+    if (!canModifyTask(existing, userId, userRole, data)) {
+        throw new ForbiddenError("You do not have permission to modify this task.");
+    }
 
+    // Validate task status transition
     if (data.status !== undefined && data.status !== existing.status) {
         if (!ALL_STATUSES.includes(data.status)) {
             throw new StateTransitionError(
                 `Invalid task status '${data.status}'. Allowed values: ${ALL_STATUSES.join(', ')}`
             );
         }
+
         const allowed = TASK_TRANSITIONS[existing.status] ?? [];
         if (!allowed.includes(data.status)) {
             throw new StateTransitionError(
@@ -160,11 +153,36 @@ export const updateTask = async (id, data, userId, userRole) => {
         }
     }
 
+    // If sprint is being changed, make sure it belongs to the same project
+    if (data.sprintId !== undefined && data.sprintId !== null) {
+        const sprint = await prisma.sprint.findUnique({ where: { id: data.sprintId } });
+        if (!sprint) {
+            throw new NotFoundError(`Sprint ${data.sprintId} not found.`);
+        }
+        if (sprint.projectId !== existing.projectId) {
+            throw new StateTransitionError("Sprint does not belong to this task's project.");
+        }
+    }
+
     return prisma.task.update({
         where: { id },
         data: {
             title: data.title !== undefined ? data.title : existing.title,
             description: data.description !== undefined ? data.description : existing.description,
+
+export const deleteTask = async (id, userId, userRole) => {
+    const existing = await prisma.task.findUnique({ where: { id } });
+    if (!existing) {
+        throw new NotFoundError(`Task with id ${id} not found`);
+    }
+
+    if (userRole !== 'ADMIN' && userRole !== 'PM') {
+        throw new ForbiddenError("Only an ADMIN or PM can delete a task.");
+    }
+
+    await prisma.task.delete({ where: { id } });
+    return true;
+};
             status: data.status !== undefined ? data.status : existing.status,
             sprintId: data.sprintId !== undefined ? data.sprintId : existing.sprintId,
             assigneeId: data.assigneeId !== undefined ? data.assigneeId : existing.assigneeId,
@@ -173,18 +191,4 @@ export const updateTask = async (id, data, userId, userRole) => {
     });
 };
 
-export const deleteTask = async (id, userId, userRole) => {
-    const existing = await prisma.task.findUnique({ where: { id } });
-    if (!existing) {
-        throw new NotFoundError(`Task with id ${id} not found`);
-    }
 
-    if (userId && userRole) {
-        if (userRole !== 'ADMIN' && existing.reporterId !== userId) {
-            throw new ForbiddenError("Only the reporter or an ADMIN can modify this task.");
-        }
-    }
-
-    await prisma.task.delete({ where: { id } });
-    return true;
-};
