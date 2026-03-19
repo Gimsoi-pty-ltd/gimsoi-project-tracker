@@ -4,9 +4,14 @@ import { handlePrismaError } from "../utils/prismaErrors.js";
 
 import { TASK_TRANSITIONS } from "../utils/stateMachines.js";
 
-export const createTask = async ({ title, description, projectId, sprintId, reporterId, assigneeId, priority }) => {
-    // POLICY-PENDING: Missing authorization check — ensure the user creating the task has permission 
-    // to add tasks to this project, and verify if the requesting userId must match the reporterId.
+export const createTask = async ({ title, description, projectId, sprintId, reporterId, assigneeId, priority, dueDate, isBlocked, blockedReason, userRole }) => {
+    // Phase 2: Security & Authorization — enforce project-level boundary constraints
+    const project = await prisma.project.findUnique({ where: { id: projectId } });
+    if (!project) throw new NotFoundError(`Project ${projectId} not found.`);
+
+    if (userRole !== 'ADMIN' && project.createdByUserId !== reporterId) {
+        throw new ForbiddenError("Unauthorized access to project boundaries.");
+    }
 
     // Guard: sprint must belong to the same project as the task
     if (sprintId) {
@@ -19,8 +24,6 @@ export const createTask = async ({ title, description, projectId, sprintId, repo
         }
     }
 
-    const project = await prisma.project.findUnique({ where: { id: projectId } });
-    if (!project) throw new NotFoundError(`Project ${projectId} not found.`);
     if (project.status === 'COMPLETED') {
         throw new StateTransitionError('Cannot create a task inside a COMPLETED project.');
     }
@@ -35,7 +38,10 @@ export const createTask = async ({ title, description, projectId, sprintId, repo
                 reporterId,
                 assigneeId,
                 status: 'TODO',
-                priority: priority || 'MEDIUM'
+                priority: priority || 'MEDIUM',
+                dueDate: dueDate ? new Date(dueDate) : null,
+                isBlocked: isBlocked || false,
+                blockedReason: blockedReason || null
             }
         });
     } catch (err) { 
@@ -46,12 +52,23 @@ export const createTask = async ({ title, description, projectId, sprintId, repo
 
 /**
  * @param {string} projectId
- * @param {{ limit?: number, cursor?: string }} options
+ * @param {{ limit?: number, cursor?: string, filter?: string, isBlocked?: string }} options
  * limit defaults to 50. cursor is the ID of the last record from the previous page.
  */
-export const getTasksByProject = async (projectId, { limit = 50, cursor } = {}) => {
+export const getTasksByProject = async (projectId, { limit = 50, cursor, filter, isBlocked } = {}) => {
+    const where = { projectId };
+
+    if (filter === 'overdue') {
+        where.dueDate = { lt: new Date() };
+        where.status = { not: 'DONE' };
+    }
+
+    if (isBlocked !== undefined) {
+        where.isBlocked = isBlocked === 'true';
+    }
+
     return prisma.task.findMany({
-        where: { projectId },
+        where,
         take: limit,
         ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
         include: {
@@ -85,14 +102,21 @@ export const updateTask = async (id, data, userId, userRole) => {
 
     const project = await prisma.project.findUnique({ where: { id: existing.projectId } });
     if (!project) throw new NotFoundError(`Project ${existing.projectId} not found.`);
-    if (project.status === 'COMPLETED') {
-        throw new StateTransitionError('Cannot modify a task inside a COMPLETED project.');
-    }
 
     if (userId && userRole) {
+        // Phase 2: Project-level check
+        if (userRole !== 'ADMIN' && project.createdByUserId !== userId) {
+            throw new ForbiddenError("Unauthorized access to project boundaries.");
+        }
+
+        // Existing Reporter-level check
         if (userRole !== 'ADMIN' && existing.reporterId !== userId) {
             throw new ForbiddenError("Only the reporter or an ADMIN can modify this task.");
         }
+    }
+
+    if (project.status === 'COMPLETED') {
+        throw new StateTransitionError('Cannot modify a task inside a COMPLETED project.');
     }
 
     if (existing.status === 'DONE') {
@@ -124,6 +148,9 @@ export const updateTask = async (id, data, userId, userRole) => {
             sprintId: data.sprintId !== undefined ? data.sprintId : existing.sprintId,
             assigneeId: data.assigneeId !== undefined ? data.assigneeId : existing.assigneeId,
             priority: data.priority !== undefined ? data.priority : existing.priority,
+            dueDate: data.dueDate !== undefined ? (data.dueDate ? new Date(data.dueDate) : null) : existing.dueDate,
+            isBlocked: data.isBlocked !== undefined ? data.isBlocked : existing.isBlocked,
+            blockedReason: data.blockedReason !== undefined ? data.blockedReason : existing.blockedReason
         }
     });
 };
@@ -142,4 +169,43 @@ export const deleteTask = async (id, userId, userRole) => {
 
     await prisma.task.delete({ where: { id } });
     return true;
+};
+
+export const getProjectTaskSummary = async (projectId) => {
+    const now = new Date();
+    const [total, overdueCount, blockedCount, statusGroups] = await prisma.$transaction([
+        prisma.task.count({ where: { projectId } }),
+        prisma.task.count({
+            where: {
+                projectId,
+                dueDate: { lt: now },
+                status: { not: 'DONE' }
+            }
+        }),
+        prisma.task.count({ where: { projectId, isBlocked: true } }),
+        prisma.task.groupBy({
+            by: ['status'],
+            where: { projectId },
+            _count: { status: true }
+        })
+    ]);
+
+    const statusBreakdown = {
+        TODO: 0,
+        IN_PROGRESS: 0,
+        DONE: 0
+    };
+
+    statusGroups.forEach(g => {
+        if (g.status in statusBreakdown) {
+            statusBreakdown[g.status] = g._count.status;
+        }
+    });
+
+    return {
+        total,
+        overdueCount,
+        blockedCount,
+        statusBreakdown
+    };
 };

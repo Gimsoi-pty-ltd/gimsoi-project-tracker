@@ -119,6 +119,10 @@ model Task {
   updatedAt DateTime @updatedAt
 
   priority  TaskPriority @default(MEDIUM)
+  dueDate   DateTime?
+  isBlocked Boolean      @default(false)
+  blockedReason String?
+
   comments  Comment[]
   efforts   Effort[]
 

@@ -2,7 +2,7 @@ import express from "express";
 import { verifyToken } from "../middleware/verify-token.middleware.js";
 import authorize from "../middleware/auth.middleware.js";
 import { readLimiter, writeLimiter } from "../middleware/rate-limiter.middleware.js";
-import { createTask, getTasks, getTaskById, updateTask, deleteTask } from "../controllers/task.controller.js";
+import { createTask, getTasks, getTaskById, updateTask, deleteTask, getTaskSummary } from "../controllers/task.controller.js";
 
 const router = express.Router();
 
@@ -11,6 +11,7 @@ const router = express.Router();
  * Allowed: ADMIN, PM, INTERN, CLIENT
  */
 router.get("/", readLimiter, verifyToken, authorize("VIEW_PROGRESS"), getTasks);
+router.get("/projects/:projectId/summary", readLimiter, verifyToken, authorize("VIEW_PROGRESS"), getTaskSummary);
 
 /**
  * GET /api/tasks/:id — VIEW_TASK
