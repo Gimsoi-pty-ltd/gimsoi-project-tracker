@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { Plus, Search, MoreHorizontal, CheckCircle2, Circle, AlertCircle, ChevronDown } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Plus, Search, MoreHorizontal, CheckCircle2, Circle, AlertCircle, ChevronDown, Zap } from "lucide-react";
+import NavyButton from "../../Components/Buttons";
 
 const Row = ({ client, name, sprint, progress, defaultColor }) => {
     const [color, setColor] = useState(defaultColor);
@@ -133,10 +135,16 @@ function Projects() {
                                 className="pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-[#1A75FF] focus:border-[#1A75FF] outline-none w-full md:w-64 transition-all bg-white shadow-sm"
                             />
                         </div>
-                        <button className="bg-[#1A75FF] hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-[0_4px_12px_rgba(26,117,255,0.25)] hover:shadow-[0_6px_16px_rgba(26,117,255,0.35)] hover:-translate-y-0.5 flex items-center gap-2 whitespace-nowrap active:scale-95">
+                        < NavyButton className="flex items-center gap-2">
                             <Plus className="w-4 h-4" />
                             New Project
-                        </button>
+                        </NavyButton>
+                         <Link to="/kanban-board">
+                        <NavyButton className="flex items-center gap-2">
+                            <Zap className="w-4 h-4" />
+                            Kanban Board
+                        </NavyButton>
+                        </Link>
                     </div>
                 </div>
 
@@ -189,6 +197,7 @@ function Projects() {
                         <button className="px-8 py-3 bg-white hover:bg-[#1A75FF] hover:text-white text-slate-700 font-semibold rounded-xl text-sm transition-all border border-slate-200 hover:border-[#1A75FF] w-full sm:w-auto shadow-sm hover:shadow-md active:scale-95 group">
                             Load more projects
                         </button>
+                        
                     </div>
                 </div>
             </div>
