@@ -29,15 +29,19 @@ export const getProjects = async (req, res) => {
 
     const records = await projectService.getProjects({ limit, cursor });
 
-    // Service fetches limit+1 rows; if we got the extra one, there's a next page
-    const hasMore = records.length > limit;
-    const data = hasMore ? records.slice(0, limit) : records;
+    const dataWithProgress = await Promise.all(records.map(async (proj) => {
+      const prog = await projectService.getProjectProgress(proj.id);
+      return { ...proj, percentComplete: prog ? prog.percentComplete : 0 };
+    }));
+
+    const hasMore = dataWithProgress.length > limit;
+    const data = hasMore ? dataWithProgress.slice(0, limit) : dataWithProgress;
     const nextCursor = hasMore ? data[data.length - 1].id : null;
 
-    return res.status(200).json({ data, nextCursor });
+    return res.status(200).json({ success: true, data, nextCursor });
   } catch (err) {
     console.error("getProjects error:", err?.message);
-    return res.status(500).json({ message: "Failed to fetch projects" });
+    return res.status(500).json({ success: false, message: "Failed to fetch projects" });
   }
 };
 
@@ -75,6 +79,11 @@ export const getProjectProgress = async (req, res) => {
     const { id } = req.params;
     const progress = await projectService.getProjectProgress(id);
     if (!progress) return res.status(404).json({ message: "Project not found" });
+
+    if (req.user?.role === 'CLIENT') {
+      return res.status(200).json({ data: { percentComplete: progress.percentComplete } });
+    }
+
     return res.status(200).json({ data: progress });
   } catch (err) {
     console.error("getProjectProgress error:", err?.message);
