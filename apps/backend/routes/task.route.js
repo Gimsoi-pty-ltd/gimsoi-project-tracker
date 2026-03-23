@@ -17,11 +17,11 @@ router.get("/", readLimiter, verifyToken, authorize("VIEW_PROGRESS"), getTasks);
  * Allowed: ADMIN, PM, INTERN, CLIENT
  */
 router.get("/:id", readLimiter, verifyToken, authorize("VIEW_PROGRESS"), getTaskById);
- 
- /**
- * GET /api/tasks/projects/:projectId/summary — VIEW_PROGRESS
- * Allowed: ADMIN, PM, INTERN, CLIENT
- */
+
+/**
+* GET /api/tasks/projects/:projectId/summary — VIEW_PROGRESS
+* Allowed: ADMIN, PM, INTERN, CLIENT
+*/
 router.get("/projects/:projectId/summary", readLimiter, verifyToken, authorize("VIEW_PROGRESS"), getTaskSummary);
 
 /**
