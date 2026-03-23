@@ -2,7 +2,7 @@ import * as taskService from "../services/task.service.js";
 
 export const createTask = async (req, res) => {
     try {
-        const { title, description, projectId, sprintId, assigneeId, priority } = req.body;
+        const { title, description, projectId, sprintId, assigneeId, priority, isBlocked, dueDate } = req.body;
 
         if (!title || !projectId) {
             return res.status(400).json({ success: false, message: "Task title and projectId are required" });
@@ -14,6 +14,9 @@ export const createTask = async (req, res) => {
             projectId,
             sprintId,
             assigneeId,
+            priority,
+            isBlocked,
+            dueDate,
             reporterId: req.user.id,
             userRole: req.user.role
         });
@@ -27,7 +30,7 @@ export const createTask = async (req, res) => {
 
 export const getTasks = async (req, res) => {
     try {
-        const { projectId, status, isBlocked } = req.query;
+        const { projectId, status, isBlocked, isOverdue } = req.query;
 
         const limit = Math.min(parseInt(req.query.limit) || 50, 100);
         const cursor = req.query.cursor || undefined;
@@ -41,11 +44,15 @@ export const getTasks = async (req, res) => {
         if (isBlocked === 'true') blockedFilter = true;
         if (isBlocked === 'false') blockedFilter = false;
 
-        const records = await taskService.getTasksByProject(projectId, { 
-            limit, 
-            cursor, 
-            status, 
-            isBlocked: blockedFilter 
+        let overdueFilter = undefined;
+        if (isOverdue === 'true') overdueFilter = true;
+
+        const records = await taskService.getTasksByProject(projectId, {
+            limit,
+            cursor,
+            status,
+            isBlocked: blockedFilter,
+            isOverdue: overdueFilter
         });
 
         const hasMore = records.length > limit;
@@ -71,10 +78,10 @@ export const getTaskById = async (req, res, next) => {
 export const updateTask = async (req, res) => {
     try {
         const { id } = req.params;
-        const { title, description, status, sprintId, assigneeId, priority } = req.body;
+        const { title, description, status, sprintId, assigneeId, priority, isBlocked, dueDate } = req.body;
 
         const updated = await taskService.updateTask(id, {
-            title, description, status, sprintId, assigneeId, priority
+            title, description, status, sprintId, assigneeId, priority, isBlocked, dueDate
         }, req.user?.id, req.user?.role);
 
         return res.status(200).json({ success: true, message: "Task updated successfully", data: updated });

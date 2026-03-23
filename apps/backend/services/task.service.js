@@ -43,7 +43,7 @@ const canModifyTask = (existingTask, userId, userRole, updates = {}) => {
     return false;
 };
 
-export const createTask = async ({ title, description, projectId, sprintId, reporterId, assigneeId, priority, userRole }) => {
+export const createTask = async ({ title, description, projectId, sprintId, reporterId, assigneeId, priority, isBlocked, dueDate, userRole }) => {
     // Project-level authorization: Only ADMIN and PM can create tasks.
     if (userRole && userRole !== 'ADMIN' && userRole !== 'PM') {
         throw new ForbiddenError(`Role '${userRole}' is not authorized to create tasks.`);
@@ -76,7 +76,9 @@ export const createTask = async ({ title, description, projectId, sprintId, repo
                 reporterId,
                 assigneeId,
                 status: 'TODO',
-                priority: priority || 'MEDIUM'
+                priority: priority || 'MEDIUM',
+                isBlocked: isBlocked || false,
+                dueDate: dueDate ? new Date(dueDate) : null
             }
         });
     } catch (err) { 
@@ -87,12 +89,16 @@ export const createTask = async ({ title, description, projectId, sprintId, repo
 
 /**
  * @param {string} projectId
- * @param {{ limit?: number, cursor?: string, status?: string, isBlocked?: boolean }} options
+ * @param {{ limit?: number, cursor?: string, status?: string, isBlocked?: boolean, isOverdue?: boolean }} options
  */
-export const getTasksByProject = async (projectId, { limit = 50, cursor, status, isBlocked } = {}) => {
+export const getTasksByProject = async (projectId, { limit = 50, cursor, status, isBlocked, isOverdue } = {}) => {
     const where = { projectId };
     if (status) where.status = status;
     if (isBlocked !== undefined) where.isBlocked = isBlocked;
+    if (isOverdue === true) {
+        where.dueDate = { lt: new Date() };
+        if (!status) where.status = { not: 'DONE' };
+    }
 
     return prisma.task.findMany({
         where,
@@ -175,6 +181,8 @@ export const updateTask = async (id, data, userId, userRole) => {
             sprintId: data.sprintId !== undefined ? data.sprintId : existing.sprintId,
             assigneeId: data.assigneeId !== undefined ? data.assigneeId : existing.assigneeId,
             priority: data.priority !== undefined ? data.priority : existing.priority,
+            isBlocked: data.isBlocked !== undefined ? data.isBlocked : existing.isBlocked,
+            dueDate: data.dueDate !== undefined ? new Date(data.dueDate) : existing.dueDate,
         }
     });
 };
