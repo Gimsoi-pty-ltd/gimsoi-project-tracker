@@ -53,6 +53,8 @@ jobs:
 
       - name: Generate Prisma Client
         working-directory: apps/backend
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/testdb
         run: npx prisma generate
 
       - name: Run Playwright API Tests
