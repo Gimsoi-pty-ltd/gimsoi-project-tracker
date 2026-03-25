@@ -37,6 +37,8 @@ jobs:
 
       - name: Install dependencies
         working-directory: apps/backend
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/testdb
         run: npm ci --omit=optional
 
       - name: Install Playwright browsers
