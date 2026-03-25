@@ -187,12 +187,12 @@ function Projects() {
                     </div>
 
                     <div className="mt-8 flex justify-center">
-                        <NavyButton 
-  onClick={() => console.log("Loading more projects...")}
-  className="w-full sm:w-auto"
->
-  Load more projects
-</NavyButton>
+                    <NavyButton 
+                        onClick={() => console.log("Loading more projects...")}
+                        className="w-full sm:w-auto"
+                    >
+                        Load more projects
+                    </NavyButton>
                     </div>
                 </div>
             </div>
