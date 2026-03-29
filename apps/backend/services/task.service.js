@@ -1,6 +1,7 @@
 import prisma from "../lib/prisma.js";
 import { StateTransitionError, NotFoundError, ForbiddenError } from "../utils/errors.js";
 import { handlePrismaError } from "../utils/prismaErrors.js";
+import ROLES from "../constants/roles.js";
 
 const TASK_TRANSITIONS = {
     TODO: ['IN_PROGRESS'],
@@ -10,6 +11,10 @@ const TASK_TRANSITIONS = {
 
 const ALL_STATUSES = Object.keys(TASK_TRANSITIONS);
 
+/**
+ * NOTE: Not replaced by assertOwnership — task modification requires assignee and reporter-specific property guards, and tasks do not track createdByUserId.
+ * If ownership rules change, update both here and in utils/ownership.js.
+ */
 const canModifyTask = (existingTask, userId, userRole, updates = {}) => {
     if (!userId || !userRole) {
         return true;
@@ -21,7 +26,7 @@ const canModifyTask = (existingTask, userId, userRole, updates = {}) => {
     }
 
     // PM can update tasks
-    if (userRole === 'PM') {
+    if (userRole === ROLES.PROJECT_MANAGER) {
         return true;
     }
 
@@ -45,7 +50,7 @@ const canModifyTask = (existingTask, userId, userRole, updates = {}) => {
 
 export const createTask = async ({ title, description, projectId, sprintId, reporterId, assigneeId, priority, isBlocked, dueDate, userRole }) => {
     // Project-level authorization: Only ADMIN and PM can create tasks.
-    if (userRole && userRole !== 'ADMIN' && userRole !== 'PM') {
+    if (userRole && userRole !== 'ADMIN' && userRole !== ROLES.PROJECT_MANAGER) {
         throw new ForbiddenError(`Role '${userRole}' is not authorized to create tasks.`);
     }
 
@@ -64,6 +69,10 @@ export const createTask = async ({ title, description, projectId, sprintId, repo
     if (!project) throw new NotFoundError(`Project ${projectId} not found.`);
     if (project.status === 'COMPLETED') {
         throw new StateTransitionError('Cannot create a task inside a COMPLETED project.');
+    }
+
+    if (priority && !['LOW', 'MEDIUM', 'HIGH', 'URGENT'].includes(priority)) {
+        throw new StateTransitionError(`Invalid priority '${priority}'. Allowed values: LOW, MEDIUM, HIGH, URGENT`);
     }
 
     try {
@@ -151,13 +160,7 @@ export const updateTask = async (id, data, userId, userRole) => {
 
     // Directional state machine — only permitted transitions are allowed.
     // Setting the same status is a silent no-op (data.status === existing.status).
-    const TASK_TRANSITIONS = {
-        TODO:        ['IN_PROGRESS'],
-        IN_PROGRESS: ['DONE'],
-        DONE:        [],
-    };
-    const ALL_STATUSES = Object.keys(TASK_TRANSITIONS);
-
+    // Uses the module-scope TASK_TRANSITIONS and ALL_STATUSES constants.
     if (data.status !== undefined && data.status !== existing.status) {
         if (!ALL_STATUSES.includes(data.status)) {
             throw new StateTransitionError(
@@ -223,4 +226,24 @@ export const getProjectTaskSummary = async (projectId) => {
     });
 
     return summary;
+};
+
+export const getTaskCompletionStats = async (projectId) => {
+    const groups = await prisma.task.groupBy({
+        by: ['status'],
+        where: { projectId: String(projectId) },
+        _count: { status: true },
+    });
+
+    const totals = { TODO: 0, IN_PROGRESS: 0, DONE: 0 };
+    for (const g of groups) {
+        if (g.status in totals) totals[g.status] = g._count.status;
+    }
+
+    const total = totals.TODO + totals.IN_PROGRESS + totals.DONE;
+    return {
+        ...totals,
+        total,
+        percentComplete: total ? Math.round((totals.DONE / total) * 100) : 0,
+    };
 };

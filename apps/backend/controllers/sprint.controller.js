@@ -1,4 +1,5 @@
 import * as sprintService from "../services/sprint.service.js";
+import { parsePagination, buildPage } from "../utils/pagination.js";
 
 export const createSprint = async (req, res) => {
     try {
@@ -32,14 +33,11 @@ export const getSprints = async (req, res) => {
             return res.status(400).json({ success: false, message: "projectId query parameter is required" });
         }
 
-        const limit = Math.min(parseInt(req.query.limit) || 50, 100);
-        const cursor = req.query.cursor || undefined;
+        const { limit, cursor } = parsePagination(req.query);
 
         const records = await sprintService.getSprintsByProject(projectId, { limit, cursor });
 
-        const hasMore = records.length > limit;
-        const data = hasMore ? records.slice(0, limit) : records;
-        const nextCursor = hasMore ? data[data.length - 1].id : null;
+        const { data, nextCursor } = buildPage(records, limit);
 
         return res.status(200).json({ success: true, data, nextCursor });
     } catch (err) {

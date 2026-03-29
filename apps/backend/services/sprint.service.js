@@ -111,6 +111,13 @@ export const updateSprint = async (id, data, userId, userRole) => {
 
     if (userId && userRole) assertOwnership(sprint, userId, userRole);
 
+    if (data.startDate !== undefined && data.startDate !== null && isNaN(Date.parse(data.startDate))) {
+        throw new StateTransitionError('Invalid startDate format.');
+    }
+    if (data.endDate !== undefined && data.endDate !== null && isNaN(Date.parse(data.endDate))) {
+        throw new StateTransitionError('Invalid endDate format.');
+    }
+
     return prisma.sprint.update({
         where: { id: String(id) },
         data: {
