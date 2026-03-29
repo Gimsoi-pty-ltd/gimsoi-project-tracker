@@ -62,6 +62,9 @@ import Users from "./Pages/Users/Users";
 import Teams from "./Pages/Users/Teams";
 import Clients from "./Pages/Users/Clients";
 
+// Kanban Board
+import Kanban from "./Pages/KanbanBoard/KanbanBoard";
+
 import { useAuthStore } from "./store/authStore";
 
 // ─── Auth Guard Components  ─────────────────────────────
@@ -306,6 +309,13 @@ function App() {
         <Route path="/users-list" element= {
           <ProtectedRoute>
             <DashboardLayout><Users /></DashboardLayout>
+          </ProtectedRoute>
+        } />
+
+        {/* Kanban Board */}
+        <Route path="/kanban-board" element={
+          <ProtectedRoute>
+            <DashboardLayout><Kanban /></DashboardLayout>
           </ProtectedRoute>
         } />
 
