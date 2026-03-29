@@ -2,7 +2,7 @@ import express from "express";
 import { verifyToken } from "../middleware/verify-token.middleware.js";
 import authorize from "../middleware/auth.middleware.js";
 import { readLimiter, writeLimiter } from "../middleware/rate-limiter.middleware.js";
-import { createTask, getTasks, updateTask, deleteTask } from "../controllers/task.controller.js";
+import { createTask, getTasks, getTaskById, updateTask, deleteTask, getTaskSummary } from "../controllers/task.controller.js";
 
 const router = express.Router();
 
@@ -13,16 +13,28 @@ const router = express.Router();
 router.get("/", readLimiter, verifyToken, authorize("VIEW_PROGRESS"), getTasks);
 
 /**
+ * GET /api/tasks/:id — VIEW_TASK
+ * Allowed: ADMIN, PM, INTERN, CLIENT
+ */
+router.get("/:id", readLimiter, verifyToken, authorize("VIEW_PROGRESS"), getTaskById);
+
+/**
+* GET /api/tasks/projects/:projectId/summary — VIEW_PROGRESS
+* Allowed: ADMIN, PM, INTERN, CLIENT
+*/
+router.get("/projects/:projectId/summary", readLimiter, verifyToken, authorize("VIEW_PROGRESS"), getTaskSummary);
+
+/**
  * POST /api/tasks — CREATE_TASK
  * Allowed: ADMIN, PM
  */
 router.post("/", writeLimiter, verifyToken, authorize("CREATE_TASK"), createTask);
 
 /**
- * PUT /api/tasks/:id — UPDATE_TASK
+ * PATCH /api/tasks/:id — UPDATE_TASK
  * Allowed: ADMIN, INTERN
  */
-router.put("/:id", writeLimiter, verifyToken, authorize("UPDATE_TASK"), updateTask);
+router.patch("/:id", writeLimiter, verifyToken, authorize("UPDATE_TASK"), updateTask);
 
 /**
  * DELETE /api/tasks/:id — DELETE_TASK

@@ -2,7 +2,7 @@ import * as sprintService from "../services/sprint.service.js";
 
 export const createSprint = async (req, res) => {
     try {
-        const { name, projectId, status } = req.body;
+        const { name, projectId, status, startDate, endDate } = req.body;
 
         if (!name || !projectId) {
             return res.status(400).json({ success: false, message: "Sprint name and projectId are required" });
@@ -12,6 +12,8 @@ export const createSprint = async (req, res) => {
             name,
             projectId,
             status,
+            startDate,
+            endDate,
             createdByUserId: req.user.id
         });
 
@@ -61,5 +63,19 @@ export const updateSprintStatus = async (req, res) => {
     } catch (err) {
         const statusCode = err.statusCode || 500;
         return res.status(statusCode).json({ success: false, message: err.message || "Failed to update sprint state" });
+    }
+};
+
+export const updateSprint = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, startDate, endDate } = req.body;
+
+        const updated = await sprintService.updateSprint(id, { name, startDate, endDate }, req.user.id, req.user.role);
+
+        return res.status(200).json({ success: true, message: "Sprint updated successfully", data: updated });
+    } catch (err) {
+        const statusCode = err.statusCode || 500;
+        return res.status(statusCode).json({ success: false, message: err.message || "Failed to update sprint" });
     }
 };
