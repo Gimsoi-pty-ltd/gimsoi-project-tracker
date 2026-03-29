@@ -367,7 +367,7 @@ test.describe('Task Creation & Pipeline Validation', () => {
             expect(res.status()).toBe(401);
         });
 
-        test('Forbidden: request with a role that does not have VIEW_PROGRESS permission', async ({ request, pmApi, testProject, testSprint }) => {
+        test('Forbidden: request with a role that does not have VIEW_TASKS permission', async ({ request, pmApi, testProject, testSprint }) => {
             const taskRes = await pmApi.post('/api/tasks', {
                 data: { title: 'Forbidden Test Task', projectId: testProject.id, sprintId: testSprint.id }
             });
@@ -443,6 +443,7 @@ test.describe('Task Creation & Pipeline Validation', () => {
             // Request with limit=2
             const res1 = await pmApi.get(`/api/tasks?projectId=${testProject.id}&limit=2`);
             const body1 = await res1.json();
+            if (!body1.data) console.log('DEBUG_FAIL_BODY:', JSON.stringify(body1));
             expect(body1.data.length).toBe(2);
             expect(body1.nextCursor).not.toBeNull();
 
