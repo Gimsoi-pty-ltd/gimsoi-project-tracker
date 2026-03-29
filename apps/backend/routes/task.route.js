@@ -1,28 +1,28 @@
 import express from "express";
 import { verifyToken } from "../middleware/verify-token.middleware.js";
-import authorize from "../middleware/auth.middleware.js";
+import authorize from "../middleware/authorize.middleware.js";
 import { readLimiter, writeLimiter } from "../middleware/rate-limiter.middleware.js";
 import { createTask, getTasks, getTaskById, updateTask, deleteTask, getTaskSummary } from "../controllers/task.controller.js";
 
 const router = express.Router();
 
 /**
- * GET /api/tasks — VIEW_PROGRESS
+ * GET /api/tasks — VIEW_TASKS
  * Allowed: ADMIN, PM, INTERN, CLIENT
  */
-router.get("/", readLimiter, verifyToken, authorize("VIEW_PROGRESS"), getTasks);
+router.get("/", readLimiter, verifyToken, authorize("VIEW_TASKS"), getTasks);
 
 /**
- * GET /api/tasks/:id — VIEW_TASK
+ * GET /api/tasks/projects/:projectId/summary — VIEW_TASKS
  * Allowed: ADMIN, PM, INTERN, CLIENT
  */
-router.get("/:id", readLimiter, verifyToken, authorize("VIEW_PROGRESS"), getTaskById);
+router.get("/projects/:projectId/summary", readLimiter, verifyToken, authorize("VIEW_TASKS"), getTaskSummary);
 
 /**
-* GET /api/tasks/projects/:projectId/summary — VIEW_PROGRESS
-* Allowed: ADMIN, PM, INTERN, CLIENT
-*/
-router.get("/projects/:projectId/summary", readLimiter, verifyToken, authorize("VIEW_PROGRESS"), getTaskSummary);
+ * GET /api/tasks/:id — VIEW_TASKS
+ * Allowed: ADMIN, PM, INTERN, CLIENT
+ */
+router.get("/:id", readLimiter, verifyToken, authorize("VIEW_TASKS"), getTaskById);
 
 /**
  * POST /api/tasks — CREATE_TASK
