@@ -24,7 +24,7 @@ test.describe('Auth API Tests', () => {
             expect(data.token).toBeDefined();
         });
 
-        test('returns 400 on duplicate email', async ({ request }) => {
+        test('returns 409 on duplicate email', async ({ request }) => {
             const email = `dup-${Date.now()}@example.com`;
             const payload = { email, password: 'password123', fullName: 'Test User' };
 
@@ -40,7 +40,7 @@ test.describe('Auth API Tests', () => {
                 data: payload
             });
 
-            expect(response.status()).toBe(400);
+            expect(response.status()).toBe(409);
             const data = await response.json();
             expect(data.success).toBe(false);
             expect(data.message).toBe('User already exists');
@@ -304,7 +304,7 @@ test.describe('Auth API Tests', () => {
             expect(response.status()).toBe(200);
             const data = await response.json();
             expect(data.success).toBe(true);
-            expect(data.message).toBe('Password reset link sent to your email');
+            expect(data.message).toBe('If that email is registered, a reset link has been sent.');
         });
 
         test('returns 200 for unknown email (prevent user enumeration)', async ({ request }) => {
