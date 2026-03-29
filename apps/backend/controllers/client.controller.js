@@ -5,7 +5,7 @@ export const createClient = async (req, res) => {
     const { name, contactEmail } = req.body;
 
     if (!name) {
-      return res.status(400).json({ message: "Client name is required" });
+      return res.status(400).json({ success: false, message: "Client name is required" });
     }
 
     const client = await clientService.createClient({
@@ -14,19 +14,19 @@ export const createClient = async (req, res) => {
       createdByUserId: req.user?.id || null,
     });
 
-    return res.status(201).json({ message: "Client created", data: client });
+    return res.status(201).json({ success: true, message: "Client created", data: client });
   } catch (err) {
-    return res.status(500).json({ message: "Failed to create client" });
+    return res.status(500).json({ success: false, message: "Failed to create client" });
   }
 };
 
 export const getClients = async (req, res) => {
   try {
     const clients = await clientService.getClients();
-    return res.status(200).json({ data: clients });
+    return res.status(200).json({ success: true, data: clients });
   } catch (err) {
     console.error("getClients error:", err?.message);
-    return res.status(500).json({ message: "Failed to fetch clients" });
+    return res.status(500).json({ success: false, message: "Failed to fetch clients" });
   }
 };
 
@@ -35,11 +35,11 @@ export const getClientById = async (req, res) => {
     const { id } = req.params;
 
     const client = await clientService.getClientById(id);
-    if (!client) return res.status(404).json({ message: "Client not found" });
 
-    return res.status(200).json({ data: client });
+    return res.status(200).json({ success: true, data: client });
   } catch (err) {
+    const statusCode = err.statusCode || 500;
     console.error("getClientById error:", err?.message);
-    return res.status(500).json({ message: "Failed to fetch client" });
+    return res.status(statusCode).json({ success: false, message: err.message || "Failed to fetch client" });
   }
 };

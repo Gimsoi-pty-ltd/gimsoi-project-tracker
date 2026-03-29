@@ -1,8 +1,12 @@
 import prisma from "../lib/prisma.js";
 import { StateTransitionError, NotFoundError } from "../utils/errors.js";
 import { assertOwnership } from "../utils/ownership.js";
+import { getTaskCompletionStats } from "./task.service.js";
 
 export const createProject = async ({ name, clientId, status, createdByUserId }) => {
+  if (status && !['DRAFT', 'ACTIVE', 'COMPLETED'].includes(status)) {
+    throw new StateTransitionError(`Invalid project status '${status}'. Allowed: DRAFT, ACTIVE, COMPLETED`);
+  }
   return prisma.project.create({
     data: {
       name,
@@ -77,21 +81,5 @@ export const getProjectProgress = async (projectId) => {
   const project = await prisma.project.findUnique({ where: { id: String(projectId) } });
   if (!project) return null;
 
-  const groups = await prisma.task.groupBy({
-    by: ['status'],
-    where: { projectId: String(projectId) },
-    _count: { status: true },
-  });
-
-  const totals = { TODO: 0, IN_PROGRESS: 0, DONE: 0 };
-  for (const g of groups) {
-    if (g.status in totals) totals[g.status] = g._count.status;
-  }
-
-  const total = totals.TODO + totals.IN_PROGRESS + totals.DONE;
-  return {
-    ...totals,
-    total,
-    percentComplete: total ? Math.round((totals.DONE / total) * 100) : 0,
-  };
+  return getTaskCompletionStats(projectId);
 };

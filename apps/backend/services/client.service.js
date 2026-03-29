@@ -1,4 +1,5 @@
 import prisma from "../lib/prisma.js";
+import { NotFoundError } from "../utils/errors.js";
 
 export const createClient = async ({ name, contactEmail, createdByUserId }) => {
   // Adjust model name if your schema uses a different one
@@ -18,7 +19,11 @@ export const getClients = async () => {
 };
 
 export const getClientById = async (id) => {
-  return prisma.client.findUnique({
+  const client = await prisma.client.findUnique({
     where: { id: String(id) },
   });
+  if (!client) {
+    throw new NotFoundError("Client not found");
+  }
+  return client;
 };
