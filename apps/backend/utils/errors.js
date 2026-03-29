@@ -21,3 +21,11 @@ export class ForbiddenError extends Error {
         this.statusCode = 403;
     }
 }
+
+export class ConflictError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = 'ConflictError';
+        this.statusCode = 409;
+    }
+}
