@@ -3,13 +3,37 @@ import { StateTransitionError, NotFoundError, ForbiddenError } from "../utils/er
 import { handlePrismaError } from "../utils/prismaErrors.js";
 import ROLES from "../constants/roles.js";
 
-const TASK_TRANSITIONS = {
-    TODO: ['IN_PROGRESS'],
-    IN_PROGRESS: ['DONE'],
-    DONE: [],
+/**
+ * ALLOWED_TRANSITIONS defines the valid state machine for task status changes.
+ * 
+ * Rules:
+ * - Each key represents a source state (current status).
+ * - Each value is an array of valid target states (next status).
+ * - Empty array means the state is terminal (no further transitions allowed).
+ * - This map is enforced in the updateTask service method.
+ *
+ * All Valid States:
+ * - TODO (Initial status)
+ * - IN_PROGRESS (Active work)
+ * - BLOCKED (Reversible)
+ * - DONE (Terminal)
+ * - CANCELLED (Terminal)
+ */
+export const ALLOWED_TRANSITIONS = {
+    TODO: ['IN_PROGRESS', 'CANCELLED'],
+    IN_PROGRESS: ['DONE', 'CANCELLED', 'BLOCKED'],
+    
+    // Reversible — task is obstructed but not abandoned. Must return to IN_PROGRESS before completing.
+    BLOCKED: ['IN_PROGRESS', 'CANCELLED'],
+    
+    // Terminal — work is finalized
+    DONE: [], 
+    
+    // Terminal — task was abandoned before completion
+    CANCELLED: [], 
 };
 
-const ALL_STATUSES = Object.keys(TASK_TRANSITIONS);
+const ALL_STATUSES = Object.keys(ALLOWED_TRANSITIONS);
 
 /**
  * NOTE: Not replaced by assertOwnership — task modification requires assignee and reporter-specific property guards, and tasks do not track createdByUserId.
@@ -46,6 +70,26 @@ const canModifyTask = (existingTask, userId, userRole, updates = {}) => {
     }
 
     return false;
+};
+
+/**
+ * Registry of general modification guards:
+ * - Cannot modify a task inside a COMPLETED project.
+ * - Cannot modify a task that is already DONE.
+ * - Cannot modify a task that is already CANCELLED.
+ * - Cannot modify a task belonging to a closed sprint.
+ * NOTE: Sprint ACTIVE -> DONE guard lives in updateTask directly (transition-scoped, not general).
+ */
+const assertTaskIsModifiable = (task) => {
+    if (task.sprint && task.sprint.status === 'CLOSED') {
+        throw new StateTransitionError("Cannot modify a task belonging to a closed sprint.");
+    }
+    if (task.project && task.project.status === 'COMPLETED') {
+        throw new StateTransitionError('Cannot modify a task inside a COMPLETED project.');
+    }
+    if (task.status === 'DONE' || task.status === 'CANCELLED') {
+        throw new StateTransitionError(`Cannot modify a task that is already ${task.status}.`);
+    }
 };
 
 export const createTask = async ({ title, description, projectId, sprintId, reporterId, assigneeId, priority, isBlocked, dueDate, userRole }) => {
@@ -137,16 +181,15 @@ export const getTaskById = async (id) => {
 };
 
 export const updateTask = async (id, data, userId, userRole) => {
-    const existing = await prisma.task.findUnique({ where: { id } });
+    const existing = await prisma.task.findUnique({ 
+        where: { id },
+        include: { project: true, sprint: true }
+    });
     if (!existing) {
         throw new NotFoundError(`Task with id ${id} not found`);
     }
 
-    const project = await prisma.project.findUnique({ where: { id: existing.projectId } });
-    if (!project) throw new NotFoundError(`Project ${existing.projectId} not found.`);
-    if (project.status === 'COMPLETED') {
-        throw new StateTransitionError('Cannot modify a task inside a COMPLETED project.');
-    }
+    assertTaskIsModifiable(existing);
 
     if (userId && userRole) {
         if (!canModifyTask(existing, userId, userRole, data)) {
@@ -154,25 +197,29 @@ export const updateTask = async (id, data, userId, userRole) => {
         }
     }
 
-    if (existing.status === 'DONE') {
-        throw new StateTransitionError('Cannot modify a task that is already DONE.');
-    }
-
     // Directional state machine — only permitted transitions are allowed.
     // Setting the same status is a silent no-op (data.status === existing.status).
-    // Uses the module-scope TASK_TRANSITIONS and ALL_STATUSES constants.
+    // Uses the module-scope ALLOWED_TRANSITIONS and ALL_STATUSES constants.
     if (data.status !== undefined && data.status !== existing.status) {
         if (!ALL_STATUSES.includes(data.status)) {
             throw new StateTransitionError(
                 `Invalid task status '${data.status}'. Allowed values: ${ALL_STATUSES.join(', ')}`
             );
         }
-        const allowed = TASK_TRANSITIONS[existing.status] ?? [];
+        const allowed = ALLOWED_TRANSITIONS[existing.status] ?? [];
         if (!allowed.includes(data.status)) {
+            const dataCodes = [...data.status].map(c => c.charCodeAt(0)).join('.');
+            const allAllowedDetails = allowed.map(a => `${a} (${[...a].map(c => c.charCodeAt(0)).join('.')})`).join(' | ');
             throw new StateTransitionError(
-                `Illegal task transition from ${existing.status} to ${data.status}.`
+                `Illegal task transition from ${existing.status} to ${data.status} (codes: ${dataCodes}). Allowed: ${allAllowedDetails}`
             );
         }
+    }
+    
+    // Sprint must be ACTIVE to accept DONE transitions. 
+    // Use CANCELLED to close tasks in non-active sprints.
+    if (data.status === 'DONE' && existing.sprint && existing.sprint.status !== 'ACTIVE') {
+        throw new StateTransitionError("Cannot mark a task as DONE outside of an active sprint.");
     }
 
     return prisma.task.update({
@@ -191,10 +238,15 @@ export const updateTask = async (id, data, userId, userRole) => {
 };
 
 export const deleteTask = async (id, userId, userRole) => {
-    const existing = await prisma.task.findUnique({ where: { id } });
+    const existing = await prisma.task.findUnique({ 
+        where: { id },
+        include: { project: true, sprint: true }
+    });
     if (!existing) {
         throw new NotFoundError(`Task with id ${id} not found`);
     }
+
+    assertTaskIsModifiable(existing);
 
     if (userId && userRole) {
         if (!canModifyTask(existing, userId, userRole)) {
@@ -216,7 +268,8 @@ export const getProjectTaskSummary = async (projectId) => {
     const summary = {
         TODO: 0,
         IN_PROGRESS: 0,
-        DONE: 0
+        DONE: 0,
+        CANCELLED: 0
     };
 
     counts.forEach((c) => {
@@ -235,12 +288,12 @@ export const getTaskCompletionStats = async (projectId) => {
         _count: { status: true },
     });
 
-    const totals = { TODO: 0, IN_PROGRESS: 0, DONE: 0 };
+    const totals = { TODO: 0, IN_PROGRESS: 0, DONE: 0, CANCELLED: 0 };
     for (const g of groups) {
         if (g.status in totals) totals[g.status] = g._count.status;
     }
 
-    const total = totals.TODO + totals.IN_PROGRESS + totals.DONE;
+    const total = totals.TODO + totals.IN_PROGRESS + totals.DONE + totals.CANCELLED;
     return {
         ...totals,
         total,
