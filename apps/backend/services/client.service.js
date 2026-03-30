@@ -2,7 +2,6 @@ import prisma from "../lib/prisma.js";
 import { NotFoundError } from "../utils/errors.js";
 
 export const createClient = async ({ name, contactEmail, createdByUserId }) => {
-  // Adjust model name if your schema uses a different one
   return prisma.client.create({
     data: {
       name,
