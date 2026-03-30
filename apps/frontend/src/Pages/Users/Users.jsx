@@ -75,9 +75,18 @@ const Users = () => {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
 
-        <h1 className="text-2xl font-bold text-gray-800">
-          Manage Users
-        </h1>
+       <div className="md:flex md:items-center md:justify-between mb-8">
+              <div>
+                <h2 className="text-2xl font-bold text-slate-900">Manage Users</h2>
+                <nav className="flex mt-1 text-sm text-gray-500">
+                  <Link to="/users" >
+                  <span className="text-slate-900 hover:text-slate-600 cursor-pointer">User Management</span>
+                  </Link>
+                  <span className="mx-2">/</span>
+                  <span>Users</span>
+                </nav>
+              </div>
+        </div>
 
         <div className="flex gap-3">
 
