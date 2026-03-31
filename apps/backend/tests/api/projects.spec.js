@@ -95,7 +95,9 @@ test.describe('Project Lifecycle & Ownership Validation', () => {
             data: { title: 'Task 2', projectId: project.id, sprintId: sprint.id }
         });
 
-        await pmApi.put(`/api/tasks/${t1.id}`, { data: { status: 'DONE' } });
+        // Advance t1 through the legal path: TODO → IN_PROGRESS → DONE
+        await pmApi.patch(`/api/tasks/${t1.id}`, { data: { status: 'IN_PROGRESS' } });
+        await pmApi.patch(`/api/tasks/${t1.id}`, { data: { status: 'DONE' } });
 
         // Assert progress shape
         const progRes = await pmApi.get(`/api/projects/${project.id}/progress`);

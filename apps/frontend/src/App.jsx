@@ -67,6 +67,9 @@ import Users from "./Pages/Users/Users";
 import Teams from "./Pages/Users/Teams";
 import Clients from "./Pages/Users/Clients";
 
+// Kanban Board
+import Kanban from "./Pages/KanbanBoard/KanbanBoard";
+
 import { useAuthStore } from "./store/authStore";
 
 // ─── Auth Guard Components  ─────────────────────────────
@@ -480,6 +483,13 @@ function App() {
             </ProtectedRoute>
           }
         />
+
+        {/* Kanban Board */}
+        <Route path="/kanban-board" element={
+          <ProtectedRoute>
+            <DashboardLayout><Kanban /></DashboardLayout>
+          </ProtectedRoute>
+        } />
 
         {/* === CATCH-ALL: Redirect to login when unauthenticated === */}
         <Route path="*" element={<Navigate to="/login" replace />} />
