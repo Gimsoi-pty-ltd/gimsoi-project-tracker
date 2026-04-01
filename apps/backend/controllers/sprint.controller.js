@@ -1,7 +1,7 @@
 import * as sprintService from "../services/sprint.service.js";
 import { parsePagination, buildPage } from "../utils/pagination.js";
 
-export const createSprint = async (req, res) => {
+export const createSprint = async (req, res, next) => {
     try {
         const { name, projectId, status, startDate, endDate } = req.body;
 
@@ -20,12 +20,11 @@ export const createSprint = async (req, res) => {
 
         return res.status(201).json({ success: true, message: "Sprint created", data: sprint });
     } catch (err) {
-        const statusCode = err.statusCode || 500;
-        return res.status(statusCode).json({ success: false, message: err.message || "Failed to create sprint" });
+        next(err);
     }
 };
 
-export const getSprints = async (req, res) => {
+export const getSprints = async (req, res, next) => {
     try {
         const { projectId } = req.query;
 
@@ -41,12 +40,11 @@ export const getSprints = async (req, res) => {
 
         return res.status(200).json({ success: true, data, nextCursor });
     } catch (err) {
-        const statusCode = err.statusCode || 500;
-        return res.status(statusCode).json({ success: false, message: err.message || "Failed to fetch sprints" });
+        next(err);
     }
 };
 
-export const updateSprintStatus = async (req, res) => {
+export const updateSprintStatus = async (req, res, next) => {
     try {
         const { id } = req.params;
         const { status } = req.body;
@@ -59,12 +57,11 @@ export const updateSprintStatus = async (req, res) => {
 
         return res.status(200).json({ success: true, message: "Sprint state updated successfully", data: updated });
     } catch (err) {
-        const statusCode = err.statusCode || 500;
-        return res.status(statusCode).json({ success: false, message: err.message || "Failed to update sprint state" });
+        next(err);
     }
 };
 
-export const updateSprint = async (req, res) => {
+export const updateSprint = async (req, res, next) => {
     try {
         const { id } = req.params;
         const { name, startDate, endDate } = req.body;
@@ -73,7 +70,6 @@ export const updateSprint = async (req, res) => {
 
         return res.status(200).json({ success: true, message: "Sprint updated successfully", data: updated });
     } catch (err) {
-        const statusCode = err.statusCode || 500;
-        return res.status(statusCode).json({ success: false, message: err.message || "Failed to update sprint" });
+        next(err);
     }
 };
