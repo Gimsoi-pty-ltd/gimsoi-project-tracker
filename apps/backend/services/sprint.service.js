@@ -1,12 +1,15 @@
+/** @see {@link docs/DATA_CONTRACT.md} */
 import prisma from "../lib/prisma.js";
 import { StateTransitionError, NotFoundError } from '../utils/errors.js';
 import { assertOwnership } from "../utils/ownership.js";
+import { SPRINT_STATUS, PROJECT_STATUS, TASK_STATUS } from "../constants/statuses.js";
+import { getTaskCountBySprintId } from "./task.service.js";
 
 export const createSprint = async ({ name, projectId, status, startDate, endDate, createdByUserId }) => {
     // Guard: prevent creating sprints inside a COMPLETED project
     const project = await prisma.project.findUnique({ where: { id: projectId } });
     if (!project) throw new NotFoundError(`Project ${projectId} not found.`);
-    if (project.status === 'COMPLETED') {
+    if (project.status === PROJECT_STATUS.COMPLETED) {
         throw new StateTransitionError('Cannot create a sprint inside a COMPLETED project.');
     }
 
@@ -14,7 +17,7 @@ export const createSprint = async ({ name, projectId, status, startDate, endDate
         data: {
             name,
             projectId,
-            status: status || 'PLANNING',
+            status: status || SPRINT_STATUS.PLANNING,
             startDate: startDate ? new Date(startDate) : null,
             endDate: endDate ? new Date(endDate) : null,
             createdByUserId,
@@ -53,12 +56,8 @@ export const closeSprint = async (id, userId, userRole, db = prisma) => {
 
     if (userId && userRole) assertOwnership(sprint, userId, userRole);
 
-    const openTaskCount = await db.task.count({
-        where: {
-            sprintId: id,
-            status: { not: 'DONE' }
-        }
-    });
+    // Task counts are owned by the Task domain. Do not query task tables directly from this file — use the Task service.
+    const openTaskCount = await getTaskCountBySprintId(id, { excludeStatus: TASK_STATUS.DONE }, db);
 
 
     if (openTaskCount > 0) {
@@ -67,7 +66,7 @@ export const closeSprint = async (id, userId, userRole, db = prisma) => {
 
     return db.sprint.update({
         where: { id: String(id) },
-        data: { status: 'CLOSED' }
+        data: { status: SPRINT_STATUS.CLOSED }
     });
 }
 
@@ -82,11 +81,9 @@ export const updateSprintStatus = async (id, targetStatus, userId, userRole, db 
     const currentStatus = sprint.status;
 
     const validTransitions = {
-        'PLANNING': ['ACTIVE'],
-        'ACTIVE': ['CLOSED'],
-        // POLICY-PENDING: team must decide if a CLOSED sprint can be reopened.
-        // Currently permitted. Remove 'ACTIVE' here to permanently block reopening.
-        'CLOSED': ['ACTIVE']
+        [SPRINT_STATUS.PLANNING]: [SPRINT_STATUS.ACTIVE],
+        [SPRINT_STATUS.ACTIVE]: [SPRINT_STATUS.CLOSED],
+        [SPRINT_STATUS.CLOSED]: []
     };
 
     const allowed = validTransitions[currentStatus] || [];
@@ -94,7 +91,7 @@ export const updateSprintStatus = async (id, targetStatus, userId, userRole, db 
         throw new StateTransitionError(`Illegal sprint state transition from ${currentStatus} to ${targetStatus}`);
     }
 
-    if (targetStatus === 'CLOSED') {
+    if (targetStatus === SPRINT_STATUS.CLOSED) {
         return closeSprint(id, userId, userRole, db); // Pass down to the specific closer method
     }
 
