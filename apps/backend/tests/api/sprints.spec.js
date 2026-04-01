@@ -54,4 +54,32 @@ test.describe('Sprint Lifecycle Validations', () => {
         expect(response.status()).toBe(200);
     });
 
+    test.describe('Invalid Status Transitions', () => {
+
+        test('PLANNING → CLOSED transition is blocked (must activate first)', async ({ pmApi, testSprint }) => {
+            const response = await pmApi.patch(`/api/sprints/${testSprint.id}/status`, {
+                data: { status: 'CLOSED' }
+            });
+
+            expect(response.status()).toBe(400);
+            const json = await response.json();
+            expect(typeof json.message).toBe('string');
+        });
+
+        test('CLOSED → ACTIVE regression is blocked (sprint cannot be reopened)', async ({ pmApi, testSprint }) => {
+            // Setup: Reach CLOSED state correctly
+            await pmApi.patch(`/api/sprints/${testSprint.id}/status`, { data: { status: 'ACTIVE' } });
+            await pmApi.patch(`/api/sprints/${testSprint.id}/status`, { data: { status: 'CLOSED' } });
+
+            const response = await pmApi.patch(`/api/sprints/${testSprint.id}/status`, {
+                data: { status: 'ACTIVE' }
+            });
+
+            expect(response.status()).toBe(400);
+            const json = await response.json();
+            expect(typeof json.message).toBe('string');
+        });
+
+    });
+
 });
