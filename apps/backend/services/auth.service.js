@@ -141,7 +141,7 @@ export const resetPassword = async (token, password) => {
         },
     });
 
-    await sendResetSuccessEmail(user.email);
+    await sendPasswordResetSuccessEmail(user.email);
 };
 
 export const checkAuth = async (userId) => {
