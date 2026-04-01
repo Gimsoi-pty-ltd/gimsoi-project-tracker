@@ -310,7 +310,17 @@ export const deleteTask = async (id, userId, userRole) => {
     assertTaskIsModifiable(existing);
 
     if (userId && userRole) {
-        if (!canModifyTask(existing, userId, userRole)) {
+        const hasDeletePermission = hasPermission(userRole, 'DELETE_TASK');
+        const isReporter = existing.reporterId === userId;
+
+        if (!hasDeletePermission && !isReporter) {
+            throw new ForbiddenError("You do not have permission to delete this task.");
+        }
+        
+        // Ownership check confirmed for Phase 4 remediation: 
+        // Even with DELETE_TASK permission in the matrix (exposing the route), 
+        // non-ADMIN roles must be the reporter.
+        if (userRole !== 'ADMIN' && !isReporter) {
             throw new ForbiddenError("You do not have permission to delete this task.");
         }
     }
@@ -333,6 +343,7 @@ const aggregateTasksByStatus = async (projectId) => {
     const summary = {
         [TASK_STATUS.TODO]: 0,
         [TASK_STATUS.IN_PROGRESS]: 0,
+        [TASK_STATUS.BLOCKED]: 0,
         [TASK_STATUS.DONE]: 0,
         [TASK_STATUS.CANCELLED]: 0
     };
