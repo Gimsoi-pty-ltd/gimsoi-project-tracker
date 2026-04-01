@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import prisma from '../../lib/prisma.js';
 
 let authToken = '';
 
@@ -232,10 +233,30 @@ test.describe('Auth API Tests', () => {
             expect(data.message).toContain('Unauthorized');
         });
 
-        // Note: The 400 response for "valid token but user deleted from DB"
-        // requires deleting the user manually or stubbing the DB, which is complex for this file. 
-        // We are trusting the signature validation catches 99% of cases here.
+        test('returns 401 for valid token but user deleted from DB (token sync vulnerability)', async ({ request }) => {
+            // 1. Setup a fresh user just for this test
+            const csrfRes = await request.get('/api/auth/csrf-token');
+            const setupCsrfToken = (await csrfRes.json()).csrfToken;
+            const email = `deleted-user-${Date.now()}@example.com`;
 
+            const signupRes = await request.post('/api/auth/signup', {
+                headers: { 'x-csrf-token': setupCsrfToken },
+                data: { email, password: 'pw123456', fullName: 'Doomed User' }
+            });
+            const { token, user } = await signupRes.json();
+            
+            // 2. Delete the user directly from the DB behind the API's back
+            await prisma.user.delete({ where: { id: user.id } });
+
+            // 3. Attempt to authenticate with the now-orphaned token
+            const res = await request.get('/api/auth/check-auth', {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            expect(res.status()).toBe(401);
+            const body = await res.json();
+            expect(body.message).toMatch(/unauthorized/i);
+        });
         test('rejects token with forged alg:none header', async ({ request }) => {
             const header = Buffer.from(JSON.stringify({ alg: 'none', typ: 'JWT' })).toString('base64url');
             const payload = Buffer.from(JSON.stringify({ userId: 'fake', role: 'ADMIN' })).toString('base64url');

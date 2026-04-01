@@ -9,6 +9,7 @@ import clientRoutes from "./routes/client.route.js";
 import projectRoutes from "./routes/project.route.js";
 import sprintRoutes from "./routes/sprint.route.js";
 import { validateEnv } from "./utils/validateEnv.js";
+import registerTestingRoutes from "./utils/registerTestingRoutes.js";
 
 dotenv.config();
 
@@ -57,12 +58,8 @@ app.use((err, req, res, next) => {
   return res.status(statusCode).json({ success: false, message: err.message || "Internal Server Error" });
 });
 
-// Test-only routes — mounted via dynamic import so the module never loads in non-test builds.
-// Double-guarded: server.js checks NODE_ENV here; each handler also guards internally.
-if (process.env.NODE_ENV === 'test') {
-  const { default: testingRoutes } = await import('./routes/testing.route.js');
-  app.use('/api/testing', testingRoutes);
-}
+// Test-only routes
+await registerTestingRoutes(app);
 
 // Start
 const PORT = process.env.PORT || 5001;
