@@ -1,0 +1,149 @@
+import { test, expect } from '../fixtures/authFixtures.js';
+import * as taskService from '../../services/task.service.js';
+
+test.describe('Task Lifecycle & Transition Guards', () => {
+
+    test.describe('Structural Implementation Details', () => {
+        test('assertNoImmutableFields is NOT exported from task.service.js', () => {
+            expect(taskService.assertNoImmutableFields).toBeUndefined();
+        });
+
+        test('assertValidTransition is NOT exported from task.service.js', () => {
+            expect(taskService.assertValidTransition).toBeUndefined();
+        });
+
+        test('assertSprintAllowsDone is NOT exported from task.service.js', () => {
+            expect(taskService.assertSprintAllowsDone).toBeUndefined();
+        });
+    });
+
+    test.describe('State Machine & Validation Rules', () => {
+        const { ALLOWED_TRANSITIONS } = taskService;
+
+        test('Contract: ALLOWED_TRANSITIONS is defined and is an object', async () => {
+            expect(ALLOWED_TRANSITIONS).toBeDefined();
+            expect(typeof ALLOWED_TRANSITIONS).toBe('object');
+            expect(ALLOWED_TRANSITIONS.TODO).toContain('IN_PROGRESS');
+        });
+
+        test('Baseline: ALLOWED_TRANSITIONS is enforced (regression test)', async ({ pmApi, testProject, testSprint }) => {
+            const taskRes = await pmApi.post('/api/tasks', {
+                data: { title: 'Transition Baseline Task', projectId: testProject.id, sprintId: testSprint.id }
+            });
+            const task = (await taskRes.json()).data;
+            const validRes = await pmApi.patch(`/api/tasks/${task.id}`, { data: { status: 'IN_PROGRESS' } });
+            expect(validRes.status()).toBe(200);
+        });
+
+        test('Illegal transition: DONE -> IN_PROGRESS is blocked', async ({ pmApi, testProject, testSprint }) => {
+            const taskRes = await pmApi.post('/api/tasks', {
+                data: { title: 'Illegal Regression Task', projectId: testProject.id, sprintId: testSprint.id }
+            });
+            const task = (await taskRes.json()).data;
+            await pmApi.patch(`/api/tasks/${task.id}`, { data: { status: 'IN_PROGRESS' } });
+            await pmApi.patch(`/api/sprints/${testSprint.id}/status`, { data: { status: 'ACTIVE' } });
+            await pmApi.patch(`/api/tasks/${task.id}`, { data: { status: 'DONE' } });
+
+            const failRes = await pmApi.patch(`/api/tasks/${task.id}`, { data: { status: 'IN_PROGRESS' } });
+            expect(failRes.status()).toBe(400);
+            expect((await failRes.json()).message).toContain('Cannot modify');
+        });
+
+        test('Illegal transition: TODO -> DONE is blocked (jumps IN_PROGRESS)', async ({ pmApi, testProject, testSprint }) => {
+            const taskRes = await pmApi.post('/api/tasks', {
+                data: { title: 'Jump Task', projectId: testProject.id, sprintId: testSprint.id }
+            });
+            const task = (await taskRes.json()).data;
+            const failRes = await pmApi.patch(`/api/tasks/${task.id}`, { data: { status: 'DONE' } });
+            expect(failRes.status()).toBe(400);
+            expect((await failRes.json()).message).toContain('Illegal task transition');
+        });
+
+        test('Valid transition: TODO -> CANCELLED', async ({ pmApi, testProject, testSprint }) => {
+            const taskRes = await pmApi.post('/api/tasks', {
+                data: { title: 'Cancel from TODO', projectId: testProject.id, sprintId: testSprint.id }
+            });
+            const task = (await taskRes.json()).data;
+            const res = await pmApi.patch(`/api/tasks/${task.id}`, { data: { status: 'CANCELLED' } });
+            expect(res.status()).toBe(200);
+        });
+
+        test('Valid transition: IN_PROGRESS -> BLOCKED', async ({ pmApi, testProject, testSprint }) => {
+            const taskRes = await pmApi.post('/api/tasks', {
+                data: { title: 'To Block', projectId: testProject.id, sprintId: testSprint.id }
+            });
+            const task = (await taskRes.json()).data;
+            await pmApi.patch(`/api/tasks/${task.id}`, { data: { status: 'IN_PROGRESS' } });
+            const res = await pmApi.patch(`/api/tasks/${task.id}`, { data: { status: 'BLOCKED' } });
+            expect(res.status()).toBe(200);
+            expect((await res.json()).data.status).toBe('BLOCKED');
+        });
+
+        test('Reversibility: BLOCKED -> IN_PROGRESS', async ({ pmApi, testProject, testSprint }) => {
+            const taskRes = await pmApi.post('/api/tasks', {
+                data: { title: 'Unblock', projectId: testProject.id, sprintId: testSprint.id }
+            });
+            const task = (await taskRes.json()).data;
+            await pmApi.patch(`/api/tasks/${task.id}`, { data: { status: 'IN_PROGRESS' } });
+            await pmApi.patch(`/api/tasks/${task.id}`, { data: { status: 'BLOCKED' } });
+            const res = await pmApi.patch(`/api/tasks/${task.id}`, { data: { status: 'IN_PROGRESS' } });
+            expect(res.status()).toBe(200);
+        });
+    });
+
+    test.describe('Contextual & Data Guards', () => {
+        test('rejects completedAt in update payload (Service-level immutability check)', async ({ adminApi, testProject }) => {
+            const taskRes = await adminApi.post('/api/tasks', {
+                data: { title: 'Immutable Guard Task', projectId: testProject.id }
+            });
+            const taskId = (await taskRes.json()).data.id;
+            await expect(
+                taskService.updateTask(taskId, { completedAt: new Date() }, null, 'ADMIN')
+            ).rejects.toThrow('completedAt cannot be set manually');
+        });
+
+        test('rejects unknown status (FLYING) returning 400', async ({ adminApi, testProject }) => {
+            const taskRes = await adminApi.post('/api/tasks', {
+                data: { title: 'Bad Status Task', projectId: testProject.id }
+            });
+            const taskId = (await taskRes.json()).data.id;
+            const res = await adminApi.patch(`/api/tasks/${taskId}`, { data: { status: 'FLYING' } });
+            expect(res.status()).toBe(400);
+        });
+
+        test('Updating a task on a COMPLETED project is blocked', async ({ pmApi, testClient }) => {
+            const projRes = await pmApi.post('/api/projects', {
+                data: { name: 'Guard Project', clientId: testClient.id }
+            });
+            const projectId = (await projRes.json()).data.id;
+            await pmApi.patch(`/api/projects/${projectId}`, { data: { status: 'ACTIVE' } });
+            
+            const taskRes = await pmApi.post('/api/tasks', {
+                data: { title: 'Guard Task', projectId }
+            });
+            const taskId = (await taskRes.json()).data.id;
+
+            // Complete the project
+            await pmApi.patch(`/api/projects/${projectId}`, { data: { status: 'COMPLETED' } });
+
+            const editRes = await pmApi.patch(`/api/tasks/${taskId}`, { data: { title: 'Updated' } });
+            expect(editRes.status()).toBe(400);
+            expect((await editRes.json()).message).toContain('COMPLETED');
+        });
+
+        test('Transitioning to DONE requires an ACTIVE sprint', async ({ pmApi, testProject }) => {
+            const sprintRes = await pmApi.post('/api/sprints', {
+                data: { name: 'Planning Sprint', projectId: testProject.id }
+            });
+            const sprintId = (await sprintRes.json()).data.id;
+            const taskRes = await pmApi.post('/api/tasks', {
+                data: { title: 'To DONE', projectId: testProject.id, sprintId }
+            });
+            const taskId = (await taskRes.json()).data.id;
+            await pmApi.patch(`/api/tasks/${taskId}`, { data: { status: 'IN_PROGRESS' } });
+            const doneRes = await pmApi.patch(`/api/tasks/${taskId}`, { data: { status: 'DONE' } });
+            expect(doneRes.status()).toBe(400);
+            expect((await doneRes.json()).message.toLowerCase()).toContain('active sprint');
+        });
+    });
+});
