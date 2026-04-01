@@ -43,6 +43,30 @@ test.describe('Project Lifecycle & Ownership Validation', () => {
         expect(json.message).toContain('Illegal project state transition');
     });
 
+    test.describe('Status Transitions', () => {
+        test('PM can transition a DRAFT project directly to COMPLETED', async ({ pmApi, testProject }) => {
+            const response = await pmApi.patch(`/api/projects/${testProject.id}`, {
+                data: { status: 'COMPLETED' }
+            });
+            expect(response.status()).toBe(200);
+            const json = await response.json();
+            expect(json.data.status).toBe('COMPLETED');
+        });
+
+        test('PM can revert an ACTIVE project back to DRAFT', async ({ pmApi, testProject }) => {
+            // Setup: Advance to ACTIVE
+            await pmApi.patch(`/api/projects/${testProject.id}`, { data: { status: 'ACTIVE' } });
+
+            // Action: Revert to DRAFT
+            const response = await pmApi.patch(`/api/projects/${testProject.id}`, {
+                data: { status: 'DRAFT' }
+            });
+            expect(response.status()).toBe(200);
+            const json = await response.json();
+            expect(json.data.status).toBe('DRAFT');
+        });
+    });
+
     test('updateProject skips transition validation when status unchanged or missing', async ({ adminApi, testClient }) => {
         const projRes = await adminApi.post('/api/projects', {
             data: { name: 'Guard Project', clientId: testClient.id }

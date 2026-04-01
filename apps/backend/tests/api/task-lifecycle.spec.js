@@ -1,5 +1,6 @@
 import { test, expect } from '../fixtures/authFixtures.js';
 import * as taskService from '../../services/task.service.js';
+import prisma from '../../lib/prisma.js';
 
 test.describe('Task Lifecycle & Transition Guards', () => {
 
@@ -47,6 +48,28 @@ test.describe('Task Lifecycle & Transition Guards', () => {
             const failRes = await pmApi.patch(`/api/tasks/${task.id}`, { data: { status: 'IN_PROGRESS' } });
             expect(failRes.status()).toBe(400);
             expect((await failRes.json()).message).toContain('Cannot modify');
+        });
+
+        test('DONE task rejects non-status field modification (title update blocked)', async ({ pmApi, testProject, testSprint }) => {
+            const taskRes = await pmApi.post('/api/tasks', {
+                data: { title: 'Immutable Done Task', projectId: testProject.id, sprintId: testSprint.id }
+            });
+            const task = (await taskRes.json()).data;
+            
+            // Setup: Reach DONE state correctly
+            await pmApi.patch(`/api/tasks/${task.id}`, { data: { status: 'IN_PROGRESS' } });
+            await pmApi.patch(`/api/sprints/${testSprint.id}/status`, { data: { status: 'ACTIVE' } });
+            await pmApi.patch(`/api/tasks/${task.id}`, { data: { status: 'DONE' } });
+
+            // Action: Attempt non-status update (title)
+            const failRes = await pmApi.patch(`/api/tasks/${task.id}`, {
+                data: { title: 'Attempting to modify a done task' }
+            });
+
+            expect(failRes.status()).toBe(400);
+            const json = await failRes.json();
+            expect(typeof json.message).toBe('string');
+            expect(json.message.length).toBeGreaterThan(0);
         });
 
         test('Illegal transition: TODO -> DONE is blocked (jumps IN_PROGRESS)', async ({ pmApi, testProject, testSprint }) => {
@@ -145,5 +168,84 @@ test.describe('Task Lifecycle & Transition Guards', () => {
             expect(doneRes.status()).toBe(400);
             expect((await doneRes.json()).message.toLowerCase()).toContain('active sprint');
         });
+    });
+});
+
+test.describe('Task Deletion — Ownership-Gated Access', () => {
+
+    test('PM can delete a task they created (Reporter ownership)', async ({ pmApi, testProject, testSprint }) => {
+        // Setup: PM creates a task
+        const taskRes = await pmApi.post('/api/tasks', {
+            data: { title: 'PM Own Task', projectId: testProject.id, sprintId: testSprint.id }
+        });
+        const task = (await taskRes.json()).data;
+
+        // Action: PM deletes
+        const res = await pmApi.delete(`/api/tasks/${task.id}`);
+        expect(res.status()).toBe(200);
+
+        // Verify: Check no longer exists
+        const checkRes = await pmApi.get(`/api/tasks/${task.id}`);
+        expect(checkRes.status()).toBe(404);
+    });
+
+    test('INTERN can delete a task they created (Reporter ownership)', async ({ internApi, testProject, testSprint }) => {
+        // Setup: Intern cannot create tasks directly (matrix), so we use Prisma to set reporterId
+        const authRes = await internApi.get('/api/auth/check-auth');
+        const internUser = (await authRes.json()).user;
+
+        const task = await prisma.task.create({
+            data: { 
+                title: 'Intern Task', 
+                projectId: testProject.id, 
+                sprintId: testSprint.id, 
+                reporterId: internUser.id,
+                status: 'TODO'
+            }
+        });
+
+        // Action: Intern deletes
+        const res = await internApi.delete(`/api/tasks/${task.id}`);
+        expect(res.status()).toBe(200);
+    });
+
+    test('PM cannot delete a task created by someone else (Sad Path)', async ({ adminApi, pmApi, testProject, testSprint }) => {
+        // Setup: Admin creates task (PM is NOT reporter)
+        const taskRes = await adminApi.post('/api/tasks', {
+            data: { title: 'Admin Task', projectId: testProject.id, sprintId: testSprint.id }
+        });
+        const task = (await taskRes.json()).data;
+
+        // Action: PM attempts delete
+        const res = await pmApi.delete(`/api/tasks/${task.id}`);
+        expect(res.status()).toBe(403);
+        const json = await res.json();
+        expect(json.message).toContain('do not have permission');
+    });
+
+    test('INTERN cannot delete a task created by someone else (Sad Path)', async ({ adminApi, internApi, testProject, testSprint }) => {
+        // Setup: Admin creates task
+        const taskRes = await adminApi.post('/api/tasks', {
+            data: { title: 'Another Admin Task', projectId: testProject.id, sprintId: testSprint.id }
+        });
+        const task = (await taskRes.json()).data;
+
+        // Action: Intern attempts delete
+        const res = await internApi.delete(`/api/tasks/${task.id}`);
+        expect(res.status()).toBe(403);
+        const json = await res.json();
+        expect(json.message).toContain('do not have permission');
+    });
+
+    test('CLIENT still cannot delete any task (Route Gate)', async ({ adminApi, clientApi, testProject, testSprint }) => {
+        // Setup: Admin creates task
+        const taskRes = await adminApi.post('/api/tasks', {
+            data: { title: 'Client Target Task', projectId: testProject.id, sprintId: testSprint.id }
+        });
+        const task = (await taskRes.json()).data;
+
+        // Action: Client attempts delete
+        const res = await clientApi.delete(`/api/tasks/${task.id}`);
+        expect(res.status()).toBe(403); // Strictly from route gate
     });
 });
