@@ -151,7 +151,9 @@ export const checkAuth = async (userId) => {
     });
 
     if (!user) {
-        throw new NotFoundError("User not found");
+        const error = new Error("Unauthorized - user not found");
+        error.statusCode = 401;
+        throw error;
     }
 
     return user;
