@@ -12,6 +12,7 @@ const router = express.Router();
 
 // Everyone logged in can view (including Client role - read-only)
 router.get("/", readLimiter, verifyToken, authorize("VIEW_CLIENTS"), getClients);
+// Allowed: ADMIN, PM, INTERN, CLIENT
 router.get("/:id", readLimiter, verifyToken, authorize("VIEW_CLIENTS"), getClientById);
 
 // Only Admin/PM can create

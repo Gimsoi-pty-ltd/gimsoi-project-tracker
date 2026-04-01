@@ -6,9 +6,28 @@ import { createSprint, getSprints, updateSprintStatus, updateSprint } from "../c
 
 const router = express.Router();
 
+/**
+ * GET /api/sprints — VIEW_SPRINTS
+ * Allowed: ADMIN, PM, INTERN, CLIENT
+ */
 router.get("/", readLimiter, verifyToken, authorize("VIEW_SPRINTS"), getSprints);
+
+/**
+ * POST /api/sprints — MANAGE_SPRINTS
+ * Allowed: ADMIN, PM
+ */
 router.post("/", writeLimiter, verifyToken, authorize("MANAGE_SPRINTS"), createSprint);
+
+/**
+ * PATCH /api/sprints/:id/status — MANAGE_SPRINTS
+ * Allowed: ADMIN, PM
+ */
 router.patch("/:id/status", writeLimiter, verifyToken, authorize("MANAGE_SPRINTS"), updateSprintStatus);
+
+/**
+ * PATCH /api/sprints/:id — MANAGE_SPRINTS
+ * Allowed: ADMIN, PM
+ */
 router.patch("/:id", writeLimiter, verifyToken, authorize("MANAGE_SPRINTS"), updateSprint);
 
 export default router;
