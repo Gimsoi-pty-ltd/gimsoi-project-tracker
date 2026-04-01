@@ -32,13 +32,13 @@ router.post("/", writeLimiter, verifyToken, authorize("CREATE_TASK"), createTask
 
 /**
  * PATCH /api/tasks/:id — UPDATE_TASK
- * Allowed: ADMIN, INTERN
+ * Allowed: ADMIN, PM, INTERN
  */
 router.patch("/:id", writeLimiter, verifyToken, authorize("UPDATE_TASK"), updateTask);
 
 /**
  * DELETE /api/tasks/:id — DELETE_TASK
- * Allowed: ADMIN
+ * Allowed: ADMIN, PM, INTERN
  */
 router.delete("/:id", writeLimiter, verifyToken, authorize("DELETE_TASK"), deleteTask);
 

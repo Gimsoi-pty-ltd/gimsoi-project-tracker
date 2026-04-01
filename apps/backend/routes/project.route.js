@@ -14,9 +14,11 @@ const router = express.Router();
 
 // Everyone logged in can view projects (Client is read-only)
 router.get("/", readLimiter, verifyToken, authorize("VIEW_PROJECTS"), getProjects);
-// Progress route must be declared before /:id to prevent Express matching 'progress' as an id param
-// POLICY-PENDING: CLIENT sees full task breakdown — restrict to percentComplete only if team decides
+
+// Allowed: ADMIN, PM, INTERN, CLIENT
 router.get("/:id/progress", readLimiter, verifyToken, authorize("VIEW_PROJECTS"), getProjectProgress);
+
+// Allowed: ADMIN, PM, INTERN, CLIENT
 router.get("/:id", readLimiter, verifyToken, authorize("VIEW_PROJECTS"), getProjectById);
 
 // Only Admin/PM can create/update
