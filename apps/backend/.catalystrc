@@ -1,0 +1,30 @@
+{
+  "defaults": {
+    "project": 1,
+    "env": 1
+  },
+  "actives": {
+    "project": 1,
+    "env": 1
+  },
+  "projects": [
+    {
+      "idx": 1,
+      "id": "60928000000019001",
+      "name": "test-backend-deployment",
+      "domain": {
+        "id": "10123115573",
+        "name": "test-backend-deployment-917625707.development"
+      },
+      "timezone": "Africa/Johannesburg",
+      "env": [
+        {
+          "idx": 1,
+          "id": "917625707",
+          "name": "Development",
+          "type": 3
+        }
+      ]
+    }
+  ]
+}
