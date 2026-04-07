@@ -6,7 +6,7 @@ import { createSprint, getSprints, updateSprintStatus, updateSprint } from "../c
 
 const router = express.Router();
 
-router.get("/", readLimiter, verifyToken, authorize("VIEW_SPRINTS"), getSprints);
+router.get("/", readLimiter, verifyToken, authorize("VIEW_PROGRESS"), getSprints);
 router.post("/", writeLimiter, verifyToken, authorize("MANAGE_PROJECTS"), createSprint);
 router.patch("/:id/status", writeLimiter, verifyToken, authorize("MANAGE_PROJECTS"), updateSprintStatus);
 router.patch("/:id", writeLimiter, verifyToken, authorize("MANAGE_PROJECTS"), updateSprint);
