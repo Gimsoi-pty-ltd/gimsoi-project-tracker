@@ -25,14 +25,14 @@ import OverdueTasks from './Pages/Tasks/Overduetasks';
 import ActiveProjects from './Pages/Tasks/ActiveProjects';
 
 // Projects & Phases
-import Projects from './Pages/Project-Management/projects.jsx';
+import Projects from './Pages/project-management/projects';
 import ProjectPhasesGantt from "./Pages/Phases/Phases-of-tasks.jsx";
 
 // Reports
-import ReportsHub from './Pages/ReportsandExporting/reports.jsx';
-import SprintReports from './Pages/ReportsandExporting/sprintReports.jsx';
-import ProjectReport from './Pages/ReportsandExporting/projectReports.jsx';
-import TeamPerformance from './Pages/ReportsandExporting/teamPerformance.jsx';
+import ReportsHub from './Pages/reports-exporting/reports.jsx';
+import SprintReports from './Pages/reports-exporting/sprintReports.jsx';
+import ProjectReport from './Pages/reports-exporting/projectReports.jsx';
+import TeamPerformance from './Pages/reports-exporting/teamPerformance.jsx';
 
 // Team & Insights
 import TeamInsights from './Pages/Team Insights/teamInsights';
