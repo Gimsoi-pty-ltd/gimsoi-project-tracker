@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { User, Lock, Mail, Github, Facebook, Linkedin, Loader } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import NavyButton from '../../Components/Buttons';
-import logo from '../../Assets/Gimsoi AI.jpg';
+import logo from '../../assets/assets/gimsoi-ai.png';
 import { useAuthStore } from '../../store/authStore';
 
 function LoginPage() {
