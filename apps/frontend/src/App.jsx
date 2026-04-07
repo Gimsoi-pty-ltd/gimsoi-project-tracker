@@ -2,17 +2,17 @@ import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 
 // ─── AUTH PAGES ─────────────────────────────
-import LoginPage from './Pages/LogInOut flow/LoginPage';
-import SignUpPage from './Pages/LogInOut flow/SignUpPage';
-import ResetPassword from './Pages/LogInOut flow/ResetPassword';
-import EmailVerification from './Pages/LogInOut flow/EmailVerification';
-import ForgotEmailPage from './Pages/LogInOut flow/ForgotEmailPage';
+import LoginPage from './Pages/LogInOutFlow/LoginPage';
+import SignUpPage from './Pages/LogInOutFlow/SignUpPage';
+import ResetPassword from './Pages/LogInOutFlow/ResetPassword';
+import EmailVerification from './Pages/LogInOutFlow/EmailVerification';
+import ForgotEmailPage from './Pages/LogInOutFlow/ForgotEmailPage';
 
 // ─── DASHBOARD LAYOUT & PAGES  ─────────────────────────────
 import DashboardLayout from "./Layouts/DashboardLayout";
 
 // Dashboard & Overview
-import Dashboard from './Pages/LoginOut Flow/Dashboard';
+import Dashboard from './Pages/LogInOutFlow/Dashboard';
 import DashboardCards from "./Components/Dashboard/DashboardCards";
 import DaysRemainingPage from "./Components/Dashboard/DaysRemainingPage";
 import SprintOverview from './Pages/Sprints/SprintOverview';
