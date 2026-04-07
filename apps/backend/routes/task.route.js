@@ -28,7 +28,7 @@ router.get("/:id", readLimiter, verifyToken, authorize("VIEW_PROGRESS"), getTask
  * POST /api/tasks — CREATE_TASK
  * Allowed: ADMIN, PM
  */
-router.post("/", writeLimiter, verifyToken, authorize("CREATE_TASK"), createTask);
+router.post("/", writeLimiter, verifyToken, authorize("CREATE_PROGRESS"), createTask);
 
 /**
  * PATCH /api/tasks/:id — UPDATE_TASK
