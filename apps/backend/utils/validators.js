@@ -1,4 +1,4 @@
-import { ValidationError } from './errors';
+import { ValidationError } from './errors.js';
 
 const ALLOWED_PRIORITIES = ['LOW' , 'MEDIUM' , 'HIGH' , 'CRITICAL'];
 
