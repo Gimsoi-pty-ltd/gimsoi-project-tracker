@@ -1,5 +1,6 @@
 import * as taskService from "../services/task.service.js";
 
+
 export const createTask = async (req, res) => {
     try {
         const { title, description, projectId, sprintId, assigneeId, priority, isBlocked, dueDate } = req.body;
@@ -59,7 +60,11 @@ export const getTasks = async (req, res) => {
         const data = hasMore ? records.slice(0, limit) : records;
         const nextCursor = hasMore ? data[data.length - 1].id : null;
 
-        return res.status(200).json({ success: true, data, nextCursor });
+        return res.status(200).json({ 
+            success: true, 
+            message: "Task fetched successfully",
+            data, 
+            nextCursor });
     } catch (err) {
         const statusCode = err.statusCode || 500;
         return res.status(statusCode).json({ success: false, message: err.message || "Failed to fetch tasks" });
@@ -69,9 +74,16 @@ export const getTasks = async (req, res) => {
 export const getTaskById = async (req, res, next) => {
     try {
         const task = await taskService.getTaskById(req.params.id);
-        res.status(200).json({ success: true, data: task });
+        res.status(200).json({
+             success: true,
+             message: "Task fetched successfully",
+              data: task });
     } catch (err) {
-        next(err);
+        const statusCode = err.statusCode || 500;
+        return res.status(statusCode).json({
+            success: false,
+            message: err.message || "Failed to fetch task"
+        });
     }
 };
 
@@ -107,7 +119,10 @@ export const getTaskSummary = async (req, res) => {
     try {
         const { projectId } = req.params;
         const summary = await taskService.getProjectTaskSummary(projectId);
-        return res.status(200).json({ success: true, data: summary });
+        return res.status(200).json({
+             success: true, 
+             message: "Task summary fetched successfully",
+             data: summary });
     } catch (err) {
         const statusCode = err.statusCode || 500;
         return res.status(statusCode).json({ success: false, message: err.message || "Failed to fetch task summary" });

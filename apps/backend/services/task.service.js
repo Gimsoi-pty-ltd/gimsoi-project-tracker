@@ -1,6 +1,7 @@
 import prisma from "../lib/prisma.js";
 import { StateTransitionError, NotFoundError, ForbiddenError } from "../utils/errors.js";
 import { handlePrismaError } from "../utils/prismaErrors.js";
+import { validatePriority } from "../utils/validators.js";
 
 const TASK_TRANSITIONS = {
     TODO: ['IN_PROGRESS'],
@@ -64,6 +65,11 @@ export const createTask = async ({ title, description, projectId, sprintId, repo
     if (!project) throw new NotFoundError(`Project ${projectId} not found.`);
     if (project.status === 'COMPLETED') {
         throw new StateTransitionError('Cannot create a task inside a COMPLETED project.');
+    }
+
+    // Priority Validation
+    if (priority !== undefined && priority !== null){
+        validatePriority(priority);
     }
 
     try {
@@ -170,6 +176,11 @@ export const updateTask = async (id, data, userId, userRole) => {
                 `Illegal task transition from ${existing.status} to ${data.status}.`
             );
         }
+    }
+
+    // Priority Validation
+    if (data.priority !== undefined) {
+        validatePriority(data.priority);
     }
 
     return prisma.task.update({

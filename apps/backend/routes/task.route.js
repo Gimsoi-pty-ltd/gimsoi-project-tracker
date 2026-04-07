@@ -10,19 +10,19 @@ const router = express.Router();
  * GET /api/tasks — VIEW_PROGRESS
  * Allowed: ADMIN, PM, INTERN, CLIENT
  */
-router.get("/", readLimiter, verifyToken, authorize("VIEW_PROGRESS"), getTasks);
-
-/**
- * GET /api/tasks/:id — VIEW_TASK
- * Allowed: ADMIN, PM, INTERN, CLIENT
- */
-router.get("/:id", readLimiter, verifyToken, authorize("VIEW_PROGRESS"), getTaskById);
+router.get("/", readLimiter, verifyToken, authorize("VIEW_TASK"), getTasks);
 
 /**
 * GET /api/tasks/projects/:projectId/summary — VIEW_PROGRESS
 * Allowed: ADMIN, PM, INTERN, CLIENT
 */
 router.get("/projects/:projectId/summary", readLimiter, verifyToken, authorize("VIEW_PROGRESS"), getTaskSummary);
+
+/**
+ * GET /api/tasks/:id — VIEW_TASK
+ * Allowed: ADMIN, PM, INTERN, CLIENT
+ */
+router.get("/:id", readLimiter, verifyToken, authorize("VIEW_PROGRESS"), getTaskById);
 
 /**
  * POST /api/tasks — CREATE_TASK

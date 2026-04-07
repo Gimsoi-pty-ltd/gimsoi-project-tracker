@@ -21,3 +21,11 @@ export class ForbiddenError extends Error {
         this.statusCode = 403;
     }
 }
+
+export class ValidationError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = "ValidationError";
+        this.statusCode = 400;
+    }
+}
