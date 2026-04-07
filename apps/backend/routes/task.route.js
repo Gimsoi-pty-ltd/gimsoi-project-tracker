@@ -10,7 +10,7 @@ const router = express.Router();
  * GET /api/tasks — VIEW_PROGRESS
  * Allowed: ADMIN, PM, INTERN, CLIENT
  */
-router.get("/", readLimiter, verifyToken, authorize("VIEW_TASK"), getTasks);
+router.get("/", readLimiter, verifyToken, authorize("VIEW_PROGRESS"), getTasks);
 
 /**
 * GET /api/tasks/projects/:projectId/summary — VIEW_PROGRESS
