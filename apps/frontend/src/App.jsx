@@ -25,14 +25,14 @@ import OverdueTasks from './Pages/Tasks/Overduetasks';
 import ActiveProjects from './Pages/Tasks/ActiveProjects';
 
 // Projects & Phases
-import Projects from './Pages/Project Management/projects';
+import Projects from './Pages/Project-Management/projects.jsx';
 import ProjectPhasesGantt from "./Pages/Phases/Phases-of-tasks.jsx";
 
 // Reports
-import ReportsHub from './Pages/Reports and Exporting/reports';
-import SprintReports from './Pages/Reports and Exporting/sprintReports';
-import ProjectReport from './Pages/Reports and Exporting/projectReports';
-import TeamPerformance from './Pages/Reports and Exporting/teamPerformance';
+import ReportsHub from './Pages/ReportsandExporting/reports.jsx';
+import SprintReports from './Pages/ReportsandExporting/sprintReports.jsx';
+import ProjectReport from './Pages/ReportsandExporting/projectReports.jsx';
+import TeamPerformance from './Pages/ReportsandExporting/teamPerformance.jsx';
 
 // Team & Insights
 import TeamInsights from './Pages/Team Insights/teamInsights';
@@ -47,11 +47,11 @@ import SearchPage from './Pages/Profile/Search';
 
 // Settings
 import Settings from './Pages/Settings';
-import ProfileSection from './Pages/Settings Page/ProfileSection';
-import PreferencesSection from './Pages/Settings Page/PreferencesSection';
-import ActivitySection from './Pages/Settings Page/ActivitySection';
-import StorageSection from './Pages/Settings Page/StorageSection';
-import SecuritySection from './Pages/Settings Page/SecuritySection';
+import ProfileSection from './Pages/settings-page/ProfileSection.jsx';
+import PreferencesSection from './Pages/settings-page/PreferencesSection.jsx';
+import ActivitySection from './Pages/settings-page/ActivitySection.jsx';
+import StorageSection from './Pages/settings-page/StorageSection.jsx';
+import SecuritySection from './Pages/settings-page/SecuritySection.jsx';
 
 // Help
 import HelpSupport from './Pages/Help/HelpSupport';
