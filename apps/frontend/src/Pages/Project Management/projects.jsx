@@ -1,6 +1,15 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Plus, Search, MoreHorizontal, CheckCircle2, Circle, AlertCircle, ChevronDown, Zap } from "lucide-react";
+import {
+  Plus,
+  Search,
+  MoreHorizontal,
+  CheckCircle2,
+  Circle,
+  AlertCircle,
+  ChevronDown,
+  Zap,
+} from "lucide-react";
 import NavyButton from "../../Components/Buttons";
 
 const Row = ({ client, name, sprint, progress, defaultColor }) => {
