@@ -26,6 +26,8 @@ enum TaskStatus {
   TODO
   IN_PROGRESS
   DONE
+  CANCELLED
+  BLOCKED
 }
 
 enum TaskPriority {
@@ -119,6 +121,9 @@ model Task {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  // Set automatically when status transitions to DONE. Never set manually.
+  // See task.service.js and docs/DATA_CONTRACT.md.
+  completedAt DateTime?
   priority  TaskPriority @default(MEDIUM)
   isBlocked Boolean      @default(false)
   dueDate   DateTime?

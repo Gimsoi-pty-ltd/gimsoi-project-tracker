@@ -1,6 +1,6 @@
 import express from "express";
 import { verifyToken } from "../middleware/verify-token.middleware.js";
-import { requireAnyRole } from "../middleware/rbac.middleware.js";
+import authorize from "../middleware/authorize.middleware.js";
 import { readLimiter, writeLimiter } from "../middleware/rate-limiter.middleware.js";
 import {
   createProject,
@@ -13,14 +13,16 @@ import {
 const router = express.Router();
 
 // Everyone logged in can view projects (Client is read-only)
-router.get("/", readLimiter, verifyToken, requireAnyRole(["ADMIN", "PM", "INTERN", "CLIENT"]), getProjects);
-// Progress route must be declared before /:id to prevent Express matching 'progress' as an id param
-// POLICY-PENDING: CLIENT sees full task breakdown — restrict to percentComplete only if team decides
-router.get("/:id/progress", readLimiter, verifyToken, requireAnyRole(["ADMIN", "PM", "INTERN", "CLIENT"]), getProjectProgress);
-router.get("/:id", readLimiter, verifyToken, requireAnyRole(["ADMIN", "PM", "INTERN", "CLIENT"]), getProjectById);
+router.get("/", readLimiter, verifyToken, authorize("VIEW_PROJECTS"), getProjects);
+
+// Allowed: ADMIN, PM, INTERN, CLIENT
+router.get("/:id/progress", readLimiter, verifyToken, authorize("VIEW_PROJECTS"), getProjectProgress);
+
+// Allowed: ADMIN, PM, INTERN, CLIENT
+router.get("/:id", readLimiter, verifyToken, authorize("VIEW_PROJECTS"), getProjectById);
 
 // Only Admin/PM can create/update
-router.post("/", writeLimiter, verifyToken, requireAnyRole(["ADMIN", "PM"]), createProject);
-router.patch("/:id", writeLimiter, verifyToken, requireAnyRole(["ADMIN", "PM"]), updateProject);
+router.post("/", writeLimiter, verifyToken, authorize("MANAGE_PROJECTS"), createProject);
+router.patch("/:id", writeLimiter, verifyToken, authorize("MANAGE_PROJECTS"), updateProject);
 
 export default router;
