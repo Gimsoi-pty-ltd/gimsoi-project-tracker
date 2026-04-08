@@ -37,9 +37,8 @@ router.post("/", writeLimiter, verifyToken, authorize("CREATE_TASK"), createTask
 router.patch("/:id", writeLimiter, verifyToken, authorize("UPDATE_TASK"), updateTask);
 
 /**
- * DELETE /api/tasks/:id — DELETE_TASK
  * Allowed: ADMIN, PM, INTERN
  */
-router.delete("/:id", writeLimiter, verifyToken, authorize("DELETE_TASK"), deleteTask);
+router.delete("/:id", writeLimiter, verifyToken, authorize(["DELETE_TASK", "DELETE_OWN_TASK"]), deleteTask);
 
 export default router;
