@@ -11,7 +11,7 @@ export const createClient = async (req, res, next) => {
     const client = await clientService.createClient({
       name,
       contactEmail: contactEmail || null,
-      createdByUserId: req.user?.id || null,
+      createdByUserId: req.user.id,
     });
 
     return res.status(201).json({ success: true, message: "Client created", data: client });
