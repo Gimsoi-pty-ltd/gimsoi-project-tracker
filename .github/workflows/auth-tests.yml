@@ -83,14 +83,18 @@ jobs:
           echo "Started server PID $SERVER_PID on port 5002"
           for i in $(seq 1 10); do
             sleep 1
-            HTTP_STATUS=$(curl --silent --output /dev/null --write-out "%{http_code}" --max-time 3 http://localhost:5002/api/health || echo "000")
+            HTTP_STATUS=$(curl --silent --output /dev/null \
+              --write-out "%{http_code}" --max-time 3 \
+              http://localhost:5002/api/health || echo "000")
             if [ "$HTTP_STATUS" != "000" ]; then
               echo "Server ready after ${i}s"
               break
             fi
             echo "Waiting for server... attempt $i"
           done
-          HTTP_STATUS=$(curl --silent --output /dev/null --write-out "%{http_code}" --max-time 5 http://localhost:5002/api/health)
+          HTTP_STATUS=$(curl --silent --output /dev/null \
+            --write-out "%{http_code}" --max-time 5 \
+            http://localhost:5002/api/health)
           echo "Health response body:"
           curl --silent --max-time 5 http://localhost:5002/api/health
           kill $SERVER_PID 2>/dev/null || true
