@@ -11,11 +11,10 @@ export const signup = async (req, res, next) => {
         const user = await authService.signup({ email, password, fullName });
         const token = generateTokenAndSetCookie(res, user.id, user.role);
         
-        const { password: _, ...userWithoutPassword } = user;
         return res.status(201).json({
             success: true,
             message: "User created successfully",
-            user: userWithoutPassword,
+            user: authService.sanitizeUser(user),
             token,
         });
     } catch (error) {
@@ -32,11 +31,10 @@ export const verifyEmail = async (req, res, next) => {
 
         const user = await authService.verifyEmail(code);
         
-        const { password: _, ...userWithoutPassword } = user;
         return res.status(200).json({
             success: true,
             message: "Email verified successfully",
-            user: userWithoutPassword,
+            user: authService.sanitizeUser(user),
         });
     } catch (error) {
         next(error);
@@ -53,11 +51,10 @@ export const login = async (req, res, next) => {
         const user = await authService.login(email, password);
         const token = generateTokenAndSetCookie(res, user.id, user.role);
 
-        const { password: _, ...userWithoutPassword } = user;
         return res.status(200).json({
             success: true,
             message: "Logged in successfully",
-            user: userWithoutPassword,
+            user: authService.sanitizeUser(user),
             token,
         });
     } catch (error) {
@@ -111,7 +108,7 @@ export const resetPassword = async (req, res, next) => {
 export const checkAuth = async (req, res, next) => {
     try {
         const user = await authService.checkAuth(req.user.id);
-        return res.status(200).json({ success: true, user });
+        return res.status(200).json({ success: true, user: authService.sanitizeUser(user) });
     } catch (error) {
         next(error);
     }
