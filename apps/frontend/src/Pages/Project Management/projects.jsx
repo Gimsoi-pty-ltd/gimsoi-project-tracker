@@ -135,16 +135,20 @@ function Projects() {
                                 className="pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-[#1A75FF] focus:border-[#1A75FF] outline-none w-full md:w-64 transition-all bg-white shadow-sm"
                             />
                         </div>
-                        < NavyButton className="flex items-center gap-2">
-                            <Plus className="w-4 h-4" />
-                            New Project
-                        </NavyButton>
-                         <Link to="/kanban-board">
+                        <NavyButton
+                          className="flex items-center gap-2"
+                          onClick={() => console.log("Opening New Project modal...")}
+                         >
+                          <Plus className="w-4 h-4" />
+                          New Project
+                         </NavyButton>
+
+                       <Link to="/kanban-board">
                         <NavyButton className="flex items-center gap-2">
-                            <Zap className="w-4 h-4" />
-                            Kanban Board
+                         <Zap className="w-4 h-4" />
+                          Kanban Board
                         </NavyButton>
-                        </Link>
+                       </Link>
                     </div>
                 </div>
 
@@ -194,10 +198,12 @@ function Projects() {
                     </div>
 
                     <div className="mt-8 flex justify-center">
-                        <button className="px-8 py-3 bg-white hover:bg-[#1A75FF] hover:text-white text-slate-700 font-semibold rounded-xl text-sm transition-all border border-slate-200 hover:border-[#1A75FF] w-full sm:w-auto shadow-sm hover:shadow-md active:scale-95 group">
-                            Load more projects
-                        </button>
-                        
+                    <NavyButton 
+                        onClick={() => console.log("Loading more projects...")}
+                        className="w-full sm:w-auto"
+                    >
+                        Load more projects
+                    </NavyButton>
                     </div>
                 </div>
             </div>

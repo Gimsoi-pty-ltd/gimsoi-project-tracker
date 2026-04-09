@@ -2,6 +2,7 @@ import React from 'react';
 import { Download, TrendingUp, CheckCircle, Clock, Zap, Search, ChevronDown, ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { Link } from 'react-router-dom';
+import NavyButton from '../../Components/Buttons';
 
 const data = [
   { name: 'Kelebogile', velocity: 32 },
@@ -26,9 +27,13 @@ const TeamPerformance = () => {
             <span>Team Performance</span>
           </nav>
         </div>
-        <button className="mt-4 md:mt-0 inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium shadow-sm">
-          <Download className="mr-2 h-4 w-4" /> Download PDF
-        </button>
+        <NavyButton 
+          onClick={() => console.log("Generating PDF...")}
+          className="mt-4 md:mt-0 !min-w-0 !px-6 !py-2 text-sm" 
+        >
+        <Download className="mr-2 h-4 w-4" />
+          Download PDF
+        </NavyButton>
       </div>
 
       {/* Stats Grid */}
