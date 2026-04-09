@@ -11,7 +11,7 @@ const {
     getSessionIdentifier: (req) => req.ip || "anonymous",
     cookieName: isProduction ? "__Host-csrf" : "csrf-token",
     cookieOptions: {
-        httpOnly: true,      // Token delivered via JSON endpoint, not JS cookie access
+        httpOnly: true,
         secure: isProduction,
         sameSite: isProduction ? "none" : "lax",
         path: "/",

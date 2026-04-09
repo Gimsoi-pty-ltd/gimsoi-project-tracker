@@ -1,6 +1,7 @@
 import { useState } from "react";
-import NavyButton from '../../Components/Buttons';
-import { Plus, Search, MoreHorizontal, CheckCircle2, Circle, AlertCircle, ChevronDown } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Plus, Search, MoreHorizontal, CheckCircle2, Circle, AlertCircle, ChevronDown, Zap } from "lucide-react";
+import NavyButton from "../../Components/Buttons";
 
 const Row = ({ client, name, sprint, progress, defaultColor }) => {
     const [color, setColor] = useState(defaultColor);
@@ -134,10 +135,20 @@ function Projects() {
                                 className="pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-[#1A75FF] focus:border-[#1A75FF] outline-none w-full md:w-64 transition-all bg-white shadow-sm"
                             />
                         </div>
-                        <NavyButton onClick={() => console.log("Opening New Project modal...")}>
-                            <Plus className="w-4 h-4 mr-1" />
-                            New Project
+                        <NavyButton
+                          className="flex items-center gap-2"
+                          onClick={() => console.log("Opening New Project modal...")}
+                         >
+                          <Plus className="w-4 h-4" />
+                          New Project
+                         </NavyButton>
+
+                       <Link to="/kanban-board">
+                        <NavyButton className="flex items-center gap-2">
+                         <Zap className="w-4 h-4" />
+                          Kanban Board
                         </NavyButton>
+                       </Link>
                     </div>
                 </div>
 
