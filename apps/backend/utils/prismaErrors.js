@@ -1,14 +1,6 @@
 import pkg from "../lib/generated/prisma/index.js";
 const { Prisma } = pkg;
-import { NotFoundError } from "./errors.js";
-
-export class ConflictError extends Error {
-    constructor(message) {
-        super(message);
-        this.name = "ConflictError";
-        this.statusCode = 409;
-    }
-}
+import { NotFoundError, ConflictError } from "./errors.js";
 
 /**
  * Maps known Prisma error codes to domain errors with correct HTTP status codes.

@@ -1,13 +1,20 @@
+/** @see {@link docs/DATA_CONTRACT.md} */
 import prisma from "../lib/prisma.js";
 import { StateTransitionError, NotFoundError } from "../utils/errors.js";
 import { assertOwnership } from "../utils/ownership.js";
+// Cross-domain dependency: Project domain requires task summary data. Access only via the narrow summary function — do not import broad task service internals.
+import { getTaskSummaryForProject } from "./task.service.js";
+import { PROJECT_STATUS } from "../constants/statuses.js";
 
 export const createProject = async ({ name, clientId, status, createdByUserId }) => {
+  if (status && ![PROJECT_STATUS.DRAFT, PROJECT_STATUS.ACTIVE, PROJECT_STATUS.COMPLETED].includes(status)) {
+    throw new StateTransitionError(`Invalid project status '${status}'. Allowed: ${PROJECT_STATUS.DRAFT}, ${PROJECT_STATUS.ACTIVE}, ${PROJECT_STATUS.COMPLETED}`);
+  }
   return prisma.project.create({
     data: {
       name,
       clientId: String(clientId),
-      status: status || "DRAFT",
+      status: status || PROJECT_STATUS.DRAFT,
       createdByUserId,
     },
   });
@@ -40,20 +47,16 @@ export const updateProject = async (id, data, userId, userRole) => {
 
   assertOwnership(existing, userId, userRole);
 
-  if (data.status) {
-    if (existing.status !== data.status) {
-      const validTransitions = {
-        'DRAFT': ['ACTIVE', 'COMPLETED'],
-        'ACTIVE': ['COMPLETED', 'DRAFT'],
-        // POLICY-PENDING: team must decide if a COMPLETED project can revert to ACTIVE.
-        // Currently permitted. Remove 'ACTIVE' here to permanently block regression.
-        'COMPLETED': ['ACTIVE']
-      };
+  if (data.status && existing.status !== data.status) {
+    const validTransitions = {
+      [PROJECT_STATUS.DRAFT]: [PROJECT_STATUS.ACTIVE, PROJECT_STATUS.COMPLETED],
+      [PROJECT_STATUS.ACTIVE]: [PROJECT_STATUS.COMPLETED, PROJECT_STATUS.DRAFT],
+      [PROJECT_STATUS.COMPLETED]: []
+    };
 
-      const allowed = validTransitions[existing.status] || [];
-      if (!allowed.includes(data.status)) {
-        throw new StateTransitionError(`Illegal project state transition from ${existing.status} to ${data.status}`);
-      }
+    const allowed = validTransitions[existing.status] || [];
+    if (!allowed.includes(data.status)) {
+      throw new StateTransitionError(`Illegal project state transition from ${existing.status} to ${data.status}`);
     }
   }
 
@@ -68,30 +71,20 @@ export const updateProject = async (id, data, userId, userRole) => {
 
 /**
  * Returns task completion counts for a project in a single aggregation query.
- * POLICY-PENDING: whether CLIENT role should receive full breakdown vs percentComplete only.
  *
  * @param {string} projectId
  * @returns {{ TODO: number, IN_PROGRESS: number, DONE: number, total: number, percentComplete: number }}
  */
-export const getProjectProgress = async (projectId) => {
+export const getProjectProgress = async (projectId, userRole) => {
   const project = await prisma.project.findUnique({ where: { id: String(projectId) } });
   if (!project) return null;
 
-  const groups = await prisma.task.groupBy({
-    by: ['status'],
-    where: { projectId: String(projectId) },
-    _count: { status: true },
-  });
+  const summary = await getTaskSummaryForProject(projectId);
 
-  const totals = { TODO: 0, IN_PROGRESS: 0, DONE: 0 };
-  for (const g of groups) {
-    if (g.status in totals) totals[g.status] = g._count.status;
+  // CLIENT role receives percentComplete only. Full task breakdown is restricted to internal roles. See docs/DATA_CONTRACT.md.
+  if (userRole === 'CLIENT') {
+    return { percentComplete: summary.percentComplete };
   }
 
-  const total = totals.TODO + totals.IN_PROGRESS + totals.DONE;
-  return {
-    ...totals,
-    total,
-    percentComplete: total ? Math.round((totals.DONE / total) * 100) : 0,
-  };
+  return summary;
 };
