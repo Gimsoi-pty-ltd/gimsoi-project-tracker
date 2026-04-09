@@ -2,6 +2,34 @@ import prisma from "../lib/prisma.js";
 import { StateTransitionError, NotFoundError, ForbiddenError } from "../utils/errors.js";
 import { handlePrismaError } from "../utils/prismaErrors.js";
 
+const VALID_PRIORITIES = ['low', 'medium', 'high', 'critical'];
+
+/**
+
+ * Priority enum for type safety
+
+ */
+
+const PRIORITY_ENUM = {
+
+  LOW: 'low',
+
+  MEDIUM: 'medium',
+
+  HIGH: 'high',
+
+  CRITICAL: 'critical'
+
+};
+
+const isValidPriority = (priority) => {
+
+  if (!priority) return false;
+
+  return VALID_PRIORITIES.includes(priority.toLowerCase());
+
+};
+
 export const createTask = async ({ title, description, projectId, sprintId, reporterId, assigneeId }) => {
     // Guard: sprint must belong to the same project as the task
     if (sprintId) {
@@ -15,6 +43,28 @@ export const createTask = async ({ title, description, projectId, sprintId, repo
     }
 
     try {
+    // Check if priority is provided AND validate it matches whitelist
+
+    if (priority && !isValidPriority(priority)) {
+
+      throw new Error(
+
+        `Invalid priority value: "${priority}". ` +
+
+        `Allowed values: ${VALID_PRIORITIES.join(', ')}`
+
+      );
+
+    }
+
+    // Normalize priority to lowercase, default to 'medium' if not provided
+
+    const normalizedPriority = priority 
+
+      ? priority.toLowerCase() 
+
+      : PRIORITY_ENUM.MEDIUM;
+
         return await prisma.task.create({
             data: {
                 title,
@@ -23,6 +73,7 @@ export const createTask = async ({ title, description, projectId, sprintId, repo
                 sprintId,
                 reporterId,
                 assigneeId,
+                priority: normalizedPriority,
                 status: 'TODO'
             }
         });
@@ -64,6 +115,24 @@ export const updateTask = async (id, data, userId, userRole) => {
         throw new NotFoundError(`Task with id ${id} not found`);
     }
 
+    if (priority && !isValidPriority(priority)) {
+
+      throw new Error(
+
+        `Invalid priority value: "${priority}". ` +
+
+        `Allowed values: ${VALID_PRIORITIES.join(', ')}`
+
+      );
+
+    }
+
+    const normalizedPriority = priority 
+
+      ? priority.toLowerCase() 
+
+      : PRIORITY_ENUM.MEDIUM;
+
     if (userId && userRole) {
         if (userRole !== 'ADMIN' && existing.reporterId !== userId) {
             throw new ForbiddenError("Only the reporter or an ADMIN can modify this task.");
@@ -86,6 +155,7 @@ export const updateTask = async (id, data, userId, userRole) => {
             status: data.status !== undefined ? data.status : existing.status,
             sprintId: data.sprintId !== undefined ? data.sprintId : existing.sprintId,
             assigneeId: data.assigneeId !== undefined ? data.assigneeId : existing.assigneeId,
+            priority: normalizedPriority !== undefined ? normalizedPriority : existing.priority,
         }
     });
 };
