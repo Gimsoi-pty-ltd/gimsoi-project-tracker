@@ -3,12 +3,13 @@ import dotenv from "dotenv";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import authRoutes from "./routes/auth.route.js";
-import tasksRoutes from "./routes/task.route.js";
+import taskRoute from "./routes/task.route.js";
 import { csrfProtection, csrfErrorHandler } from "./middleware/csrf.middleware.js";
 import clientRoutes from "./routes/client.route.js";
 import projectRoutes from "./routes/project.route.js";
 import sprintRoutes from "./routes/sprint.route.js";
 import { validateEnv } from "./utils/validateEnv.js";
+import registerTestingRoutes from "./utils/registerTestingRoutes.js";
 
 dotenv.config();
 
@@ -40,7 +41,7 @@ app.use(csrfProtection);
 // Routes
 app.get("/api/status", (req, res) => res.json({ status: "ok" }));
 app.use("/api/auth", authRoutes);
-app.use("/api/tasks", tasksRoutes);
+app.use("/api/tasks", taskRoute);
 app.use("/api/clients", clientRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/sprints", sprintRoutes);
@@ -48,12 +49,17 @@ app.use("/api/sprints", sprintRoutes);
 // CSRF error handler — must be after routes
 app.use(csrfErrorHandler);
 
-// Test-only routes — mounted via dynamic import so the module never loads in non-test builds.
-// Double-guarded: server.js checks NODE_ENV here; each handler also guards internally.
-if (process.env.NODE_ENV === 'test') {
-  const { default: testingRoutes } = await import('./routes/testing.route.js');
-  app.use('/api/testing', testingRoutes);
-}
+// Global Error Handler
+app.use((err, req, res, next) => {
+  const statusCode = err.statusCode || 500;
+  if (statusCode === 500) {
+    console.error("[Global Error Handler]", err);
+  }
+  return res.status(statusCode).json({ success: false, message: err.message || "Internal Server Error" });
+});
+
+// Test-only routes
+await registerTestingRoutes(app);
 
 // Start
 const PORT = process.env.PORT || 5001;

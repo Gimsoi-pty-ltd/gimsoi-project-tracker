@@ -26,6 +26,15 @@ enum TaskStatus {
   TODO
   IN_PROGRESS
   DONE
+  CANCELLED
+  BLOCKED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
 }
 
 model User {
@@ -47,6 +56,8 @@ model User {
 
   assignedTasks Task[] @relation("TaskAssignee")
   reportedTasks Task[] @relation("TaskReporter")
+  comments      Comment[]
+  efforts       Effort[]
 }
 
 model Client {
@@ -78,6 +89,8 @@ model Sprint {
   id              String       @id @default(uuid())
   name            String
   status          SprintStatus @default(PLANNING)
+  startDate       DateTime?
+  endDate         DateTime?
   projectId       String
   project         Project      @relation(fields: [projectId], references: [id])
   createdByUserId String?
@@ -108,8 +121,46 @@ model Task {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  // Set automatically when status transitions to DONE. Never set manually.
+  // See task.service.js and docs/DATA_CONTRACT.md.
+  completedAt DateTime?
+  priority  TaskPriority @default(MEDIUM)
+  isBlocked Boolean      @default(false)
+  dueDate   DateTime?
+  comments  Comment[]
+  efforts   Effort[]
 
   @@index([projectId])
   @@index([sprintId])
   @@index([assigneeId])
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  content   String
+  createdAt DateTime @default(now())
+  
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id])
+  
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([taskId])
+  @@index([userId])
+}
+
+model Effort {
+  id          String   @id @default(uuid())
+  hoursLogged Float
+  date        DateTime @default(now())
+  
+  taskId      String
+  task        Task     @relation(fields: [taskId], references: [id])
+  
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@index([taskId])
+  @@index([userId])
 }
