@@ -1,3 +1,4 @@
+---
 name: Deployment Pipeline
 
 on:
@@ -13,26 +14,39 @@ jobs:
   prepare-deploy:
     name: Prepare Deployment
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Download backend artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: backend-package
-          path: deployment/backend
-        continue-on-error: true
-
-      - name: Download frontend artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: frontend-package
-          path: deployment/frontend
-        continue-on-error: true
-
-      - name: Confirm deployment workflow config
+      - name: Confirm deployment workflow
         run: |
-          echo "Deployment workflow prepared."
-          echo "Zoho Catalyst deployment step will be added once platform setup is confirmed."
-          echo "Environment variables and secrets will be configured through GitHub Secrets." 
+          echo "Deployment workflow is set up."
+          echo "This workflow is ready for future"
+          echo "Zoho Catalyst deployment steps."
+
+      - name: Confirm backend path
+        run: |
+          if [ -d "apps/backend" ]; then
+            echo "Backend folder found."
+          else
+            echo "::error::apps/backend not found"
+            exit 1
+          fi
+
+      - name: Confirm frontend path
+        run: |
+          if [ -d "apps/frontend" ]; then
+            echo "Frontend folder found."
+          else
+            echo "::error::apps/frontend not found"
+            exit 1
+          fi
+
+      - name: Deployment notes
+        run: |
+          echo "Deployment trigger is configured."
+          echo "Environment variables will be"
+          echo "stored in GitHub Secrets."
+          echo "Zoho Catalyst deployment will be"
+          echo "added once platform setup is stable."
