@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { HelpCircle, Search, Settings, Menu } from "lucide-react";
 import logo from "../../assets/Gimsoi AI.jpg";
@@ -6,6 +6,18 @@ import logo from "../../assets/Gimsoi AI.jpg";
 export default function TopBar({ onMenuClick }) {
   const location = useLocation();
   const [moreOpen, setMoreOpen] = useState(false);
+  const moreRef = useRef(null);
+
+  // Close dropdown when clicking outside of it
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (moreRef.current && !moreRef.current.contains(e.target)) {
+        setMoreOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const navItems = [
     { label: "Dashboard", href: "/" },
@@ -100,7 +112,7 @@ export default function TopBar({ onMenuClick }) {
           </div>
 
           {/* MORE MENU */}
-          <div className="relative">
+          <div className="relative xl:hidden" ref={moreRef}>
             <button
               onClick={() => setMoreOpen(!moreOpen)}
               className="px-4 py-2 text-sm text-blue-100 hover:bg-white/10 rounded-lg"
@@ -110,7 +122,6 @@ export default function TopBar({ onMenuClick }) {
 
             {moreOpen && (
               <div className="absolute right-0 top-12 bg-white rounded-xl shadow-lg w-[200px] overflow-hidden z-50">
-
                 {/* Tablet dropdown */}
                 <div className="hidden lg:block xl:hidden">
                   {navItems.slice(3).map((item) => (
@@ -138,7 +149,6 @@ export default function TopBar({ onMenuClick }) {
                     </Link>
                   ))}
                 </div>
-
               </div>
             )}
           </div>
@@ -147,7 +157,6 @@ export default function TopBar({ onMenuClick }) {
 
         {/* RIGHT */}
         <div className="flex items-center gap-[10px] sm:gap-[20px]">
-
           <div className="flex items-center gap-[6px] sm:gap-[12px]">
             {buttonItems.map((item, index) => (
               <Link key={index} to={item.href}>
@@ -164,9 +173,7 @@ export default function TopBar({ onMenuClick }) {
           >
             R
           </Link>
-
         </div>
-
       </div>
     </div>
   );
