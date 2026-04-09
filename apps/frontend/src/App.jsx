@@ -92,6 +92,14 @@ const RedirectAuthenticatedUser = ({ children }) => {
   return children;
 };
 
+const API_URL = import.meta.env.VITE_API_URL;
+
+useEffect(() => {
+  fetch(`${API_URL}`)
+    .then(res => res.json())
+    .then(data => console.log(data));
+}, []);
+
 // ─── Main App Component ─────────────────────────────
 function App() {
   const { isCheckingAuth, checkAuth } = useAuthStore();
