@@ -1,7 +1,7 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { HelpCircle, Search, Settings, Menu } from "lucide-react";
-import logo from "../../assets/Gimsoi AI.jpg";
+import logo from "../../assets/gimsoi-ai.png";
 
 export default function TopBar({ onMenuClick }) {
   const location = useLocation();

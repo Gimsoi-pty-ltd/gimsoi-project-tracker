@@ -1,23 +1,29 @@
 import React, { useState } from 'react';
-import { User, Lock, Mail, Github, Facebook, Linkedin, Loader } from 'lucide-react';
+import { User, Lock, Mail, Github, Facebook, Linkedin, ArrowLeft, Loader } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import NavyButton from '../../Components/Buttons';
-import logo from '../../Assets/Gimsoi AI.jpg';
+import logo from '../../assets/gimsoi-ai.png';
 import { useAuthStore } from '../../store/authStore';
 
-function LoginPage() {
+function SignUpPage() {
     const [email, setEmail] = useState('');
-    const [loginPassword, setLoginPassword] = useState('');
+    const [fullName, setFullName] = useState('');
+    const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
     const navigate = useNavigate();
 
-    const { login, isLoading, error } = useAuthStore();
+    const { signup, error, isLoading } = useAuthStore();
 
-    const handleLogin = async (e) => {
+    const handleSignUp = async (e) => {
         e.preventDefault();
-        console.log('Login attempt:', { email, password: '[REDACTED]' });
+        if (password !== confirmPassword) {
+            alert("Passwords do not match!");
+            return;
+        }
+
         try {
-            await login(email, loginPassword);
-            navigate("/dashboard");
+            await signup(email, password, fullName);
+            navigate("/verify-email");
         } catch (error) {
             console.error(error);
         }
@@ -25,34 +31,34 @@ function LoginPage() {
 
     return (
         <div className="flex min-h-screen bg-indigo-50 items-center justify-center p-4">
-            {/* Main Card Container */}
-            <div className="flex flex-col md:flex-row w-full max-w-4xl bg-[#f4f4f4] rounded-[40px] shadow-2xl overflow-hidden min-h-[500px]">
 
-                {/* Left Section (The Curve) */}
+            <div className="flex flex-col md:flex-row w-full max-w-4xl bg-[#f4f4f4] rounded-[40px] shadow-2xl overflow-hidden min-h-[600px]">
+
+
                 <div className="md:w-5/12 bg-[#002D62] text-white flex flex-col justify-center items-center p-12 text-center rounded-br-[150px] md:rounded-br-[250px] relative overflow-hidden">
                     <div className="absolute inset-0 bg-gradient-to-br from-[#002D62] to-[#011f44] opacity-50"></div>
                     <div className="relative z-10 flex flex-col items-center">
                         <img src={logo} alt="Gimsoi AI" className="w-36 h-36 object-contain mb-6 rounded-full " />
                         <h1 className="text-3xl font-bold mb-2">Hello, Welcome!</h1>
-                        <p className="text-sm opacity-90 mb-8">Don't have an account?</p>
-                        <Link to="/signup">
+                        <p className="text-sm opacity-90 mb-8">Already have an account?</p>
+                        <Link to="/login">
                             <button className="border-2 border-white rounded-xl px-10 py-2 hover:bg-white hover:text-[#002D62] transition-all font-semibold">
-                                Sign Up
+                                Login
                             </button>
                         </Link>
                     </div>
                 </div>
 
-                {/* Right Section (The Form) */}
-                <div className="md:w-7/12 bg-[#f4f4f4] flex flex-col justify-center items-center p-12">
-                    <h2 className="text-3xl font-bold text-gray-800 mb-8">Login</h2>
 
-                    <form onSubmit={handleLogin} className="w-full max-w-sm space-y-4">
-                        {/* Input with Icon on Right */}
+                <div className="md:w-7/12 bg-[#f4f4f4] flex flex-col justify-center items-center p-12">
+                    <h2 className="text-3xl font-bold text-gray-800 mb-8">Create Account</h2>
+
+                    <form onSubmit={handleSignUp} className="w-full max-w-sm space-y-4">
+
                         <div className="relative group">
                             <input
                                 type="email"
-                                placeholder="Email"
+                                placeholder="Email Address"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 className="w-full bg-white rounded-lg px-4 py-3 pr-12 outline-none text-sm border-2 border-transparent focus:border-[#002D62]/20 transition-all shadow-sm"
@@ -61,37 +67,60 @@ function LoginPage() {
                             <Mail size={18} className="absolute right-4 top-3.5 text-gray-400 group-focus-within:text-[#002D62] transition-colors" />
                         </div>
 
+
+                        <div className="relative group">
+                            <input
+                                type="text"
+                                placeholder="Full Name"
+                                value={fullName}
+                                onChange={(e) => setFullName(e.target.value)}
+                                className="w-full bg-white rounded-lg px-4 py-3 pr-12 outline-none text-sm border-2 border-transparent focus:border-[#002D62]/20 transition-all shadow-sm"
+                                required
+                            />
+                            <User size={18} className="absolute right-4 top-3.5 text-gray-400 group-focus-within:text-[#002D62] transition-colors" />
+                        </div>
+
+
                         <div className="relative group">
                             <input
                                 type="password"
                                 placeholder="Password"
-                                value={loginPassword}
-                                onChange={(e) => setLoginPassword(e.target.value)}
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
                                 className="w-full bg-white rounded-lg px-4 py-3 pr-12 outline-none text-sm border-2 border-transparent focus:border-[#002D62]/20 transition-all shadow-sm"
                                 required
                             />
                             <Lock size={18} className="absolute right-4 top-3.5 text-gray-400 group-focus-within:text-[#002D62] transition-colors" />
                         </div>
 
-                        <div className="text-right">
-                            <Link to="/forgot-password" title="Coming soon!" className="text-xs text-[#002D62] font-semibold hover:underline">Forgot Password?</Link>
+
+                        <div className="relative group">
+                            <input
+                                type="password"
+                                placeholder="Confirm Password"
+                                value={confirmPassword}
+                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                className="w-full bg-white rounded-lg px-4 py-3 pr-12 outline-none text-sm border-2 border-transparent focus:border-[#002D62]/20 transition-all shadow-sm"
+                                required
+                            />
+                            <Lock size={18} className="absolute right-4 top-3.5 text-gray-400 group-focus-within:text-[#002D62] transition-colors" />
                         </div>
 
                         {error && <p className="text-red-500 font-semibold mt-2 text-center text-sm">{error}</p>}
 
                         <NavyButton
                             type="submit"
-                            className="w-full !rounded-xl shadow-lg flex justify-center items-center"
+                            className="w-full !rounded-xl shadow-lg mt-2 flex justify-center items-center"
                             disabled={isLoading}
                         >
-                            {isLoading ? <Loader className="animate-spin" size={24} /> : "Login"}
+                            {isLoading ? <Loader className="animate-spin" size={24} /> : "Sign Up"}
                         </NavyButton>
                     </form>
 
                     <div className="mt-8 text-center w-full max-w-sm">
                         <div className="relative flex items-center py-4">
                             <div className="flex-grow border-t border-gray-200"></div>
-                            <span className="flex-shrink mx-4 text-xs text-gray-400 uppercase font-medium">or login with</span>
+                            <span className="flex-shrink mx-4 text-xs text-gray-400 uppercase font-medium">or sign up with</span>
                             <div className="flex-grow border-t border-gray-200"></div>
                         </div>
                         <div className="flex justify-center mt-2">
@@ -111,4 +140,4 @@ function LoginPage() {
     );
 }
 
-export default LoginPage;
+export default SignUpPage;

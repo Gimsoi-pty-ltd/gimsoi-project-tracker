@@ -2,17 +2,17 @@ import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 
 // ─── AUTH PAGES ─────────────────────────────
-import LoginPage from './Pages/LogInOut flow/LoginPage';
-import SignUpPage from './Pages/LogInOut flow/SignUpPage';
-import ResetPassword from './Pages/LogInOut flow/ResetPassword';
-import EmailVerification from './Pages/LogInOut flow/EmailVerification';
-import ForgotEmailPage from './Pages/LogInOut flow/ForgotEmailPage';
+import LoginPage from './Pages/LogInOutFlow/LoginPage';
+import SignUpPage from './Pages/LogInOutFlow/SignUpPage';
+import ResetPassword from './Pages/LogInOutFlow/ResetPassword';
+import EmailVerification from './Pages/LogInOutFlow/EmailVerification';
+import ForgotEmailPage from './Pages/LogInOutFlow/ForgotEmailPage';
 
 // ─── DASHBOARD LAYOUT & PAGES  ─────────────────────────────
 import DashboardLayout from "./Layouts/DashboardLayout";
 
 // Dashboard & Overview
-import Dashboard from './Pages/LoginOut Flow/Dashboard';
+import Dashboard from './Pages/LogInOutFlow/Dashboard';
 import DashboardCards from "./Components/Dashboard/DashboardCards";
 import DaysRemainingPage from "./Components/Dashboard/DaysRemainingPage";
 import SprintOverview from './Pages/Sprints/SprintOverview';
@@ -25,14 +25,14 @@ import OverdueTasks from './Pages/Tasks/Overduetasks';
 import ActiveProjects from './Pages/Tasks/ActiveProjects';
 
 // Projects & Phases
-import Projects from './Pages/Project Management/projects';
+import Projects from './Pages/project-management/projects';
 import ProjectPhasesGantt from "./Pages/Phases/Phases-of-tasks.jsx";
 
 // Reports
-import ReportsHub from './Pages/Reports and Exporting/reports';
-import SprintReports from './Pages/Reports and Exporting/sprintReports';
-import ProjectReport from './Pages/Reports and Exporting/projectReports';
-import TeamPerformance from './Pages/Reports and Exporting/teamPerformance';
+import ReportsHub from './Pages/reports-exporting/reports.jsx';
+import SprintReports from './Pages/reports-exporting/sprintReports.jsx';
+import ProjectReport from './Pages/reports-exporting/projectReports.jsx';
+import TeamPerformance from './Pages/reports-exporting/teamPerformance.jsx';
 
 // Team & Insights
 import TeamInsights from './Pages/Team Insights/teamInsights';
@@ -47,11 +47,11 @@ import SearchPage from './Pages/Profile/Search';
 
 // Settings
 import Settings from './Pages/Settings';
-import ProfileSection from './Pages/Settings Page/ProfileSection';
-import PreferencesSection from './Pages/Settings Page/PreferencesSection';
-import ActivitySection from './Pages/Settings Page/ActivitySection';
-import StorageSection from './Pages/Settings Page/StorageSection';
-import SecuritySection from './Pages/Settings Page/SecuritySection';
+import ProfileSection from './Pages/settings-page/ProfileSection.jsx';
+import PreferencesSection from './Pages/settings-page/PreferencesSection.jsx';
+import ActivitySection from './Pages/settings-page/ActivitySection.jsx';
+import StorageSection from './Pages/settings-page/StorageSection.jsx';
+import SecuritySection from './Pages/settings-page/SecuritySection.jsx';
 
 // Help
 import HelpSupport from './Pages/Help/HelpSupport';
@@ -91,6 +91,14 @@ const RedirectAuthenticatedUser = ({ children }) => {
 
   return children;
 };
+
+const API_URL = import.meta.env.VITE_API_URL;
+
+useEffect(() => {
+  fetch(`${API_URL}`)
+    .then(res => res.json())
+    .then(data => console.log(data));
+}, []);
 
 // ─── Main App Component ─────────────────────────────
 function App() {

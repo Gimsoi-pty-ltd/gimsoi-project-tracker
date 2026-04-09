@@ -1,6 +1,6 @@
 import { useState } from "react";
 import SearchIcon from "../../assets/searchicon.png";
-import AccountIcon from "../../assets/accounticon.jpeg";
+import AccountIcon from "../../assets/accounticon.png";
 import TasksIcon from "../../assets/tasksicon.png";
 import SettingsIcon from "../../assets/settingsicon.png";
  
