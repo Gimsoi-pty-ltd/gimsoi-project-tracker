@@ -38,6 +38,7 @@ export const getTasks = async (req, res, next) => {
 
         let overdueFilter = undefined;
         if (isOverdue === 'true') overdueFilter = true;
+        if (isOverdue === 'false') overdueFilter = false;
 
         const tasks = await taskService.getTasksByProject(projectId, {
             limit,

@@ -13,7 +13,7 @@ export const createProject = async (req, res, next) => {
       name,
       clientId,
       status: status ? status.toUpperCase() : "DRAFT",
-      createdByUserId: req.user?.id || null,
+      createdByUserId: req.user.id,
     });
 
     return res.status(201).json({ success: true, message: "Project created", data: project });
@@ -28,10 +28,13 @@ export const getProjects = async (req, res, next) => {
 
     const records = await projectService.getProjects({ limit, cursor });
 
-    const dataWithProgress = await Promise.all(records.map(async (proj) => {
-      const prog = await projectService.getProjectProgress(proj.id, req.user?.role);
+    const projectIds = records.map(p => p.id);
+    const progressBatch = await projectService.getBatchProjectProgress(projectIds, req.user.role);
+
+    const dataWithProgress = records.map((proj) => {
+      const prog = progressBatch[proj.id];
       return { ...proj, percentComplete: prog ? prog.percentComplete : 0 };
-    }));
+    });
 
     const { data, nextCursor } = buildPage(dataWithProgress, limit);
 
@@ -69,7 +72,7 @@ export const updateProject = async (req, res, next) => {
 export const getProjectProgress = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const progress = await projectService.getProjectProgress(id, req.user?.role);
+    const progress = await projectService.getProjectProgress(id, req.user.role);
     if (!progress) return res.status(404).json({ success: false, message: "Project not found" });
 
     return res.status(200).json({ success: true, data: progress });

@@ -3,8 +3,9 @@ import prisma from "../lib/prisma.js";
 import { StateTransitionError, NotFoundError } from "../utils/errors.js";
 import { assertOwnership } from "../utils/ownership.js";
 // Cross-domain dependency: Project domain requires task summary data. Access only via the narrow summary function — do not import broad task service internals.
-import { getTaskSummaryForProject } from "./task.service.js";
+import { getProjectTaskSummary, getProjectTaskSummaryBatch } from "./task.service.js";
 import { PROJECT_STATUS } from "../constants/statuses.js";
+import ROLES from "../constants/roles.js";
 
 export const createProject = async ({ name, clientId, status, createdByUserId }) => {
   if (status && ![PROJECT_STATUS.DRAFT, PROJECT_STATUS.ACTIVE, PROJECT_STATUS.COMPLETED].includes(status)) {
@@ -79,7 +80,7 @@ export const getProjectProgress = async (projectId, userRole) => {
   const project = await prisma.project.findUnique({ where: { id: String(projectId) } });
   if (!project) return null;
 
-  const summary = await getTaskSummaryForProject(projectId);
+  const summary = await getProjectTaskSummary(projectId);
 
   // CLIENT role receives percentComplete only. Full task breakdown is restricted to internal roles. See docs/DATA_CONTRACT.md.
   if (userRole === 'CLIENT') {
@@ -87,4 +88,22 @@ export const getProjectProgress = async (projectId, userRole) => {
   }
 
   return summary;
+};
+
+export const getBatchProjectProgress = async (projectIds, userRole) => {
+    if (!projectIds || projectIds.length === 0) return {};
+
+    const summaries = await getProjectTaskSummaryBatch(projectIds);
+    const results = {};
+
+    for (const projectId of projectIds) {
+        const summary = summaries[projectId];
+        if (userRole === ROLES.CLIENT) {
+            results[projectId] = { percentComplete: summary ? summary.percentComplete : 0 };
+        } else {
+            results[projectId] = summary;
+        }
+    }
+
+    return results;
 };
