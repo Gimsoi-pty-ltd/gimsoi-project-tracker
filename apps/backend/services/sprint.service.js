@@ -5,6 +5,16 @@ import { assertOwnership } from "../utils/ownership.js";
 import { SPRINT_STATUS, PROJECT_STATUS, TASK_STATUS } from "../constants/statuses.js";
 import { getTaskCountBySprintId } from "./task.service.js";
 
+/**
+ * Valid state transitions for a Sprint.
+ * Mirrored from task.service.js pattern to allow isolated unit testing.
+ */
+export const SPRINT_ALLOWED_TRANSITIONS = {
+    [SPRINT_STATUS.PLANNING]: [SPRINT_STATUS.ACTIVE],
+    [SPRINT_STATUS.ACTIVE]: [SPRINT_STATUS.CLOSED],
+    [SPRINT_STATUS.CLOSED]: []
+};
+
 export const createSprint = async ({ name, projectId, status, startDate, endDate, createdByUserId }) => {
     // Guard: prevent creating sprints inside a COMPLETED project
     const project = await prisma.project.findUnique({ where: { id: projectId } });
@@ -40,14 +50,6 @@ export const getSprintsByProject = async (projectId, { limit = 50, cursor } = {}
     });
 };
 
-export const getSprintById = async (id) => {
-    return prisma.sprint.findUnique({
-        where: { id: String(id) },
-        // Use _count instead of include:{ tasks: true } — avoids loading an unbounded
-        // task collection. Full task list comes from GET /api/tasks?sprintId= (paginated).
-        include: { _count: { select: { tasks: true } } }
-    });
-};
 
 export const closeSprint = async (id, userId, userRole, db = prisma) => {
     const sprint = await db.sprint.findUnique({ where: { id: String(id) } });
@@ -80,13 +82,7 @@ export const updateSprintStatus = async (id, targetStatus, userId, userRole, db 
 
     const currentStatus = sprint.status;
 
-    const validTransitions = {
-        [SPRINT_STATUS.PLANNING]: [SPRINT_STATUS.ACTIVE],
-        [SPRINT_STATUS.ACTIVE]: [SPRINT_STATUS.CLOSED],
-        [SPRINT_STATUS.CLOSED]: []
-    };
-
-    const allowed = validTransitions[currentStatus] || [];
+    const allowed = SPRINT_ALLOWED_TRANSITIONS[currentStatus] || [];
     if (!allowed.includes(targetStatus)) {
         throw new StateTransitionError(`Illegal sprint state transition from ${currentStatus} to ${targetStatus}`);
     }

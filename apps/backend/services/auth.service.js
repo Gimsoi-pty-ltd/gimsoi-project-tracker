@@ -2,7 +2,8 @@ import bcryptjs from "bcryptjs";
 import crypto from "crypto";
 import prisma from "../lib/prisma.js";
 import ROLES from "../constants/roles.js";
-import { NotFoundError, ForbiddenError, ConflictError } from "../utils/errors.js";
+import { TOKEN_TTL_VERIFICATION_MS, TOKEN_TTL_RESET_MS } from "../constants/auth.js";
+import { NotFoundError, ForbiddenError, ConflictError, ValidationError, UnauthorizedError } from "../utils/errors.js";
 import {
     sendVerificationEmail,
     sendWelcomeEmail,
@@ -28,12 +29,14 @@ export const signup = async ({ email, password, fullName }) => {
             fullName,
             role: ROLES.INTERN,
             verificationToken,
-            verificationTokenExpiresAt: new Date(Date.now() + 15 * 60 * 1000),
+            verificationTokenExpiresAt: new Date(Date.now() + TOKEN_TTL_VERIFICATION_MS),
         },
     });
 
-    sendVerificationEmail(user.email, verificationToken)
-        .catch(err => console.error("Failed to send verification email:", err));
+    await sendVerificationEmail(user.email, verificationToken).catch(err => {
+        console.error("Failed to send verification email:", err);
+        throw new Error("Account created but verification email could not be sent. Please contact support.");
+    });
 
     return user;
 };
@@ -47,10 +50,7 @@ export const verifyEmail = async (code) => {
     });
 
     if (!user) {
-        // HTTP 403 maps correctly to ForbiddenError or we could use a custom 400 error.
-        const err = new Error("Invalid or expired verification code");
-        err.statusCode = 400;
-        throw err;
+        throw new ValidationError("Invalid or expired verification code");
     }
 
     const updatedUser = await prisma.user.update({
@@ -71,17 +71,13 @@ export const login = async (email, password) => {
     const user = await prisma.user.findUnique({ where: { email } });
 
     if (!user) {
-        const err = new Error("Invalid credentials");
-        err.statusCode = 400;
-        throw err;
+        throw new ValidationError("Invalid credentials");
     }
 
     const isPasswordValid = await bcryptjs.compare(password, user.password);
 
     if (!isPasswordValid) {
-        const err = new Error("Invalid credentials");
-        err.statusCode = 400;
-        throw err;
+        throw new ValidationError("Invalid credentials");
     }
 
     await prisma.user.update({
@@ -100,7 +96,7 @@ export const forgotPassword = async (email) => {
     }
 
     const resetToken = crypto.randomBytes(20).toString("hex");
-    const resetTokenExpiresAt = new Date(Date.now() + 1 * 60 * 60 * 1000);
+    const resetTokenExpiresAt = new Date(Date.now() + TOKEN_TTL_RESET_MS);
 
     await prisma.user.update({
         where: { id: user.id },
@@ -125,9 +121,7 @@ export const resetPassword = async (token, password) => {
     });
 
     if (!user) {
-        const err = new Error("Invalid or expired reset token");
-        err.statusCode = 400;
-        throw err;
+        throw new ValidationError("Invalid or expired reset token");
     }
 
     const hashedPassword = await bcryptjs.hash(password, BCRYPT_SALT_ROUNDS);
@@ -151,10 +145,14 @@ export const checkAuth = async (userId) => {
     });
 
     if (!user) {
-        const error = new Error("Unauthorized - user not found");
-        error.statusCode = 401;
-        throw error;
+        throw new UnauthorizedError("Unauthorized - user not found");
     }
 
     return user;
+};
+
+export const sanitizeUser = (user) => {
+    if (!user) return user;
+    const { password, resetPasswordToken, verificationToken, ...safeUser } = user;
+    return safeUser;
 };
