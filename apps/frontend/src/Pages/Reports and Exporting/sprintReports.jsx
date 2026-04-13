@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import NavyButton from '../../Components/Buttons';
 import { Link } from "react-router-dom";
 import NavyButton from "../../Components/Buttons";
 import { Download, ChevronRight, TrendingUp, CheckCircle2, BarChart3, Clock } from "lucide-react";
@@ -29,7 +30,25 @@ const SprintReport = () => {
     };
 
     return (
-        <div className="p-4 md:p-8 space-y-5 md:space-y-6">
+        
+            <div className="space-y-6">
+                {/* Header Section */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h1 className="text-3xl font-bold text-slate-900">Sprint Report</h1>
+                        <nav className="flex items-center gap-2 mt-1 text-sm text-slate-500">
+                            <Link to="/reports" className="hover:text-blue-600 no-underline transition-colors">
+                                Reports Hub
+                            </Link>
+                            <ChevronRight size={14} className="text-slate-400" />
+                            <span className="text-slate-900 font-medium">Sprint Report</span>
+                        </nav>
+                    </div>
+                    <NavyButton onClick={() => console.log("Downloading PDF...")}>
+                        <Download size={18} className="mr-2" />
+                        Download PDF
+                    </NavyButton>
+                </div>
 
             {/* Header */}
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">

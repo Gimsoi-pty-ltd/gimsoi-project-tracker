@@ -3,6 +3,7 @@ import { Download, TrendingUp, CheckCircle, Clock, Zap, Search, ChevronDown, Arr
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import NavyButton from "../../Components/Buttons";
 import { Link } from 'react-router-dom';
+import NavyButton from '../../Components/Buttons';
 
 const data = [
   { name: 'Kelebogile', velocity: 32 },
@@ -27,8 +28,12 @@ const TeamPerformance = () => {
             <span>Team Performance</span>
           </nav>
         </div>
-        <NavyButton>
-          <Download className="mr-2 h-4 w-4" /> Download PDF
+        <NavyButton 
+          onClick={() => console.log("Generating PDF...")}
+          className="mt-4 md:mt-0 !min-w-0 !px-6 !py-2 text-sm" 
+        >
+        <Download className="mr-2 h-4 w-4" />
+          Download PDF
         </NavyButton>
       </div>
 

@@ -116,13 +116,32 @@ export default function Teams() {
 
       {/* Modal */}
       {openModal && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl w-full max-w-[650px] p-5 md:p-6 max-h-[90vh] overflow-y-auto">
-            <h2 className="text-lg md:text-xl font-semibold mb-4">Add New Team</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="col-span-1 sm:col-span-2">
-                <label className="text-sm text-gray-600">Team Name</label>
-                <input className="w-full border rounded-lg p-2 mt-1" placeholder="Enter team name" />
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center">
+
+          <div className="bg-white rounded-xl w-[650px] p-6">
+
+          <div className="md:flex md:items-center md:justify-between mb-8">
+              <div>
+                <h2 className="text-2xl font-bold text-slate-900">Manage Teams</h2>
+                <nav className="flex mt-1 text-sm text-gray-500">
+                  <Link to="/users" >
+                  <span className="text-slate-900 hover:text-slate-600 cursor-pointer">User Management</span>
+                  </Link>
+                  <span className="mx-2">/</span>
+                  <span>Teams</span>
+                </nav>
+              </div>
+        </div>
+            <div className="grid grid-cols-2 gap-4">
+
+              <div className="col-span-2">
+                <label className="text-sm text-gray-600">
+                  Team Name
+                </label>
+                <input
+                  className="w-full border rounded-lg p-2 mt-1"
+                  placeholder="Enter team name"
+                />
               </div>
               <div>
                 <label className="text-sm text-gray-600">Associated Primary Project</label>

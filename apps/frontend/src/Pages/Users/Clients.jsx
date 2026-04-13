@@ -23,17 +23,21 @@ const Clients = () => {
     <div className="p-4 md:p-8 bg-gray-50 min-h-screen">
 
       {/* Header */}
-      <div className="flex flex-col gap-4 mb-6 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h2 className="text-xl md:text-2xl font-bold text-slate-900">Manage Clients</h2>
-          <nav className="flex mt-1 text-sm text-gray-500">
-            <Link to="/users">
-              <span className="text-slate-900 hover:text-slate-600 cursor-pointer">User Management</span>
-            </Link>
-            <span className="mx-2">/</span>
-            <span>Clients</span>
-          </nav>
+      <div className="flex items-center justify-between mb-6">
+
+        <div className="md:flex md:items-center md:justify-between mb-8">
+              <div>
+                <h2 className="text-2xl font-bold text-slate-900">Manage Clients</h2>
+                <nav className="flex mt-1 text-sm text-gray-500">
+                  <Link to="/users" >
+                  <span className="text-slate-900 hover:text-slate-600 cursor-pointer">User Management</span>
+                  </Link>
+                  <span className="mx-2">/</span>
+                  <span>Clients</span>
+                </nav>
+              </div>
         </div>
+        <div className="flex gap-3">
 
         <div className="flex flex-wrap gap-2 md:gap-3">
           <input
