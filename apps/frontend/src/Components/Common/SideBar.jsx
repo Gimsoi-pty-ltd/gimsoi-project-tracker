@@ -2,7 +2,7 @@ import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Home, FolderKanban, ListTodo, Users, PieChart, X, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import NavyButton from "../NavyButton";
+import NavyButton from "../Buttons";
 
 export default function Sidebar({ onClose, onLogout }) {
   const location = useLocation();
