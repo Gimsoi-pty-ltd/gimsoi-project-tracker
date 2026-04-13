@@ -2,8 +2,9 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client-js"
-  output   = "../lib/generated/prisma"
+  provider      = "prisma-client-js"
+  output        = "../lib/generated/prisma"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
 datasource db {
@@ -37,12 +38,20 @@ enum TaskPriority {
   URGENT
 }
 
+enum Role {
+  ADMIN
+  PM
+  INTERN
+  CLIENT
+}
+
+
 model User {
   id                         String    @id @default(uuid())
   email                      String    @unique
   fullName                   String
   password                   String
-  role                       String    @default("INTERN")
+  role                       Role      @default(INTERN)
   profilePic                 String    @default("")
   bio                        String?
   lastLogin                  DateTime  @default(now())
@@ -56,8 +65,6 @@ model User {
 
   assignedTasks Task[] @relation("TaskAssignee")
   reportedTasks Task[] @relation("TaskReporter")
-  comments      Comment[]
-  efforts       Effort[]
 }
 
 model Client {
@@ -127,40 +134,9 @@ model Task {
   priority  TaskPriority @default(MEDIUM)
   isBlocked Boolean      @default(false)
   dueDate   DateTime?
-  comments  Comment[]
-  efforts   Effort[]
-
   @@index([projectId])
   @@index([sprintId])
   @@index([assigneeId])
 }
 
-model Comment {
-  id        String   @id @default(uuid())
-  content   String
-  createdAt DateTime @default(now())
-  
-  taskId    String
-  task      Task     @relation(fields: [taskId], references: [id])
-  
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
 
-  @@index([taskId])
-  @@index([userId])
-}
-
-model Effort {
-  id          String   @id @default(uuid())
-  hoursLogged Float
-  date        DateTime @default(now())
-  
-  taskId      String
-  task        Task     @relation(fields: [taskId], references: [id])
-  
-  userId      String
-  user        User     @relation(fields: [userId], references: [id])
-
-  @@index([taskId])
-  @@index([userId])
-}
