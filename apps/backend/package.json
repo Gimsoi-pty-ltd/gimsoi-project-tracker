@@ -13,9 +13,6 @@
   },
   "type": "module",
   "keywords": [],
-  "imports": {
-    "@prisma/client": "./lib/generated/prisma/index.js"
-  },
   "author": "",
   "license": "ISC",
   "dependencies": {
