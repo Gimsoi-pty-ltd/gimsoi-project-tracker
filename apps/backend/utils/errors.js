@@ -37,3 +37,19 @@ export class ContractViolationError extends Error {
         this.statusCode = 500; // Internal error: the backend is returning invalid data
     }
 }
+
+export class ValidationError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = 'ValidationError';
+        this.statusCode = 400;
+    }
+}
+
+export class UnauthorizedError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = 'UnauthorizedError';
+        this.statusCode = 401;
+    }
+}

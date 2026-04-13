@@ -232,189 +232,97 @@ const Row = ({ project, onNavigate, onDelete, onStatusChange }) => {
   );
 };
 
-export default function Projects() {
-  const navigate = useNavigate();
+function Projects() {
+    return (
+        <div className="bg-[#f5f7fb] min-h-screen font-sans p-4 md:p-8">
+            <div className="max-w-6xl mx-auto">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+                    <div>
+                        <h1 className="text-2xl font-bold text-gray-800 tracking-tight">Projects</h1>
+                        <p className="text-gray-500 mt-1">Manage and track your ongoing projects</p>
+                    </div>
 
-  const [projects, setProjects] = useState(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      return stored ? JSON.parse(stored) : defaultProjects;
-    } catch {
-      return defaultProjects;
-    }
-  });
+                    <div className="flex items-center gap-3">
+                        <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <Search className="h-4 w-4 text-gray-400" />
+                            </div>
+                            <input
+                                type="text"
+                                placeholder="Search projects..."
+                                className="pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-[#1A75FF] focus:border-[#1A75FF] outline-none w-full md:w-64 transition-all bg-white shadow-sm"
+                            />
+                        </div>
+                        <NavyButton
+                          className="flex items-center gap-2"
+                          onClick={() => console.log("Opening New Project modal...")}
+                         >
+                          <Plus className="w-4 h-4" />
+                          New Project
+                         </NavyButton>
 
-  const [showProjectModal, setShowProjectModal] = useState(false);
-  const [formData, setFormData] = useState(defaultFormData);
-
-  // Sync to localStorage whenever projects change
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
-  }, [projects]);
-
-  // Callback passed to ProjectOverview so edits sync back here
-  const handleUpdateProject = (updated) => {
-    setProjects((prev) =>
-      prev.map((p) => (p.id === updated.id ? { ...p, ...updated } : p))
-    );
-  };
-
-  const handleDeleteProject = (id) => {
-    setProjects((prev) => prev.filter((p) => p.id !== id));
-  };
-
-  const handleStatusChange = (id, colorKey, statusLabel) => {
-    setProjects((prev) =>
-      prev.map((p) =>
-        p.id === id ? { ...p, defaultColor: colorKey, status: statusLabel } : p
-      )
-    );
-  };
-
-  const handleNavigate = (project) => {
-    navigate(`/projects/${project.id}`, {
-      state: { project, onUpdate: null }, // onUpdate passed via context/localStorage
-    });
-  };
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleSave = () => {
-    const colorKey = statusToColor[formData.status] || "blue";
-    const newProject = {
-      id: Date.now(),
-      client: formData.client || "Unknown Client",
-      name: formData.projectName || "Untitled Project",
-      sprint: "Sprint 1",
-      progress: 0,
-      defaultColor: colorKey,
-      status: formData.status || "Active",
-      deadline: formData.endDate || "",
-      team: formData.team ? [formData.team] : [],
-      milestones: [],
-    };
-    setProjects((prev) => [...prev, newProject]);
-    setFormData(defaultFormData);
-    setShowProjectModal(false);
-  };
-
-  const clients = ["Acme Corp", "TechStart Inc", "BlueWave Ltd"];
-  const teamMembers = ["TK", "Samantha", "John Doe", "Aisha", "David"];
-
-  return (
-    <div className="bg-[#f5f7fb] min-h-screen font-sans p-4 md:p-8">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-800 tracking-tight">Projects</h1>
-            <p className="text-gray-500 mt-1">Manage and track your ongoing projects</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search className="h-4 w-4 text-gray-400" />
-              </div>
-              <input
-                type="text"
-                placeholder="Search projects..."
-                className="pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-[#1A75FF] focus:border-[#1A75FF] outline-none w-full md:w-64 transition-all bg-white shadow-sm"
-              />
-            </div>
-            <button
-              onClick={() => setShowProjectModal(true)}
-              className="bg-[#1A75FF] hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-[0_4px_12px_rgba(26,117,255,0.25)] hover:shadow-[0_6px_16px_rgba(26,117,255,0.35)] hover:-translate-y-0.5 flex items-center gap-2 whitespace-nowrap active:scale-95"
-            >
-              <Plus className="w-4 h-4" />
-              New Project
-            </button>
-          </div>
-        </div>
-
-        {/* Table */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 md:p-6 mb-6">
-          <div className="hidden sm:flex font-semibold text-slate-500 text-sm pb-4 mb-4 border-b border-slate-100 uppercase tracking-wider">
-            <div className="flex-1 px-4">Client</div>
-            <div className="flex-[1.5] px-4">Project name</div>
-            <div className="flex-1 px-4">Status</div>
-            <div className="flex-[0.8] px-4">Sprint</div>
-            <div className="flex-[1.5] px-4">Progress</div>
-            <div className="w-10"></div>
-          </div>
-
-          <div className="space-y-1">
-            {projects.map((project) => (
-              <Row
-                key={project.id}
-                project={project}
-                onNavigate={handleNavigate}
-                onDelete={handleDeleteProject}
-                onStatusChange={handleStatusChange}
-              />
-            ))}
-          </div>
-
-          <div className="mt-8 flex justify-center">
-            <button className="px-8 py-3 bg-white hover:bg-[#1A75FF] hover:text-white text-slate-700 font-semibold rounded-xl text-sm transition-all border border-slate-200 hover:border-[#1A75FF] w-full sm:w-auto shadow-sm hover:shadow-md active:scale-95">
-              Load more projects
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* New Project Modal */}
-      {showProjectModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
-          onClick={() => setShowProjectModal(false)}
-        >
-          <div
-            className="w-full max-w-3xl rounded-2xl bg-white shadow-2xl max-h-[90vh] flex flex-col"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="border-b px-6 py-4 flex-shrink-0">
-              <h2 className="text-xl font-semibold text-gray-800">Create New Project</h2>
-            </div>
-
-            <div className="space-y-4 px-6 py-5 overflow-y-auto">
-              <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">Project Name</label>
-                <input
-                  type="text"
-                  name="projectName"
-                  value={formData.projectName}
-                  onChange={handleChange}
-                  placeholder="Enter project name"
-                  className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-                />
-              </div>
-
-              <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">Client</label>
-                <select
-                  name="client"
-                  value={formData.client}
-                  onChange={handleChange}
-                  className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-                >
-                  <option value="">Select client</option>
-                  {clients.map((c) => (<option key={c} value={c}>{c}</option>))}
-                </select>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">Start Date</label>
-                  <input type="date" name="startDate" value={formData.startDate} onChange={handleChange}
-                    className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200" />
+                       <Link to="/kanban-board">
+                        <NavyButton className="flex items-center gap-2">
+                         <Zap className="w-4 h-4" />
+                          Kanban Board
+                        </NavyButton>
+                       </Link>
+                    </div>
                 </div>
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">End Date</label>
-                  <input type="date" name="endDate" value={formData.endDate} onChange={handleChange}
-                    className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200" />
+
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 md:p-6 mb-6">
+                    {/* Table header (hidden on mobile) */}
+                    <div className="hidden sm:flex font-semibold text-slate-500 text-sm pb-4 mb-4 border-b border-slate-100 uppercase tracking-wider">
+                        <div className="flex-1 px-4">Client</div>
+                        <div className="flex-[1.5] px-4">Project name</div>
+                        <div className="flex-1 px-4">Status</div>
+                        <div className="flex-[0.8] px-4">Sprint</div>
+                        <div className="flex-[1.5] px-4">Progress</div>
+                        <div className="w-10"></div> {/* For actions column */}
+                    </div>
+
+                    <div className="space-y-1">
+                        <Row
+                            client="Acme Corp"
+                            name="Web Redesign"
+                            sprint="Sprint 3"
+                            progress={67}
+                            defaultColor="blue"
+                        />
+
+                        <Row
+                            client="Globex Inc"
+                            name="Mobile App V2"
+                            sprint="Sprint 5"
+                            progress={100}
+                            defaultColor="green"
+                        />
+
+                        <Row
+                            client="Initech"
+                            name="Backend Migration"
+                            sprint="Sprint 3"
+                            progress={20}
+                            defaultColor="orange"
+                        />
+
+                        <Row
+                            client="Umbrella Corp"
+                            name="Security Audit"
+                            sprint="Sprint 1"
+                            progress={10}
+                            defaultColor="blue"
+                        />
+                    </div>
+
+                    <div className="mt-8 flex justify-center">
+                    <NavyButton 
+                        onClick={() => console.log("Loading more projects...")}
+                        className="w-full sm:w-auto"
+                    >
+                        Load more projects
+                    </NavyButton>
+                    </div>
                 </div>
               </div>
 
