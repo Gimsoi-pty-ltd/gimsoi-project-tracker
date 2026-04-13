@@ -1,6 +1,8 @@
 import axios from "axios";
 
-const API_URL = import.meta.env.MODE === "development" ? "http://localhost:5001/api/auth" : "/api/auth";
+const API_URL = import.meta.env.MODE === "development" 
+  ? "http://localhost:5173/api/auth" 
+  : "https://appsail-10122923152.development.catalystappsail.com/api/auth";
 
 const axiosInstance = axios.create({
     baseURL: API_URL,
