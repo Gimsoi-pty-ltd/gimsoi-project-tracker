@@ -7,6 +7,7 @@ import SignUpPage from './Pages/LogInOut flow/SignUpPage';
 import ResetPassword from './Pages/LogInOut flow/ResetPassword';
 import EmailVerification from './Pages/LogInOut flow/EmailVerification';
 import ForgotEmailPage from './Pages/LogInOut flow/ForgotEmailPage';
+import GimsoiSignOut from './Pages/LogInOut flow/Logout';
 
 // ─── DASHBOARD LAYOUT & PAGES  ─────────────────────────────
 import DashboardLayout from "./Layouts/DashboardLayout";
@@ -131,6 +132,11 @@ function App() {
             <ResetPassword />
           </RedirectAuthenticatedUser>
         } />
+
+        <Route path="/logout" element={
+          <GimsoiSignOut />
+        } 
+        />
 
         {/* === ROOT REDIRECT  === */}
         <Route path="/" element={<Navigate to="/login" replace />} />
