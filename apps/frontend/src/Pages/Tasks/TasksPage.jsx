@@ -1,5 +1,5 @@
 import { useSearchParams } from "react-router-dom";
-import Overduetasks from "./Overduetasks";
+import OverdueTasks from "./OverdueTasks";
 import PieChart from "../task-progress/pieChart";
 import TaskCard from "../task-progress/TaskCard";
 
@@ -76,7 +76,7 @@ export default function TasksPage() {
           </div>
 
           <div className="p-6">
-            {activeTab === "overdue" && <Overduetasks />}
+            {activeTab === "overdue" && <OverdueTasks />}
 
             {activeTab === "blocked" && (
               <table className="w-full text-sm">
