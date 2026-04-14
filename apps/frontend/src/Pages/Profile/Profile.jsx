@@ -9,11 +9,14 @@ export default function ProjectTrackerProfilePage() {
       {/* Profile Header */}
       <div className="flex items-start justify-between mb-12">
         <div className="flex items-center gap-6">
-          <img
-            src="https://randomuser.me/api/portraits/women/44.jpg"
-            alt="Profile"
-            className="w-28 h-28 rounded-full object-cover shadow-md"
-          />
+          <div style={{
+            width: 32, height: 32, borderRadius: '50%',
+            background: '#4f46e5', color: '#fff',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 13, fontWeight: 600
+          }}>
+            S
+          </div>
           <div>
             <h1 className="text-3xl font-semibold text-black">
               Sarah Mitchell

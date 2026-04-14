@@ -14,7 +14,7 @@ function LoginPage() {
 
     const handleLogin = async (e) => {
         e.preventDefault();
-        console.log('Login attempt:', { email, password: '[REDACTED]' });
+        // Login attempt code
         try {
             await login(email, loginPassword);
             navigate("/dashboard");
@@ -88,23 +88,7 @@ function LoginPage() {
                         </NavyButton>
                     </form>
 
-                    <div className="mt-8 text-center w-full max-w-sm">
-                        <div className="relative flex items-center py-4">
-                            <div className="flex-grow border-t border-gray-200"></div>
-                            <span className="flex-shrink mx-4 text-xs text-gray-400 uppercase font-medium">or login with</span>
-                            <div className="flex-grow border-t border-gray-200"></div>
-                        </div>
-                        <div className="flex justify-center mt-2">
-                            <button className="flex items-center gap-3 px-6 py-2 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 transition-all shadow-sm group">
-                                <img
-                                    src="https://www.gstatic.com/images/branding/product/1x/googleg_48dp.png"
-                                    alt="Google"
-                                    className="w-5 h-5"
-                                />
-                                <span className="text-[#002D62] font-bold text-sm">Google</span>
-                            </button>
-                        </div>
-                    </div>
+
                 </div>
             </div>
         </div>
