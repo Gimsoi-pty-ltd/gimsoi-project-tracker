@@ -1,8 +1,6 @@
 import axios from "axios";
 
-const API_URL = import.meta.env.MODE === "development" 
-  ? "http://localhost:5173/api/auth" 
-  : "https://appsail-10122923152.development.catalystappsail.com/api/auth";
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.MODE === 'production' ? 'https://appsail-10122923152.development.catalystappsail.com' : 'http://localhost:5001');
 
 const axiosInstance = axios.create({
     baseURL: API_URL,
@@ -17,9 +15,9 @@ let csrfToken = null;
 // 1. Fetch CSRF token on initialization
 const fetchCsrfToken = async () => {
     try {
-        const response = await axiosInstance.get("/csrf-token");
+        const response = await axiosInstance.get("/api/auth/csrf-token");
         csrfToken = response.data.csrfToken;
-        console.log("CSRF Token initialized");
+
     } catch (error) {
         console.error("Failed to fetch CSRF token:", error);
     }
@@ -50,7 +48,7 @@ axiosInstance.interceptors.response.use(
             !originalRequest._retry
         ) {
             originalRequest._retry = true;
-            console.log("CSRF token invalid, refreshing...");
+
             try {
                 await fetchCsrfToken(); // Re-fetch
                 if (csrfToken) {
