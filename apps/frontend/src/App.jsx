@@ -26,6 +26,7 @@ import ActiveProjects from './Pages/Tasks/ActiveProjects';
 
 // Projects & Phases
 import Projects from './Pages/Project Management/projects';
+import ProjectOverview from './Pages/Project Management/projectOverview';
 import ProjectPhasesGantt from "./Pages/Phases/Phases-of-tasks.jsx";
 
 // Reports
@@ -61,6 +62,9 @@ import Usermanagement from "./Pages/Users/UserManagementPage";
 import Users from "./Pages/Users/Users";
 import Teams from "./Pages/Users/Teams";
 import Clients from "./Pages/Users/Clients";
+
+// Kanban Board
+import Kanban from "./Pages/KanbanBoard/KanbanBoard";
 
 import { useAuthStore } from "./store/authStore";
 
@@ -189,6 +193,12 @@ function App() {
             <DashboardLayout><Projects /></DashboardLayout>
           </ProtectedRoute>
         } />
+        <Route path="/project-overview" element={
+          <ProtectedRoute>
+            <DashboardLayout><ProjectOverview /></DashboardLayout>
+          </ProtectedRoute>
+        } />
+
         <Route path="/phases" element={
           <ProtectedRoute>
             <DashboardLayout><ProjectPhasesGantt /></DashboardLayout>
@@ -306,6 +316,13 @@ function App() {
         <Route path="/users-list" element= {
           <ProtectedRoute>
             <DashboardLayout><Users /></DashboardLayout>
+          </ProtectedRoute>
+        } />
+
+        {/* Kanban Board */}
+        <Route path="/kanban-board" element={
+          <ProtectedRoute>
+            <DashboardLayout><Kanban /></DashboardLayout>
           </ProtectedRoute>
         } />
 

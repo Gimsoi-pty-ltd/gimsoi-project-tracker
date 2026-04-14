@@ -1,13 +1,33 @@
 import express from "express";
 import { verifyToken } from "../middleware/verify-token.middleware.js";
-import authorize from "../middleware/auth.middleware.js";
+import authorize from "../middleware/authorize.middleware.js";
 import { readLimiter, writeLimiter } from "../middleware/rate-limiter.middleware.js";
-import { createSprint, getSprints, updateSprintStatus } from "../controllers/sprint.controller.js";
+import { createSprint, getSprints, updateSprintStatus, updateSprint } from "../controllers/sprint.controller.js";
 
 const router = express.Router();
 
-router.get("/", readLimiter, verifyToken, authorize("VIEW_PROGRESS"), getSprints);
-router.post("/", writeLimiter, verifyToken, authorize("MANAGE_PROJECTS"), createSprint);
-router.patch("/:id/status", writeLimiter, verifyToken, authorize("MANAGE_PROJECTS"), updateSprintStatus);
+/**
+ * GET /api/sprints — VIEW_SPRINTS
+ * Allowed: ADMIN, PM, INTERN, CLIENT
+ */
+router.get("/", readLimiter, verifyToken, authorize("VIEW_SPRINTS"), getSprints);
+
+/**
+ * POST /api/sprints — MANAGE_SPRINTS
+ * Allowed: ADMIN, PM
+ */
+router.post("/", writeLimiter, verifyToken, authorize("MANAGE_SPRINTS"), createSprint);
+
+/**
+ * PATCH /api/sprints/:id/status — MANAGE_SPRINTS
+ * Allowed: ADMIN, PM
+ */
+router.patch("/:id/status", writeLimiter, verifyToken, authorize("MANAGE_SPRINTS"), updateSprintStatus);
+
+/**
+ * PATCH /api/sprints/:id — MANAGE_SPRINTS
+ * Allowed: ADMIN, PM
+ */
+router.patch("/:id", writeLimiter, verifyToken, authorize("MANAGE_SPRINTS"), updateSprint);
 
 export default router;
