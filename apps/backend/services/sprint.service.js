@@ -1,12 +1,25 @@
+/** @see {@link docs/DATA_CONTRACT.md} */
 import prisma from "../lib/prisma.js";
 import { StateTransitionError, NotFoundError } from '../utils/errors.js';
 import { assertOwnership } from "../utils/ownership.js";
+import { SPRINT_STATUS, PROJECT_STATUS, TASK_STATUS } from "../constants/statuses.js";
+import { getTaskCountBySprintId } from "./task.service.js";
 
-export const createSprint = async ({ name, projectId, status, createdByUserId }) => {
+/**
+ * Valid state transitions for a Sprint.
+ * Mirrored from task.service.js pattern to allow isolated unit testing.
+ */
+export const SPRINT_ALLOWED_TRANSITIONS = {
+    [SPRINT_STATUS.PLANNING]: [SPRINT_STATUS.ACTIVE],
+    [SPRINT_STATUS.ACTIVE]: [SPRINT_STATUS.CLOSED],
+    [SPRINT_STATUS.CLOSED]: []
+};
+
+export const createSprint = async ({ name, projectId, status, startDate, endDate, createdByUserId }) => {
     // Guard: prevent creating sprints inside a COMPLETED project
     const project = await prisma.project.findUnique({ where: { id: projectId } });
     if (!project) throw new NotFoundError(`Project ${projectId} not found.`);
-    if (project.status === 'COMPLETED') {
+    if (project.status === PROJECT_STATUS.COMPLETED) {
         throw new StateTransitionError('Cannot create a sprint inside a COMPLETED project.');
     }
 
@@ -14,7 +27,9 @@ export const createSprint = async ({ name, projectId, status, createdByUserId })
         data: {
             name,
             projectId,
-            status: status || 'PLANNING',
+            status: status || SPRINT_STATUS.PLANNING,
+            startDate: startDate ? new Date(startDate) : null,
+            endDate: endDate ? new Date(endDate) : null,
             createdByUserId,
         },
     });
@@ -35,65 +50,73 @@ export const getSprintsByProject = async (projectId, { limit = 50, cursor } = {}
     });
 };
 
-export const getSprintById = async (id) => {
-    return prisma.sprint.findUnique({
-        where: { id: String(id) },
-        // Use _count instead of include:{ tasks: true } — avoids loading an unbounded
-        // task collection. Full task list comes from GET /api/tasks?sprintId= (paginated).
-        include: { _count: { select: { tasks: true } } }
-    });
-};
 
-export const closeSprint = async (id, userId, userRole) => {
-    const sprint = await prisma.sprint.findUnique({ where: { id: String(id) } });
+export const closeSprint = async (id, userId, userRole, db = prisma) => {
+    const sprint = await db.sprint.findUnique({ where: { id: String(id) } });
+
     if (!sprint) throw new NotFoundError(`Sprint ${id} not found`);
 
     if (userId && userRole) assertOwnership(sprint, userId, userRole);
 
-    const openTaskCount = await prisma.task.count({
-        where: {
-            sprintId: id,
-            status: { not: 'DONE' }
-        }
-    });
+    // Task counts are owned by the Task domain. Do not query task tables directly from this file — use the Task service.
+    const openTaskCount = await getTaskCountBySprintId(id, { excludeStatus: TASK_STATUS.DONE }, db);
+
 
     if (openTaskCount > 0) {
         throw new StateTransitionError("Cannot close sprint with active open tasks remaining.");
     }
 
-    return prisma.sprint.update({
+    return db.sprint.update({
         where: { id: String(id) },
-        data: { status: 'CLOSED' }
+        data: { status: SPRINT_STATUS.CLOSED }
     });
 }
 
-export const updateSprintStatus = async (id, targetStatus, userId, userRole) => {
-    const sprint = await prisma.sprint.findUnique({ where: { id: String(id) } });
+
+export const updateSprintStatus = async (id, targetStatus, userId, userRole, db = prisma) => {
+    const sprint = await db.sprint.findUnique({ where: { id: String(id) } });
+
     if (!sprint) throw new NotFoundError(`Sprint ${id} not found`);
 
     if (userId && userRole) assertOwnership(sprint, userId, userRole);
 
     const currentStatus = sprint.status;
 
-    const validTransitions = {
-        'PLANNING': ['ACTIVE'],
-        'ACTIVE': ['CLOSED'],
-        // POLICY-PENDING: team must decide if a CLOSED sprint can be reopened.
-        // Currently permitted. Remove 'ACTIVE' here to permanently block reopening.
-        'CLOSED': ['ACTIVE']
-    };
-
-    const allowed = validTransitions[currentStatus] || [];
+    const allowed = SPRINT_ALLOWED_TRANSITIONS[currentStatus] || [];
     if (!allowed.includes(targetStatus)) {
         throw new StateTransitionError(`Illegal sprint state transition from ${currentStatus} to ${targetStatus}`);
     }
 
-    if (targetStatus === 'CLOSED') {
-        return closeSprint(id, userId, userRole); // Pass down to the specific closer method
+    if (targetStatus === SPRINT_STATUS.CLOSED) {
+        return closeSprint(id, userId, userRole, db); // Pass down to the specific closer method
     }
 
-    return prisma.sprint.update({
+    return db.sprint.update({
         where: { id: String(id) },
         data: { status: targetStatus }
     });
 }
+
+
+export const updateSprint = async (id, data, userId, userRole) => {
+    const sprint = await prisma.sprint.findUnique({ where: { id: String(id) } });
+    if (!sprint) throw new NotFoundError(`Sprint ${id} not found`);
+
+    if (userId && userRole) assertOwnership(sprint, userId, userRole);
+
+    if (data.startDate !== undefined && data.startDate !== null && isNaN(Date.parse(data.startDate))) {
+        throw new StateTransitionError('Invalid startDate format.');
+    }
+    if (data.endDate !== undefined && data.endDate !== null && isNaN(Date.parse(data.endDate))) {
+        throw new StateTransitionError('Invalid endDate format.');
+    }
+
+    return prisma.sprint.update({
+        where: { id: String(id) },
+        data: {
+            name: data.name !== undefined ? data.name : sprint.name,
+            startDate: data.startDate !== undefined ? new Date(data.startDate) : sprint.startDate,
+            endDate: data.endDate !== undefined ? new Date(data.endDate) : sprint.endDate,
+        }
+    });
+};

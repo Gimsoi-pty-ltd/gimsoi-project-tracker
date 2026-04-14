@@ -7,7 +7,9 @@
     "postinstall": "prisma generate",
     "server": "nodemon server.js",
     "start": "node server.js",
-    "test:api": "npx playwright test"
+    "test:api": "npx playwright test",
+    "db:setup": "npx prisma generate && npx prisma db push --force-reset && node prisma/seed.js",
+    "db:seed": "node prisma/seed.js"
   },
   "type": "module",
   "keywords": [],
@@ -23,17 +25,19 @@
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "csrf-csrf": "^4.0.3",
-    "dotenv": "^16.5.0",
+    "dotenv": "^17.3.1",
     "express": "^5.1.0",
     "express-rate-limit": "^8.2.1",
     "jsonwebtoken": "^9.0.2",
-    "nodemailer": "^7.0.11",
-    "pg": "^8.18.0"
+    "nodemailer": "^8.0.4",
+    "pg": "^8.18.0",
+    "prisma": "^7.6.0",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.2",
-    "cross-env": "^7.0.3",
-    "nodemon": "^3.1.10",
-    "prisma": "^7.3.0"
+    "cross-env": "^10.1.0",
+    "nodemon": "^3.1.10"
   }
 }

@@ -1,10 +1,10 @@
-import { smtpClient } from "./config/smtpClientConfig.js";
+import { smtpClient } from "./smtp.config.js";
 import {
     VERIFICATION_EMAIL_TEMPLATE,
     PASSWORD_RESET_REQUEST_TEMPLATE,
     PASSWORD_RESET_SUCCESS_TEMPLATE,
     WELCOME_EMAIL_TEMPLATE,
-} from "./emailTemplates/emailTemplates.js";
+} from "./templates.js";
 
 /**
  * Escapes HTML special characters in strings inserted into email templates.
@@ -32,7 +32,7 @@ export const sendVerificationEmail = async (email, verificationToken) => {
             subject: "Verify your email",
             html: VERIFICATION_EMAIL_TEMPLATE.replace(
                 "{verificationCode}",
-                verificationToken
+                escapeHtml(verificationToken)
             ),
             category: "Email Verification",
         });
@@ -83,7 +83,7 @@ export const sendPasswordResetEmail = async (email, resetURL) => {
             from: process.env.GMAIL_USER,
             to: email,
             subject: "Reset your password",
-            html: PASSWORD_RESET_REQUEST_TEMPLATE.replace("{resetURL}", encodeURI(resetURL)),
+            html: PASSWORD_RESET_REQUEST_TEMPLATE.replace("{resetURL}", escapeHtml(encodeURI(resetURL))),
         });
 
         console.log("Password reset email sent successfully", response.messageId);
@@ -97,7 +97,7 @@ export const sendPasswordResetEmail = async (email, resetURL) => {
  * Send Password Reset Success Email
  * No replacements needed for this template
  */
-export const sendResetSuccessEmail = async (email) => {
+export const sendPasswordResetSuccessEmail = async (email) => {
     try {
         const response = await smtpClient.sendMail({
             from: process.env.GMAIL_USER,
