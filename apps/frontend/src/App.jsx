@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 
 // ─── AUTH PAGES ─────────────────────────────
 import LoginPage from './Pages/LogInOutFlow/LoginPage';
@@ -20,8 +20,8 @@ import SprintVelocityPage from './Pages/Sprints/SprintVelocity';
 
 // Tasks
 import TasksPage from './Pages/Tasks/TasksPage';
-import BlockedTasks from './Pages/Tasks/blockedTasks';
-import OverdueTasks from './Pages/Tasks/Overduetasks';
+import BlockedTasks from './Pages/Tasks/BlockedTasks';
+import OverdueTasks from './Pages/Tasks/OverdueTasks';
 import ActiveProjects from './Pages/Tasks/ActiveProjects';
 
 // Projects & Phases
@@ -35,7 +35,7 @@ import ProjectReport from './Pages/reports-exporting/projectReports.jsx';
 import TeamPerformance from './Pages/reports-exporting/teamPerformance.jsx';
 
 // Team & Insights
-import TeamInsights from './Pages/Team Insights/teamInsights';
+import TeamInsights from './Pages/TeamInsights/teamInsights';
 
 // Calendar & Documents
 import Calendar from './Pages/Calendar/Calendar';
@@ -92,13 +92,6 @@ const RedirectAuthenticatedUser = ({ children }) => {
   return children;
 };
 
-const API_URL = import.meta.env.VITE_API_URL;
-
-useEffect(() => {
-  fetch(`${API_URL}`)
-    .then(res => res.json())
-    .then(data => console.log(data));
-}, []);
 
 // ─── Main App Component ─────────────────────────────
 function App() {
@@ -111,7 +104,7 @@ function App() {
   if (isCheckingAuth) return <div className="loading">Loading...</div>;
 
   return (
-    <Router>
+    <HashRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <Routes>
         {/* === AUTH ROUTES  === */}
         <Route path="/login" element={
@@ -330,7 +323,7 @@ function App() {
         {/* === CATCH-ALL: Redirect to login when unauthenticated === */}
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
-    </Router>
+    </HashRouter>
   );
 }
 
