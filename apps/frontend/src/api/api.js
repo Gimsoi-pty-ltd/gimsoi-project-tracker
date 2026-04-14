@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.MODE === 'production' ? 'https://appsail-10122923152.development.catalystappsail.com' : 'http://localhost:5001');
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.MODE === 'production' ? 'https://project-tracker-api-10122923152.development.catalystappsail.com' : 'http://localhost:5001');
 
 const axiosInstance = axios.create({
     baseURL: API_URL,
