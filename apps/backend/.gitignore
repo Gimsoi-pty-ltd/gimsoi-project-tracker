@@ -25,3 +25,4 @@ dist-ssr
 .env
 
 /lib/generated/prisma
+playwright-report/
