@@ -12,7 +12,12 @@ export const useAuthStore = create((set) => ({
     signup: async (email, password, fullName) => {
         set({ isLoading: true, error: null });
         try {
-            const response = await axios.post("/api/auth/signup", { email, password, fullName });
+            // Send as form-urlencoded (simple CORS request — no preflight) to bypass ZGS OPTIONS interception
+            const formData = new URLSearchParams();
+            formData.append('email', email);
+            formData.append('password', password);
+            formData.append('fullName', fullName);
+            const response = await axios.post("/api/auth/signup", formData);
             set({ user: response.data.user, isAuthenticated: true, isLoading: false });
         } catch (error) {
             set({ error: error.response?.data?.message || "Error signing up", isLoading: false });
@@ -23,7 +28,11 @@ export const useAuthStore = create((set) => ({
     login: async (email, password) => {
         set({ isLoading: true, error: null });
         try {
-            const response = await axios.post("/api/auth/login", { email, password });
+            // Send as form-urlencoded (simple CORS request — no preflight) to bypass ZGS OPTIONS interception
+            const formData = new URLSearchParams();
+            formData.append('email', email);
+            formData.append('password', password);
+            const response = await axios.post("/api/auth/login", formData);
             set({
                 user: response.data.user,
                 isAuthenticated: true,
