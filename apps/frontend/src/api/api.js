@@ -10,64 +10,39 @@ const axiosInstance = axios.create({
     },
 });
 
-let csrfToken = null;
-let authToken = null;
+const METHOD_OVERRIDE_METHODS = ["put", "patch", "delete"];
 
-export const setAuthToken = (token) => { authToken = token; };
-export const clearAuthToken = () => { authToken = null; };
+axiosInstance.interceptors.request.use((config) => {
+  const method = config.method?.toLowerCase();
 
-// 1. Fetch CSRF token on initialization
-const fetchCsrfToken = async () => {
-    try {
-        const response = await axiosInstance.get("/api/auth/csrf-token");
-        csrfToken = response.data.csrfToken;
-
-    } catch (error) {
-        console.error("Failed to fetch CSRF token:", error);
+  if (
+    method !== "get" &&
+    config.data &&
+    typeof config.data === "object" &&
+    !(config.data instanceof URLSearchParams)
+  ) {
+    const params = new URLSearchParams();
+    for (const [key, value] of Object.entries(config.data)) {
+      if (value !== undefined && value !== null) {
+        params.append(key, typeof value === "object"
+          ? JSON.stringify(value)
+          : String(value));
+      }
     }
-};
+    config.data = params;
+    config.headers["Content-Type"] = "application/x-www-form-urlencoded";
+  }
 
-fetchCsrfToken();
-
-// 2. Request Interceptor: Attach CSRF and Bearer tokens
-axiosInstance.interceptors.request.use(
-    (config) => {
-        if (["post", "put", "delete", "patch"].includes(config.method?.toLowerCase()) && csrfToken && !config.url?.startsWith("/api/auth")) {
-            config.headers["x-csrf-token"] = csrfToken;
-        }
-        if (authToken) {
-            config.headers["Authorization"] = `Bearer ${authToken}`;
-        }
-        return config;
-    },
-    (error) => Promise.reject(error)
-);
-
-// 3. Response Interceptor: Retry on 403 (Invalid CSRF)
-axiosInstance.interceptors.response.use(
-    (response) => response,
-    async (error) => {
-        const originalRequest = error.config;
-
-        if (
-            error.response?.status === 403 &&
-            error.response?.data?.message === "Invalid CSRF token" &&
-            !originalRequest._retry
-        ) {
-            originalRequest._retry = true;
-
-            try {
-                await fetchCsrfToken(); // Re-fetch
-                if (csrfToken) {
-                    originalRequest.headers["x-csrf-token"] = csrfToken;
-                    return axiosInstance(originalRequest); // Retry
-                }
-            } catch (refreshError) {
-                console.error("CSRF refresh failed:", refreshError);
-            }
-        }
-        return Promise.reject(error);
+  if (METHOD_OVERRIDE_METHODS.includes(method)) {
+    if (config.data instanceof URLSearchParams) {
+      config.data.append("_method", method.toUpperCase());
     }
-);
+    config.method = "post";
+  }
+
+  return config;
+});
+
+axiosInstance.defaults.withCredentials = true;
 
 export default axiosInstance;

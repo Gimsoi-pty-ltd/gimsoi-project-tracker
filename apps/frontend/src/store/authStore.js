@@ -1,11 +1,5 @@
 import { create } from "zustand";
-import axios, { setAuthToken, clearAuthToken } from "../api/api";
-
-// Initialize token from sessionStorage on load
-const savedToken = sessionStorage.getItem('authToken');
-if (savedToken) {
-    setAuthToken(savedToken);
-}
+import axios from "../api/api";
 
 export const useAuthStore = create((set) => ({
     user: null,
@@ -18,15 +12,8 @@ export const useAuthStore = create((set) => ({
     signup: async (email, password, fullName) => {
         set({ isLoading: true, error: null });
         try {
-            // Send as form-urlencoded (simple CORS request — no preflight) to bypass ZGS OPTIONS interception
-            const formData = new URLSearchParams();
-            formData.append('email', email);
-            formData.append('password', password);
-            formData.append('fullName', fullName);
-            const response = await axios.post("/api/auth/signup", formData);
-            const token = response.data.token;
-            setAuthToken(token);
-            sessionStorage.setItem('authToken', token);
+            await axios.post("/api/auth/signup", { fullName, email, password });
+            const response = await axios.get("/api/auth/check-auth");
             set({ user: response.data.user, isAuthenticated: true, isLoading: false });
         } catch (error) {
             set({ error: error.response?.data?.message || "Error signing up", isLoading: false });
@@ -37,14 +24,8 @@ export const useAuthStore = create((set) => ({
     login: async (email, password) => {
         set({ isLoading: true, error: null });
         try {
-            // Send as form-urlencoded (simple CORS request — no preflight) to bypass ZGS OPTIONS interception
-            const formData = new URLSearchParams();
-            formData.append('email', email);
-            formData.append('password', password);
-            const response = await axios.post("/api/auth/login", formData);
-            const token = response.data.token;
-            setAuthToken(token);
-            sessionStorage.setItem('authToken', token);
+            await axios.post("/api/auth/login", { email, password });
+            const response = await axios.get("/api/auth/check-auth");
             set({
                 user: response.data.user,
                 isAuthenticated: true,
@@ -61,8 +42,6 @@ export const useAuthStore = create((set) => ({
         set({ isLoading: true, error: null });
         try {
             await axios.post("/api/auth/logout");
-            clearAuthToken();
-            sessionStorage.removeItem('authToken');
             set({ user: null, isAuthenticated: false, isLoading: false, error: null });
         } catch (error) {
             set({ error: "Error logging out", isLoading: false });
@@ -85,18 +64,11 @@ export const useAuthStore = create((set) => ({
 
     checkAuth: async () => {
         set({ isCheckingAuth: true, error: null });
-        if (!sessionStorage.getItem('authToken')) {
-            set({ isCheckingAuth: false, isAuthenticated: false });
-            return;
-        }
-
         try {
             const response = await axios.get("/api/auth/check-auth");
             set({ user: response.data.user, isAuthenticated: true, isCheckingAuth: false });
-        } catch (error) {
-            clearAuthToken();
-            sessionStorage.removeItem('authToken');
-            set({ error: null, isCheckingAuth: false, isAuthenticated: false });
+        } catch {
+            set({ isCheckingAuth: false, isAuthenticated: false });
         }
     },
 
