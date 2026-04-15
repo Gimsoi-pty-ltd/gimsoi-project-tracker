@@ -4,13 +4,17 @@ const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.MODE === 'produ
 
 const axiosInstance = axios.create({
     baseURL: API_URL,
-    withCredentials: true, // Send cookies with requests
+    // withCredentials is no longer needed since we aren't relying on cookies for auth
     headers: {
         "Content-Type": "application/json",
     },
 });
 
 let csrfToken = null;
+let authToken = null;
+
+export const setAuthToken = (token) => { authToken = token; };
+export const clearAuthToken = () => { authToken = null; };
 
 // 1. Fetch CSRF token on initialization
 const fetchCsrfToken = async () => {
@@ -25,11 +29,14 @@ const fetchCsrfToken = async () => {
 
 fetchCsrfToken();
 
-// 2. Request Interceptor: Attach CSRF token
+// 2. Request Interceptor: Attach CSRF and Bearer tokens
 axiosInstance.interceptors.request.use(
     (config) => {
-        if (["post", "put", "delete", "patch"].includes(config.method?.toLowerCase()) && csrfToken) {
+        if (["post", "put", "delete", "patch"].includes(config.method?.toLowerCase()) && csrfToken && !config.url?.startsWith("/api/auth")) {
             config.headers["x-csrf-token"] = csrfToken;
+        }
+        if (authToken) {
+            config.headers["Authorization"] = `Bearer ${authToken}`;
         }
         return config;
     },
