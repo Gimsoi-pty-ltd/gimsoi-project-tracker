@@ -4,10 +4,6 @@ const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.MODE === 'produ
 
 const axiosInstance = axios.create({
     baseURL: API_URL,
-    // withCredentials is no longer needed since we aren't relying on cookies for auth
-    headers: {
-        "Content-Type": "application/json",
-    },
 });
 
 const METHOD_OVERRIDE_METHODS = ["put", "patch", "delete"];
@@ -30,7 +26,6 @@ axiosInstance.interceptors.request.use((config) => {
       }
     }
     config.data = params;
-    config.headers["Content-Type"] = "application/x-www-form-urlencoded";
   }
 
   if (METHOD_OVERRIDE_METHODS.includes(method)) {
