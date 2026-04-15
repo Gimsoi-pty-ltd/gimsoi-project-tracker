@@ -1,92 +1,82 @@
 import * as projectService from "../services/project.service.js";
+import { parsePagination, buildPage } from "../utils/pagination.js";
 
-export const createProject = async (req, res) => {
+export const createProject = async (req, res, next) => {
   try {
     const { name, clientId, status } = req.body;
 
     if (!name || !clientId) {
-      return res.status(400).json({ message: "Project name and clientId are required" });
+      return res.status(400).json({ success: false, message: "Project name and clientId are required" });
     }
 
     const project = await projectService.createProject({
       name,
       clientId,
       status: status ? status.toUpperCase() : "DRAFT",
-      createdByUserId: req.user?.id || null,
+      createdByUserId: req.user.id,
     });
 
-    return res.status(201).json({ message: "Project created", data: project });
+    return res.status(201).json({ success: true, message: "Project created", data: project });
   } catch (err) {
-    console.error("createProject error:", err?.message);
-    return res.status(500).json({ message: "Failed to create project" });
+    next(err);
   }
 };
 
-export const getProjects = async (req, res) => {
+export const getProjects = async (req, res, next) => {
   try {
-    const limit = Math.min(parseInt(req.query.limit) || 50, 100);
-    const cursor = req.query.cursor || undefined;
+    const { limit, cursor } = parsePagination(req.query);
 
     const records = await projectService.getProjects({ limit, cursor });
 
-    const dataWithProgress = await Promise.all(records.map(async (proj) => {
-      const prog = await projectService.getProjectProgress(proj.id);
-      return { ...proj, percentComplete: prog ? prog.percentComplete : 0 };
-    }));
+    const projectIds = records.map(p => p.id);
+    const progressBatch = await projectService.getBatchProjectProgress(projectIds, req.user.role);
 
-    const hasMore = dataWithProgress.length > limit;
-    const data = hasMore ? dataWithProgress.slice(0, limit) : dataWithProgress;
-    const nextCursor = hasMore ? data[data.length - 1].id : null;
+    const dataWithProgress = records.map((proj) => {
+      const prog = progressBatch[proj.id];
+      return { ...proj, percentComplete: prog ? prog.percentComplete : 0 };
+    });
+
+    const { data, nextCursor } = buildPage(dataWithProgress, limit);
 
     return res.status(200).json({ success: true, data, nextCursor });
   } catch (err) {
-    console.error("getProjects error:", err?.message);
-    return res.status(500).json({ success: false, message: "Failed to fetch projects" });
+    next(err);
   }
 };
 
-export const getProjectById = async (req, res) => {
+export const getProjectById = async (req, res, next) => {
   try {
     const { id } = req.params;
 
     const project = await projectService.getProjectById(id);
-    if (!project) return res.status(404).json({ message: "Project not found" });
+    if (!project) return res.status(404).json({ success: false, message: "Project not found" });
 
-    return res.status(200).json({ data: project });
+    return res.status(200).json({ success: true, data: project });
   } catch (err) {
-    console.error("getProjectById error:", err?.message);
-    return res.status(500).json({ message: "Failed to fetch project" });
+    next(err);
   }
 };
 
-export const updateProject = async (req, res) => {
+export const updateProject = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { name, status } = req.body;
 
     const updated = await projectService.updateProject(id, { name, status }, req.user.id, req.user.role);
-    return res.status(200).json({ message: "Project updated", data: updated });
+    return res.status(200).json({ success: true, message: "Project updated", data: updated });
   } catch (err) {
-    const statusCode = err.statusCode || 500;
-    return res.status(statusCode).json({ message: err.message || "Failed to update project" });
+    next(err);
   }
 };
 
-// POLICY-PENDING: CLIENT role currently receives the full task breakdown.
-// If the team decides CLIENT should only see percentComplete, filter the response here.
-export const getProjectProgress = async (req, res) => {
+export const getProjectProgress = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const progress = await projectService.getProjectProgress(id);
-    if (!progress) return res.status(404).json({ message: "Project not found" });
+    const progress = await projectService.getProjectProgress(id, req.user.role);
+    if (!progress) return res.status(404).json({ success: false, message: "Project not found" });
 
-    if (req.user?.role === 'CLIENT') {
-      return res.status(200).json({ data: { percentComplete: progress.percentComplete } });
-    }
-
-    return res.status(200).json({ data: progress });
+    return res.status(200).json({ success: true, data: progress });
   } catch (err) {
-    console.error("getProjectProgress error:", err?.message);
-    return res.status(500).json({ message: "Failed to fetch project progress" });
+    next(err);
   }
 };

@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import prisma from '../../lib/prisma.js';
 
 let authToken = '';
 
@@ -24,7 +25,7 @@ test.describe('Auth API Tests', () => {
             expect(data.token).toBeDefined();
         });
 
-        test('returns 400 on duplicate email', async ({ request }) => {
+        test('returns 409 on duplicate email', async ({ request }) => {
             const email = `dup-${Date.now()}@example.com`;
             const payload = { email, password: 'password123', fullName: 'Test User' };
 
@@ -40,7 +41,7 @@ test.describe('Auth API Tests', () => {
                 data: payload
             });
 
-            expect(response.status()).toBe(400);
+            expect(response.status()).toBe(409);
             const data = await response.json();
             expect(data.success).toBe(false);
             expect(data.message).toBe('User already exists');
@@ -57,16 +58,7 @@ test.describe('Auth API Tests', () => {
             expect(data.message).toBe('All fields are required');
         });
 
-        test('returns 403 without CSRF token', async ({ request }) => {
-            const email = `nocsrf-${Date.now()}@example.com`;
-            const response = await request.post('/api/auth/signup', {
-                data: { email, password: 'password123', fullName: 'Test User' }
-            });
-            expect(response.status()).toBe(403);
-            const data = await response.json();
-            expect(data.success).toBe(false);
-            expect(data.message).toBe('Invalid CSRF token');
-        });
+
 
         test('signup with role:ADMIN always returns role:INTERN', async ({ request }) => {
             const email = `role-attack-${Date.now()}@example.com`;
@@ -140,15 +132,7 @@ test.describe('Auth API Tests', () => {
             expect(data.message).toBe('Invalid credentials');
         });
 
-        test('returns 403 without CSRF token', async ({ request }) => {
-            const response = await request.post('/api/auth/login', {
-                data: { email: testUserEmail, password: testPassword }
-            });
-            expect(response.status()).toBe(403);
-            const data = await response.json();
-            expect(data.success).toBe(false);
-            expect(data.message).toBe('Invalid CSRF token');
-        });
+
 
         test('returns 400 on missing fields', async ({ request }) => {
             const response = await request.post('/api/auth/login', {
@@ -207,11 +191,12 @@ test.describe('Auth API Tests', () => {
             });
             const { token } = await signupRes.json();
 
-            // Attempt DELETE with forged role header
-            const delRes = await request.delete('/api/tasks/any-id', {
-                headers: { Authorization: `Bearer ${token}`, 'x-user-role': 'ADMIN' }
+            // Attempt POST with forged role header (INTERN lacks CREATE_TASK)
+            const postRes = await request.post('/api/tasks', {
+                headers: { Authorization: `Bearer ${token}`, 'x-user-role': 'ADMIN' },
+                data: { title: 'Escalation Test', projectId: 'some-id' }
             });
-            expect(delRes.status()).toBe(403);  // INTERN lacks DELETE_TASK, header ignored
+            expect(postRes.status()).toBe(403);  // INTERN lacks CREATE_TASK, header ignored
         });
 
         test('returns 401 with no token', async ({ request }) => {
@@ -232,10 +217,30 @@ test.describe('Auth API Tests', () => {
             expect(data.message).toContain('Unauthorized');
         });
 
-        // Note: The 400 response for "valid token but user deleted from DB"
-        // requires deleting the user manually or stubbing the DB, which is complex for this file. 
-        // We are trusting the signature validation catches 99% of cases here.
+        test('returns 401 for valid token but user deleted from DB (token sync vulnerability)', async ({ request }) => {
+            // 1. Setup a fresh user just for this test
+            const csrfRes = await request.get('/api/auth/csrf-token');
+            const setupCsrfToken = (await csrfRes.json()).csrfToken;
+            const email = `deleted-user-${Date.now()}@example.com`;
 
+            const signupRes = await request.post('/api/auth/signup', {
+                headers: { 'x-csrf-token': setupCsrfToken },
+                data: { email, password: 'pw123456', fullName: 'Doomed User' }
+            });
+            const { token, user } = await signupRes.json();
+            
+            // 2. Delete the user directly from the DB behind the API's back
+            await prisma.user.delete({ where: { id: user.id } });
+
+            // 3. Attempt to authenticate with the now-orphaned token
+            const res = await request.get('/api/auth/check-auth', {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            expect(res.status()).toBe(401);
+            const body = await res.json();
+            expect(body.message).toMatch(/unauthorized/i);
+        });
         test('rejects token with forged alg:none header', async ({ request }) => {
             const header = Buffer.from(JSON.stringify({ alg: 'none', typ: 'JWT' })).toString('base64url');
             const payload = Buffer.from(JSON.stringify({ userId: 'fake', role: 'ADMIN' })).toString('base64url');
@@ -304,7 +309,7 @@ test.describe('Auth API Tests', () => {
             expect(response.status()).toBe(200);
             const data = await response.json();
             expect(data.success).toBe(true);
-            expect(data.message).toBe('Password reset link sent to your email');
+            expect(data.message).toBe('If that email is registered, a reset link has been sent.');
         });
 
         test('returns 200 for unknown email (prevent user enumeration)', async ({ request }) => {

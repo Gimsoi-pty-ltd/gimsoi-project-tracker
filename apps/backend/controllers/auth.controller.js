@@ -1,252 +1,114 @@
-import bcryptjs from "bcryptjs";
-import crypto from "crypto";
-import prisma from "../lib/prisma.js";
-import { generateTokenAndSetCookie } from "../utils/generateTokenAndSetCookie.js";
-import ROLES from "../constants/roles.js";
-import {
-    sendVerificationEmail,
-    sendWelcomeEmail,
-    sendPasswordResetEmail,
-    sendResetSuccessEmail,
-} from "../services/email.service.js";
+import * as authService from "../services/auth.service.js";
+import { generateTokenAndSetCookie } from "../utils/jwt.utils.js";
 
-const VALID_ROLES = Object.values(ROLES);
-
-export const signup = async (req, res) => {
-    const { email, password, fullName } = req.body;    // role intentionally excluded
-
+export const signup = async (req, res, next) => {
     try {
+        const { email, password, fullName } = req.body;
         if (!email || !password || !fullName) {
-            throw new Error("All fields are required");
+            return res.status(400).json({ success: false, message: "All fields are required" });
         }
-
-        const userAlreadyExists = await prisma.user.findUnique({ where: { email } });
-        if (userAlreadyExists) {
-            return res
-                .status(400)
-                .json({ success: false, message: "User already exists" });
-        }
-
-        const hashedPassword = await bcryptjs.hash(password, 10);
-        // crypto.randomInt(min, max) is exclusive of max — range is 100000..999999 inclusive
-        const verificationToken = crypto.randomInt(100000, 999999).toString();
-
-        const assignedRole = ROLES.INTERN;
-
-        const user = await prisma.user.create({
-            data: {
-                email,
-                password: hashedPassword,
-                fullName,
-                role: assignedRole,
-                verificationToken,
-                verificationTokenExpiresAt: new Date(Date.now() + 15 * 60 * 1000),
-            },
-        });
-
+        
+        const user = await authService.signup({ email, password, fullName });
         const token = generateTokenAndSetCookie(res, user.id, user.role);
-
-        sendVerificationEmail(user.email, verificationToken)
-            .catch(err => console.error("Failed to send verification email:", err));
-
-        const { password: _, ...userWithoutPassword } = user;
-        res.status(201).json({
+        
+        return res.status(201).json({
             success: true,
             message: "User created successfully",
-            user: userWithoutPassword,
+            user: authService.sanitizeUser(user),
             token,
         });
     } catch (error) {
-        res.status(400).json({ success: false, message: error.message });
+        next(error);
     }
 };
 
-export const verifyEmail = async (req, res) => {
-    const { code } = req.body;
+export const verifyEmail = async (req, res, next) => {
     try {
-        const user = await prisma.user.findFirst({
-            where: {
-                verificationToken: code,
-                verificationTokenExpiresAt: { gt: new Date() },
-            },
-        });
-
-        if (!user) {
-            return res.status(400).json({
-                success: false,
-                message: "Invalid or expired verification code",
-            });
+        const { code } = req.body;
+        if (!code) {
+           return res.status(400).json({ success: false, message: "Verification code is required" });
         }
 
-        const updatedUser = await prisma.user.update({
-            where: { id: user.id },
-            data: {
-                isVerified: true,
-                verificationToken: null,
-                verificationTokenExpiresAt: null,
-            },
-        });
-
-        await sendWelcomeEmail(updatedUser.email, updatedUser.fullName);
-
-        const { password: _, ...userWithoutPassword } = updatedUser;
-        res.status(200).json({
+        const user = await authService.verifyEmail(code);
+        
+        return res.status(200).json({
             success: true,
             message: "Email verified successfully",
-            user: userWithoutPassword,
+            user: authService.sanitizeUser(user),
         });
     } catch (error) {
-        console.log("error in verifyEmail ", error);
-        res.status(500).json({ success: false, message: "Server error" });
+        next(error);
     }
 };
 
-export const login = async (req, res) => {
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-        return res
-            .status(400)
-            .json({ success: false, message: "Email and password are required" });
-    }
-
+export const login = async (req, res, next) => {
     try {
-        const user = await prisma.user.findUnique({ where: { email } });
-
-        if (!user) {
-            return res
-                .status(400)
-                .json({ success: false, message: "Invalid credentials" });
+        const { email, password } = req.body;
+        if (!email || !password) {
+            return res.status(400).json({ success: false, message: "Email and password are required" });
         }
 
-        const isPasswordValid = await bcryptjs.compare(password, user.password);
-
-        if (!isPasswordValid) {
-            return res
-                .status(400)
-                .json({ success: false, message: "Invalid credentials" });
-        }
-
+        const user = await authService.login(email, password);
         const token = generateTokenAndSetCookie(res, user.id, user.role);
 
-        await prisma.user.update({
-            where: { id: user.id },
-            data: { lastLogin: new Date() },
-        });
-
-        const { password: _, ...userWithoutPassword } = user;
-        res.status(200).json({
+        return res.status(200).json({
             success: true,
             message: "Logged in successfully",
-            user: userWithoutPassword,
+            user: authService.sanitizeUser(user),
             token,
         });
     } catch (error) {
-        console.log("Error in login ", error);
-        res.status(400).json({ success: false, message: error.message });
+        next(error);
     }
 };
 
-export const logout = async (req, res) => {
-    res.clearCookie("token");
-    res.status(200).json({ success: true, message: "Logged out successfully" });
+export const logout = async (req, res, next) => {
+    try {
+        return res.status(200).json({ success: true, message: "Logged out successfully" });
+    } catch (error) {
+        next(error);
+    }
 };
 
-export const forgotPassword = async (req, res) => {
-    const { email } = req.body;
+export const forgotPassword = async (req, res, next) => {
     try {
-        const user = await prisma.user.findUnique({ where: { email } });
-
-        if (!user) {
-            // Return 200 regardless — do not reveal account existence
-            return res.status(200).json({
-                success: true,
-                message: "If that email is registered, a reset link has been sent.",
-            });
+        const { email } = req.body;
+        if (!email) {
+            return res.status(400).json({ success: false, message: "Email is required" });
         }
 
-        const resetToken = crypto.randomBytes(20).toString("hex");
-        const resetTokenExpiresAt = new Date(Date.now() + 1 * 60 * 60 * 1000);
+        await authService.forgotPassword(email);
 
-        await prisma.user.update({
-            where: { id: user.id },
-            data: {
-                resetPasswordToken: resetToken,
-                resetPasswordExpiresAt: resetTokenExpiresAt,
-            },
-        });
-
-        await sendPasswordResetEmail(
-            user.email,
-            `${process.env.CLIENT_URL}/reset-password/${resetToken}`
-        );
-
-        res.status(200).json({
+        return res.status(200).json({
             success: true,
-            message: "Password reset link sent to your email",
+            message: "If that email is registered, a reset link has been sent.",
         });
     } catch (error) {
-        console.log("Error in forgotPassword ", error);
-        res.status(400).json({ success: false, message: error.message });
+        next(error);
     }
 };
 
-export const resetPassword = async (req, res) => {
+export const resetPassword = async (req, res, next) => {
     try {
         const { token } = req.params;
         const { password } = req.body;
-
-        const user = await prisma.user.findFirst({
-            where: {
-                resetPasswordToken: token,
-                resetPasswordExpiresAt: { gt: new Date() },
-            },
-        });
-
-        if (!user) {
-            return res
-                .status(400)
-                .json({ success: false, message: "Invalid or expired reset token" });
+        if (!token || !password) {
+            return res.status(400).json({ success: false, message: "Token and password are required" });
         }
 
-        const hashedPassword = await bcryptjs.hash(password, 10);
+        await authService.resetPassword(token, password);
 
-        await prisma.user.update({
-            where: { id: user.id },
-            data: {
-                password: hashedPassword,
-                resetPasswordToken: null,
-                resetPasswordExpiresAt: null,
-            },
-        });
-
-        await sendResetSuccessEmail(user.email);
-
-        res
-            .status(200)
-            .json({ success: true, message: "Password reset successful" });
+        return res.status(200).json({ success: true, message: "Password reset successful" });
     } catch (error) {
-        console.log("Error in resetPassword ", error);
-        res.status(400).json({ success: false, message: error.message });
+        next(error);
     }
 };
 
-export const checkAuth = async (req, res) => {
+export const checkAuth = async (req, res, next) => {
     try {
-        const user = await prisma.user.findUnique({
-            where: { id: req.user.id },
-            omit: { password: true },
-        });
-
-        if (!user) {
-            return res
-                .status(400)
-                .json({ success: false, message: "User not found" });
-        }
-
-        res.status(200).json({ success: true, user });
+        const user = await authService.checkAuth(req.user.id);
+        return res.status(200).json({ success: true, user: authService.sanitizeUser(user) });
     } catch (error) {
-        console.log("Error in checkAuth ", error);
-        res.status(400).json({ success: false, message: error.message });
+        next(error);
     }
 };
