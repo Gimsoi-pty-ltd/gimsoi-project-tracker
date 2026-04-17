@@ -69,7 +69,7 @@ import { healthLimiter } from "./middleware/rate-limiter.middleware.js";
 app.use("/api/health", healthLimiter, healthRoute);
 
 
-// Swagger UI — development only, never exposed in production
+// Swagger UI
 const isNonProd = process.env.NODE_ENV !== "production" || process.env.PRODUCTION === "false";
 if (isNonProd) {
   app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
@@ -77,7 +77,6 @@ if (isNonProd) {
   console.log("[swagger] UI available at /api/docs");
 }
 
-// CSRF is fully bypassed as it triggers preflight and fails on Zoho AppSail.
 
 // Routes
 app.use("/api/auth", authRoutes);
@@ -129,21 +128,7 @@ process.on("SIGINT", () => gracefulShutdown("SIGINT"));
     await prisma.$queryRaw`SELECT 1`;
     console.log('[db] Connected.');
 
-    // Ensure demo account is universally available, even after redeploys or schema pushes
-    const bcrypt = (await import('bcryptjs')).default;
-    const hashedPassword = await bcrypt.hash('DemoPassword123!', 10);
-    await prisma.user.upsert({
-      where: { email: 'demo.account@gimsoi.com' },
-      update: { password: hashedPassword, role: 'ADMIN', isVerified: true },
-      create: {
-        email: 'demo.account@gimsoi.com',
-        fullName: 'Demo Account',
-        password: hashedPassword,
-        role: 'ADMIN',
-        isVerified: true
-      }
-    });
-    console.log('[db] Demo account verified.');
+
 
     server = app.listen(PORT, "0.0.0.0", () => {
       console.log(`[server] Running on port ${PORT}`);

@@ -1,5 +1,10 @@
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
 
+/**
+ * Generates a JWT, sets the HttpOnly auth cookie with secure cross-origin flags.
+ * Returns the generated token string.
+ */
 export const generateTokenAndSetCookie = (res, userId, role) => {
     const token = jwt.sign(
         { userId, role },
@@ -7,14 +12,16 @@ export const generateTokenAndSetCookie = (res, userId, role) => {
         { expiresIn: "7d", algorithm: "HS256" }
     );
 
-    // AppSail doesn't always inject NODE_ENV properly. 
-    // Since frontend and backend are ALWAYS on separate domains (onslate vs catalystappsail),
-    // we MUST force SameSite=none and secure=true to ensure the browser doesn't block the auth cookie.
-    res.cookie("token", token, {
-        httpOnly: true,
+    const cookieBase = {
         secure: true,
         sameSite: "none",
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    };
+
+    // HttpOnly auth cookie — JS cannot read this
+    res.cookie("token", token, {
+        ...cookieBase,
+        httpOnly: true,
+        maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
     return token;
