@@ -56,7 +56,7 @@ test.describe('Auth API Tests', () => {
         const testPassword = 'password123';
 
         test.beforeAll(async ({ request }) => {
-            testUserEmail = `login-${Date.now()}@example.com`;
+            testUserEmail = `login-${Date.now()}-${Math.random().toString(36).substring(7)}@example.com`;
             await request.post('/api/auth/signup', {
                 data: { email: testUserEmail, password: testPassword, fullName: 'Login Test User' }
             });
@@ -83,7 +83,7 @@ test.describe('Auth API Tests', () => {
         let localAuthToken = '';
 
         test.beforeAll(async ({ request }) => {
-            const email = `checkauth-${Date.now()}@example.com`;
+            const email = `checkauth-${Date.now()}-${Math.random().toString(36).substring(7)}@example.com`;
             const signupRes = await request.post('/api/auth/signup', {
                 data: { email, password: 'password123', fullName: 'Check Auth User' }
             });
