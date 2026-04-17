@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import NavyButton from '../../Components/Buttons';
 import { Link } from "react-router-dom";
 import {
     Download,
@@ -74,10 +75,10 @@ const SprintReport = () => {
                             <span className="text-slate-900 font-medium">Sprint Report</span>
                         </nav>
                     </div>
-                    <button className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 shadow-sm transition-all active:scale-95">
-                        <Download size={18} />
+                    <NavyButton onClick={() => console.log("Downloading PDF...")}>
+                        <Download size={18} className="mr-2" />
                         Download PDF
-                    </button>
+                    </NavyButton>
                 </div>
 
                 {/* Tabs */}

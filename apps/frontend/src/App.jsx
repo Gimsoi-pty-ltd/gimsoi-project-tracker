@@ -1,18 +1,18 @@
 import React, { useEffect } from 'react';
-import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 
 // ─── AUTH PAGES ─────────────────────────────
-import LoginPage from './Pages/LogInOutFlow/LoginPage';
-import SignUpPage from './Pages/LogInOutFlow/SignUpPage';
-import ResetPassword from './Pages/LogInOutFlow/ResetPassword';
-import EmailVerification from './Pages/LogInOutFlow/EmailVerification';
-import ForgotEmailPage from './Pages/LogInOutFlow/ForgotEmailPage';
+import LoginPage from './Pages/LogInOut flow/LoginPage';
+import SignUpPage from './Pages/LogInOut flow/SignUpPage';
+import ResetPassword from './Pages/LogInOut flow/ResetPassword';
+import EmailVerification from './Pages/LogInOut flow/EmailVerification';
+import ForgotEmailPage from './Pages/LogInOut flow/ForgotEmailPage';
 
 // ─── DASHBOARD LAYOUT & PAGES  ─────────────────────────────
 import DashboardLayout from "./Layouts/DashboardLayout";
 
 // Dashboard & Overview
-import Dashboard from './Pages/LogInOutFlow/Dashboard';
+import Dashboard from './Pages/LoginOut Flow/Dashboard';
 import DashboardCards from "./Components/Dashboard/DashboardCards";
 import DaysRemainingPage from "./Components/Dashboard/DaysRemainingPage";
 import SprintOverview from './Pages/Sprints/SprintOverview';
@@ -20,22 +20,23 @@ import SprintVelocityPage from './Pages/Sprints/SprintVelocity';
 
 // Tasks
 import TasksPage from './Pages/Tasks/TasksPage';
-import BlockedTasks from './Pages/Tasks/BlockedTasks';
-import OverdueTasks from './Pages/Tasks/OverdueTasks';
+import BlockedTasks from './Pages/Tasks/blockedTasks';
+import OverdueTasks from './Pages/Tasks/Overduetasks';
 import ActiveProjects from './Pages/Tasks/ActiveProjects';
 
 // Projects & Phases
-import Projects from './Pages/project-management/projects';
+import Projects from './Pages/Project Management/projects';
+import ProjectOverview from './Pages/Project Management/projectOverview';
 import ProjectPhasesGantt from "./Pages/Phases/Phases-of-tasks.jsx";
 
 // Reports
-import ReportsHub from './Pages/reports-exporting/reports.jsx';
-import SprintReports from './Pages/reports-exporting/sprintReports.jsx';
-import ProjectReport from './Pages/reports-exporting/projectReports.jsx';
-import TeamPerformance from './Pages/reports-exporting/teamPerformance.jsx';
+import ReportsHub from './Pages/Reports and Exporting/reports';
+import SprintReports from './Pages/Reports and Exporting/sprintReports';
+import ProjectReport from './Pages/Reports and Exporting/projectReports';
+import TeamPerformance from './Pages/Reports and Exporting/teamPerformance';
 
 // Team & Insights
-import TeamInsights from './Pages/TeamInsights/teamInsights';
+import TeamInsights from './Pages/Team Insights/teamInsights';
 
 // Calendar & Documents
 import Calendar from './Pages/Calendar/Calendar';
@@ -47,11 +48,11 @@ import SearchPage from './Pages/Profile/Search';
 
 // Settings
 import Settings from './Pages/Settings';
-import ProfileSection from './Pages/settings-page/ProfileSection.jsx';
-import PreferencesSection from './Pages/settings-page/PreferencesSection.jsx';
-import ActivitySection from './Pages/settings-page/ActivitySection.jsx';
-import StorageSection from './Pages/settings-page/StorageSection.jsx';
-import SecuritySection from './Pages/settings-page/SecuritySection.jsx';
+import ProfileSection from './Pages/Settings Page/ProfileSection';
+import PreferencesSection from './Pages/Settings Page/PreferencesSection';
+import ActivitySection from './Pages/Settings Page/ActivitySection';
+import StorageSection from './Pages/Settings Page/StorageSection';
+import SecuritySection from './Pages/Settings Page/SecuritySection';
 
 // Help
 import HelpSupport from './Pages/Help/HelpSupport';
@@ -92,7 +93,6 @@ const RedirectAuthenticatedUser = ({ children }) => {
   return children;
 };
 
-
 // ─── Main App Component ─────────────────────────────
 function App() {
   const { isCheckingAuth, checkAuth } = useAuthStore();
@@ -104,7 +104,7 @@ function App() {
   if (isCheckingAuth) return <div className="loading">Loading...</div>;
 
   return (
-    <HashRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <Router>
       <Routes>
         {/* === AUTH ROUTES  === */}
         <Route path="/login" element={
@@ -193,6 +193,12 @@ function App() {
             <DashboardLayout><Projects /></DashboardLayout>
           </ProtectedRoute>
         } />
+        <Route path="/project-overview" element={
+          <ProtectedRoute>
+            <DashboardLayout><ProjectOverview /></DashboardLayout>
+          </ProtectedRoute>
+        } />
+
         <Route path="/phases" element={
           <ProtectedRoute>
             <DashboardLayout><ProjectPhasesGantt /></DashboardLayout>
@@ -323,7 +329,7 @@ function App() {
         {/* === CATCH-ALL: Redirect to login when unauthenticated === */}
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
-    </HashRouter>
+    </Router>
   );
 }
 

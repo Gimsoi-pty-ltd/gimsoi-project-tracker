@@ -1,10 +1,5 @@
 import jwt from "jsonwebtoken";
-import crypto from "crypto";
 
-/**
- * Generates a JWT, sets the HttpOnly auth cookie with secure cross-origin flags.
- * Returns the generated token string.
- */
 export const generateTokenAndSetCookie = (res, userId, role) => {
     const token = jwt.sign(
         { userId, role },
@@ -12,16 +7,13 @@ export const generateTokenAndSetCookie = (res, userId, role) => {
         { expiresIn: "7d", algorithm: "HS256" }
     );
 
-    const cookieBase = {
-        secure: true,
-        sameSite: "none",
-    };
+    const isProduction = process.env.NODE_ENV === "production";
 
-    // HttpOnly auth cookie — JS cannot read this
     res.cookie("token", token, {
-        ...cookieBase,
-        httpOnly: true,
-        maxAge: 7 * 24 * 60 * 60 * 1000,
+        httpOnly: true, // Prevents XSS
+        secure: isProduction,
+        sameSite: isProduction ? "none" : "lax",
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
     return token;
