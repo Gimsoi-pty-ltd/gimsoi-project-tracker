@@ -7,6 +7,7 @@ import {
   getClients,
   getClientById,
 } from "../controllers/client.controller.js";
+import { requireCSRF } from "../middleware/csrf.middleware.js";
 
 const router = express.Router();
 
@@ -16,6 +17,6 @@ router.get("/", readLimiter, verifyToken, authorize("VIEW_CLIENTS"), getClients)
 router.get("/:id", readLimiter, verifyToken, authorize("VIEW_CLIENTS"), getClientById);
 
 // Only Admin/PM can create
-router.post("/", writeLimiter, verifyToken, authorize("MANAGE_CLIENTS"), createClient);
+router.post("/", writeLimiter, verifyToken, authorize("MANAGE_CLIENTS"), requireCSRF, createClient);
 
 export default router;

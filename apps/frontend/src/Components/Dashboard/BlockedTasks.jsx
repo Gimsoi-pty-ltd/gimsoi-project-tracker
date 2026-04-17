@@ -9,42 +9,42 @@ const BlockedTasks = () => {
             name: "Waiting on Data from Backend",
             date: "Thu, Dec 23",
             severity: "high",
-            avatarUrl: "https://i.pravatar.cc/100?img=5",
+
         },
         {
             id: "b1",
             name: "Waiting on Data from Backend",
             date: "Thu, Dec 23",
             severity: "low",
-            avatarUrl: "https://i.pravatar.cc/100?img=14",
+
         },
         {
             id: "b1",
             name: "Waiting on Data from Backend",
             date: "Thu, Dec 23",
             severity: "high",
-            avatarUrl: "https://i.pravatar.cc/100?img=1",
+
         },
         {
             id: "b2",
             name: "Security Review",
             date: "Mon, Dec 15",
             severity: "medium",
-            avatarUrl: "https://i.pravatar.cc/100?img=9",
+
         },
         {
             id: "b3",
             name: "Priority Conflict",
             date: "Wed, Dec 15",
             severity: "medium",
-            avatarUrl: "https://i.pravatar.cc/100?img=24",
+
         },
         {
             id: "b4",
             name: "Priority Conflict",
             date: "Thur, Oct 23",
             severity: "high",
-            avatarUrl: "https://i.pravatar.cc/100?img=10",
+
         },
     ];
 
@@ -85,11 +85,14 @@ const BlockedTasks = () => {
 
                         {/* Assignee Avatar */}
                         <div className="flex-shrink-0">
-                            <img
-                                src={task.avatarUrl}
-                                alt="Assignee"
-                                className="h-9 w-9 rounded-lg object-cover border-2 border-white shadow-md group-hover:scale-110 transition-transform"
-                            />
+                            <div style={{
+                                width: 32, height: 32, borderRadius: '50%',
+                                background: '#4f46e5', color: '#fff',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                fontSize: 13, fontWeight: 600
+                            }}>
+                                {task.name ? task.name.charAt(0).toUpperCase() : '?'}
+                            </div>
                         </div>
                     </li>
                 ))}

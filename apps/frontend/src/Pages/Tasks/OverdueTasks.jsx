@@ -1,5 +1,5 @@
 import { Menu, HelpCircle, Search, Settings, AlertCircle, BarChart2 } from "lucide-react";
-import logo from "../../assets/Gimsoi AI.jpg"; 
+import logo from "../../assets/gimsoi-ai.png"; 
 
 
 export default function OverdueTasks() {

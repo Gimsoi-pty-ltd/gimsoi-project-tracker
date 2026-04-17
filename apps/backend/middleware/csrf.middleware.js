@@ -1,39 +1,28 @@
-import { doubleCsrf } from "csrf-csrf";
+import { verifyStatelessCsrfToken } from "../utils/security.utils.js";
 
-const isProduction = process.env.NODE_ENV === "production";
+const MUTATING_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
-const {
-    invalidCsrfTokenError,
-    doubleCsrfProtection,
-    generateCsrfToken,
-} = doubleCsrf({
-    getSecret: () => process.env.CSRF_SECRET || process.env.JWT_SECRET,
-    getSessionIdentifier: (req) => req.ip || "anonymous",
-    cookieName: isProduction ? "__Host-csrf" : "csrf-token",
-    cookieOptions: {
-        httpOnly: true,
-        secure: isProduction,
-        sameSite: isProduction ? "none" : "lax",
-        path: "/",
-    },
-    getCsrfTokenFromRequest: (req) => req.headers["x-csrf-token"],
-});
-
-/**
- * Express error-handling middleware for invalid CSRF tokens.
- * Must be registered AFTER routes so it catches errors thrown by doubleCsrfProtection.
- */
-export const csrfErrorHandler = (err, req, res, next) => {
-    if (err === invalidCsrfTokenError) {
-        return res.status(403).json({
-            success: false,
-            message: "Invalid CSRF token",
-        });
+export const requireCSRF = async (req, res, next) => {
+    if (!MUTATING_METHODS.has(req.method)) {
+        return next();
     }
-    next(err);
-};
 
-export {
-    doubleCsrfProtection as csrfProtection,
-    generateCsrfToken,
+    const tokenFromBody = req.body?._csrf;
+    if (!tokenFromBody) {
+        return res.status(403).json({ success: false, message: "Invalid or missing CSRF token." });
+    }
+
+    // Pass the token and the authenticated user's ID to the stateless verifier
+    const isValid = verifyStatelessCsrfToken(req.user.id, tokenFromBody);
+
+    if (!isValid) {
+        console.error(`[CSRF Error] Stateless validation failed - Method: ${req.method}, URL: ${req.url}`);
+        return res.status(403).json({ success: false, message: "Invalid or expired CSRF token." });
+    }
+
+    // Sanitize transport fields before controllers see the body
+    delete req.body._csrf;
+    delete req.body._method;
+
+    return next();
 };

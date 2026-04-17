@@ -3,12 +3,12 @@ import { Outlet } from "react-router-dom";
 import Sidebar from "../Components/Common/SideBar";
 import TopBar from "../Components/Common/TopBar";
 
-console.log('DashboardLayout component loading...');
+
 
 const DashboardLayout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   
-  console.log('DashboardLayout rendering...');
+
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]" style={{ fontFamily: 'Arial, sans-serif' }}>
@@ -36,6 +36,6 @@ const DashboardLayout = ({ children }) => {
   );
 };
 
-console.log('DashboardLayout component defined');
+
 
 export default DashboardLayout;

@@ -6,13 +6,7 @@ import { ALLOWED_TRANSITIONS } from '../../services/task.service.js';
 test.describe('Error Handling & Contract Integrity', () => {
 
     test.describe('Global Error Handler', () => {
-        let csrfToken = '';
 
-        test.beforeEach(async ({ request }) => {
-            const response = await request.get('/api/auth/csrf-token');
-            const data = await response.json();
-            csrfToken = data.csrfToken;
-        });
 
         test('Returns consistent JSON shape with 500 default for internal errors', async ({ request, adminApi }) => {
             // Trigger a potential DB error (mapped by Prisma) by passing an invalid ID

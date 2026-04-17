@@ -80,3 +80,18 @@ export const getProjectProgress = async (req, res, next) => {
     next(err);
   }
 };
+
+export const syncProjectAnalytics = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    
+    // Check if project exists
+    const project = await projectService.getProjectById(id);
+    if (!project) return res.status(404).json({ success: false, message: "Project not found" });
+
+    const analytics = await projectService.syncProjectAnalytics(id);
+    return res.status(200).json({ success: true, message: "Project analytics synced", data: analytics });
+  } catch (err) {
+    next(err);
+  }
+};
