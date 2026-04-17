@@ -7,7 +7,7 @@
     "postinstall": "prisma generate",
     "server": "nodemon server.js",
     "start": "node server.js",
-    "test:api": "npx playwright test",
+    "test:api": "cross-env CSRF_SECRET=mocked_test_secret npx playwright test",
     "db:setup": "npx prisma generate && npx prisma db push --force-reset && node prisma/seed.js",
     "db:seed": "node prisma/seed.js"
   },

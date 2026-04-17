@@ -40,7 +40,7 @@ router.post("/login", loginLimiter, login);
  * POST /api/auth/logout — Clears the authentication context
  * Allowed: Authenticated Users
  */
-router.post("/logout", verifyToken, requireCSRF, logout);
+router.post("/logout", authLimiter, verifyToken, requireCSRF, logout);
 
 /**
  * POST /api/auth/verify-email
