@@ -50,7 +50,7 @@ const corsOptions = {
 
 // Middleware
 app.use(express.json());
-app.use(express.urlencoded({ extended: true })); // Allows simple CORS requests (no preflight) for auth routes
+app.use(express.urlencoded({ extended: true, limit: "100kb", parameterLimit: 1000 })); // Requires strict limits to prevent memory exhaustion DoS
 app.use(cookieParser());
 app.use(methodOverride(function (req, res) {
   if (req.body && typeof req.body === 'object' && '_method' in req.body) {
@@ -128,6 +128,22 @@ process.on("SIGINT", () => gracefulShutdown("SIGINT"));
     const prisma = (await import('./lib/prisma.js')).default;
     await prisma.$queryRaw`SELECT 1`;
     console.log('[db] Connected.');
+
+    // Ensure demo account is universally available, even after redeploys or schema pushes
+    const bcrypt = (await import('bcryptjs')).default;
+    const hashedPassword = await bcrypt.hash('DemoPassword123!', 10);
+    await prisma.user.upsert({
+      where: { email: 'demo.account@gimsoi.com' },
+      update: { password: hashedPassword, role: 'ADMIN', isVerified: true },
+      create: {
+        email: 'demo.account@gimsoi.com',
+        fullName: 'Demo Account',
+        password: hashedPassword,
+        role: 'ADMIN',
+        isVerified: true
+      }
+    });
+    console.log('[db] Demo account verified.');
 
     server = app.listen(PORT, "0.0.0.0", () => {
       console.log(`[server] Running on port ${PORT}`);
