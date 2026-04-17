@@ -9,19 +9,14 @@ import {
     checkAuth,
 } from "../controllers/auth.controller.js";
 import { verifyToken } from "../middleware/verify-token.middleware.js";
-import { authLimiter, loginLimiter, readLimiter } from "../middleware/rate-limiter.middleware.js";
-import { generateCsrfToken } from "../middleware/csrf.middleware.js";
+import { requireCSRF } from "../middleware/csrf.middleware.js";
+import { loginLimiter, authLimiter, readLimiter } from "../middleware/rate-limiter.middleware.js";
 
 const router = express.Router();
 
-/**
- * GET /api/auth/csrf-token
- * Allowed: ALL (Public)
- */
-router.get("/csrf-token", (req, res) => {
-    const token = generateCsrfToken(req, res);
-    res.json({ success: true, csrfToken: token });
-});
+
+
+
 
 /**
  * GET /api/auth/check-auth
@@ -43,9 +38,9 @@ router.post("/login", loginLimiter, login);
 
 /**
  * POST /api/auth/logout — Clears the authentication context
- * Allowed: ALL (Public)
+ * Allowed: Authenticated Users
  */
-router.post("/logout", logout);
+router.post("/logout", verifyToken, requireCSRF, logout);
 
 /**
  * POST /api/auth/verify-email
