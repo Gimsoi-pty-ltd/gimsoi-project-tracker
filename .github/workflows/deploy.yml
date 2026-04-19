@@ -1,0 +1,88 @@
+---
+name: Deploy to Catalyst
+
+on:
+  push:
+    branches:
+      - staging-deploy
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy App
+    runs-on: ubuntu-latest
+
+    env:
+      CATALYST_DC: in
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Catalyst CLI
+        run: npm install -g zcatalyst-cli
+
+      - name: Install backend dependencies
+        working-directory: apps/backend
+        run: npm ci
+
+      - name: Generate Prisma client
+        working-directory: apps/backend
+        run: npx prisma generate
+
+      - name: Install frontend dependencies
+        working-directory: apps/frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: apps/frontend
+        run: npm run build
+
+      - name: Set staging project
+        if: github.ref == 'refs/heads/staging-deploy'
+        run: |
+          catalyst project:use ${{ secrets.CATALYST_PROJECT_ID_STAGING }} \
+            --token ${{ secrets.CATALYST_TOKEN }} \
+            --dc $CATALYST_DC
+
+      - name: Set production project
+        if: github.ref == 'refs/heads/main'
+        run: |
+          catalyst project:use ${{ secrets.CATALYST_PROJECT_ID_PROD }} \
+            --token ${{ secrets.CATALYST_TOKEN }} \
+            --dc $CATALYST_DC
+
+      - name: Deploy to Catalyst
+        run: |
+          catalyst deploy \
+            --token ${{ secrets.CATALYST_TOKEN }} \
+            --dc $CATALYST_DC
+
+      - name: Verify frontend URL
+        env:
+          VERIFY_URL: ${{ github.ref == 'refs/heads/main'
+            && secrets.CATALYST_PROD_URL
+            || secrets.CATALYST_STAGING_URL }}
+        run: |
+          if [ -z "$VERIFY_URL" ]; then
+            echo "::error::Missing verification URL"
+            exit 1
+          fi
+
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$VERIFY_URL")
+
+          if [ "$STATUS" -lt 200 ] || [ "$STATUS" -ge 400 ]; then
+            echo "::error::Deployment verification failed with status $STATUS"
+            exit 1
+          fi
+
+          echo "Deployment verified successfully."
