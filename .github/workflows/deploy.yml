@@ -37,6 +37,8 @@ jobs:
 
       - name: Generate Prisma client
         working-directory: apps/backend
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: npx prisma generate
 
       - name: Install frontend dependencies
@@ -67,14 +69,12 @@ jobs:
             --token ${{ secrets.CATALYST_TOKEN }} \
             --dc $CATALYST_DC
 
-      - name: Verify frontend URL
+      - name: Verify staging deployment
         env:
-          VERIFY_URL: ${{ github.ref == 'refs/heads/main'
-            && secrets.CATALYST_PROD_URL
-            || secrets.CATALYST_STAGING_URL }}
+          VERIFY_URL: ${{ secrets.CATALYST_STAGING_URL }}
         run: |
           if [ -z "$VERIFY_URL" ]; then
-            echo "::error::Missing verification URL"
+            echo "::error::Missing staging verification URL"
             exit 1
           fi
 
@@ -86,4 +86,3 @@ jobs:
           fi
 
           echo "Deployment verified successfully."
-          
