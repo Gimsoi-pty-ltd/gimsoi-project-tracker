@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Plus, Search, MoreHorizontal, ChevronDown, Pencil, Trash2, Zap } from "lucide-react";
-import NavyButton from "../../Components/Buttons";
+import { Plus, Search, MoreHorizontal, ChevronDown, Pencil,Trash2 } from "lucide-react";
 
 const STORAGE_KEY = "pm_projects";
 
@@ -234,24 +233,6 @@ const Row = ({ project, onNavigate, onDelete, onStatusChange }) => {
 };
 
 function Projects() {
-    const [projects, setProjects] = useState(defaultProjects);
-
-    const handleNavigate = (project) => {
-        console.log("Navigating to project:", project);
-    };
-
-    const handleDelete = (projectId) => {
-        setProjects(projects.filter(p => p.id !== projectId));
-    };
-
-    const handleStatusChange = (projectId, colorKey, status) => {
-        setProjects(projects.map(p => 
-            p.id === projectId 
-                ? { ...p, defaultColor: colorKey, status } 
-                : p
-        ));
-    };
-
     return (
         <div className="bg-[#f5f7fb] min-h-screen font-sans p-4 md:p-8">
             <div className="max-w-6xl mx-auto">
@@ -301,15 +282,37 @@ function Projects() {
                     </div>
 
                     <div className="space-y-1">
-                        {projects.map(project => (
-                            <Row
-                                key={project.id}
-                                project={project}
-                                onNavigate={handleNavigate}
-                                onDelete={handleDelete}
-                                onStatusChange={handleStatusChange}
-                            />
-                        ))}
+                        <Row
+                            client="Acme Corp"
+                            name="Web Redesign"
+                            sprint="Sprint 3"
+                            progress={67}
+                            defaultColor="blue"
+                        />
+
+                        <Row
+                            client="Globex Inc"
+                            name="Mobile App V2"
+                            sprint="Sprint 5"
+                            progress={100}
+                            defaultColor="green"
+                        />
+
+                        <Row
+                            client="Initech"
+                            name="Backend Migration"
+                            sprint="Sprint 3"
+                            progress={20}
+                            defaultColor="orange"
+                        />
+
+                        <Row
+                            client="Umbrella Corp"
+                            name="Security Audit"
+                            sprint="Sprint 1"
+                            progress={10}
+                            defaultColor="blue"
+                        />
                     </div>
 
                     <div className="mt-8 flex justify-center">
@@ -321,9 +324,50 @@ function Projects() {
                     </NavyButton>
                     </div>
                 </div>
-            </div>
-        </div>
-    );
-}
+              </div>
 
-export default Projects;
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">Description</label>
+                <textarea name="description" value={formData.description} onChange={handleChange}
+                  placeholder="Enter project description" rows={4}
+                  className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200" />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">Status</label>
+                <select name="status" value={formData.status} onChange={handleChange}
+                  className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
+                  <option value="">Select status</option>
+                  <option value="Planned">Planned</option>
+                  <option value="Active">Active</option>
+                  <option value="On Hold">On Hold</option>
+                  <option value="Completed">Completed</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">Assign Team</label>
+                <select name="team" value={formData.team} onChange={handleChange}
+                  className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
+                  <option value="">Select team member</option>
+                  {teamMembers.map((m) => (<option key={m} value={m}>{m}</option>))}
+                </select>
+              </div>
+            </div>
+
+            <div className="flex justify-between border-t px-6 py-4 flex-shrink-0">
+              <button onClick={() => { setFormData(defaultFormData); setShowProjectModal(false); }}
+                className="rounded-xl bg-gray-200 px-5 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-300">
+                Cancel
+              </button>
+              <button onClick={handleSave}
+                className="rounded-xl bg-[#1A75FF] px-5 py-2 text-sm font-semibold text-white transition hover:bg-blue-700">
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
