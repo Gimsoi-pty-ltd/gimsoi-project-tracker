@@ -1,6 +1,6 @@
 import { useSearchParams } from "react-router-dom";
 import Overduetasks from "./Overduetasks";
-import PieChart from "../Task Progress/PieChart";
+import PieChart from "../Task Progress/pieChart";
 import TaskCard from "../Task Progress/TaskCard";
 
 const TABS = [

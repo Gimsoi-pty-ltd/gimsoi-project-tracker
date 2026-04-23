@@ -12,7 +12,7 @@ import ForgotEmailPage from './Pages/LogInOut flow/ForgotEmailPage';
 import DashboardLayout from "./Layouts/DashboardLayout";
 
 // Dashboard & Overview
-import Dashboard from './Pages/LoginOut Flow/Dashboard';
+import Dashboard from './Pages/LogInOut flow/Dashboard';
 import DashboardCards from "./Components/Dashboard/DashboardCards";
 import DaysRemainingPage from "./Components/Dashboard/DaysRemainingPage";
 import SprintOverview from './Pages/Sprints/SprintOverview';
@@ -112,21 +112,21 @@ function App() {
             <LoginPage />
           </RedirectAuthenticatedUser>
         } />
-        
+
         <Route path="/signup" element={
           <RedirectAuthenticatedUser>
             <SignUpPage />
           </RedirectAuthenticatedUser>
         } />
-        
+
         <Route path="/verify-email" element={<EmailVerification />} />
-        
+
         <Route path="/forgot-password" element={
           <RedirectAuthenticatedUser>
             <ForgotEmailPage />
           </RedirectAuthenticatedUser>
         } />
-        
+
         <Route path="/reset-password/:token" element={
           <RedirectAuthenticatedUser>
             <ResetPassword />
@@ -137,7 +137,7 @@ function App() {
         <Route path="/" element={<Navigate to="/login" replace />} />
 
         {/* === DASHBOARD ROUTES  === */}
-        
+
         {/* Dashboard & Overview */}
         <Route path="/dashboard" element={
           <ProtectedRoute>
@@ -298,22 +298,22 @@ function App() {
         } />
 
         {/* User Management */}
-        <Route path="/users" element= {
+        <Route path="/users" element={
           <ProtectedRoute>
             <DashboardLayout><Usermanagement /></DashboardLayout>
           </ProtectedRoute>
         } />
-        <Route path="/clients" element= {
+        <Route path="/clients" element={
           <ProtectedRoute>
             <DashboardLayout><Clients /></DashboardLayout>
           </ProtectedRoute>
         } />
-        <Route path="/teams" element= {
+        <Route path="/teams" element={
           <ProtectedRoute>
             <DashboardLayout><Teams /></DashboardLayout>
           </ProtectedRoute>
         } />
-        <Route path="/users-list" element= {
+        <Route path="/users-list" element={
           <ProtectedRoute>
             <DashboardLayout><Users /></DashboardLayout>
           </ProtectedRoute>

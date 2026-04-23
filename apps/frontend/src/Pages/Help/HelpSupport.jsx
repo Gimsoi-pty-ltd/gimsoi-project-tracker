@@ -1,8 +1,8 @@
 import { useState } from "react";
-import SearchIcon from "../../assets/searchicon.png";
-import AccountIcon from "../../assets/accounticon.jpeg";
-import TasksIcon from "../../assets/tasksicon.png";
-import SettingsIcon from "../../assets/settingsicon.png";
+import SearchIcon from "../../Assets/searchicon.png";
+import AccountIcon from "../../Assets/Accounticon.jpeg";
+import TasksIcon from "../../Assets/tasksicon.png";
+import SettingsIcon from "../../Assets/settingsicon.png";
  
 
 export default function HelpSupport() {
