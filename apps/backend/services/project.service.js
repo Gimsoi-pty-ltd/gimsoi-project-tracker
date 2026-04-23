@@ -107,3 +107,40 @@ export const getBatchProjectProgress = async (projectIds, userRole) => {
 
     return results;
 };
+
+export const syncProjectAnalytics = async (projectId) => {
+  const taskSummary = await getProjectTaskSummary(projectId);
+  
+  const totalSprints = await prisma.sprint.count({ where: { projectId: String(projectId) } });
+  const activeSprints = await prisma.sprint.count({ 
+      where: { 
+          projectId: String(projectId),
+          status: 'ACTIVE'
+      } 
+  });
+
+  return prisma.projectAnalytics.upsert({
+      where: { projectId: String(projectId) },
+      create: {
+          projectId: String(projectId),
+          totalTasks: taskSummary.total,
+          completedTasks: taskSummary.DONE,
+          blockedTasks: taskSummary.BLOCKED,
+          cancelledTasks: taskSummary.CANCELLED,
+          totalSprints,
+          activeSprints,
+          syncStatus: 'synced',
+          lastSyncedAt: new Date()
+      },
+      update: {
+          totalTasks: taskSummary.total,
+          completedTasks: taskSummary.DONE,
+          blockedTasks: taskSummary.BLOCKED,
+          cancelledTasks: taskSummary.CANCELLED,
+          totalSprints,
+          activeSprints,
+          syncStatus: 'synced',
+          lastSyncedAt: new Date()
+      }
+  });
+};

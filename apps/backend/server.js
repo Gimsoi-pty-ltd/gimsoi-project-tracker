@@ -4,7 +4,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import authRoutes from "./routes/auth.route.js";
 import taskRoute from "./routes/task.route.js";
-import { csrfProtection, csrfErrorHandler } from "./middleware/csrf.middleware.js";
+import methodOverride from "method-override";
 import clientRoutes from "./routes/client.route.js";
 import projectRoutes from "./routes/project.route.js";
 import sprintRoutes from "./routes/sprint.route.js";
@@ -27,17 +27,41 @@ const app = express();
 app.disable("x-powered-by");
 app.set("trust proxy", 1);
 
+// CORS — origin callback for explicit multi-origin matching
+const corsOptions = {
+  origin: (origin, callback) => {
+    const allowed = [
+      process.env.CLIENT_URL,
+      "http://localhost:5173",
+      "http://localhost:5001",
+    ].filter(Boolean);
+    // Allow requests with no origin (e.g. curl, mobile, health probes)
+    if (!origin || allowed.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error(`CORS: origin '${origin}' not allowed`));
+    }
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "x-csrf-token"],
+  optionsSuccessStatus: 204,
+};
+
 // Middleware
 app.use(express.json());
+app.use(express.urlencoded({ extended: true, limit: "100kb", parameterLimit: 1000 })); // Requires strict limits to prevent memory exhaustion DoS
 app.use(cookieParser());
-app.use(
-  cors({
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "x-csrf-token"],
-  })
-);
+app.use(methodOverride(function (req, res) {
+  if (req.body && typeof req.body === 'object' && '_method' in req.body) {
+    const method = req.body._method;
+    delete req.body._method;
+    return method;
+  }
+}));
+// Explicit OPTIONS handler — required for AppSail proxy to pass preflight
+app.options(/.*/, cors(corsOptions));
+app.use(cors(corsOptions));
 
 import { healthLimiter } from "./middleware/rate-limiter.middleware.js";
 
@@ -45,7 +69,7 @@ import { healthLimiter } from "./middleware/rate-limiter.middleware.js";
 app.use("/api/health", healthLimiter, healthRoute);
 
 
-// Swagger UI — development only, never exposed in production
+// Swagger UI
 const isNonProd = process.env.NODE_ENV !== "production" || process.env.PRODUCTION === "false";
 if (isNonProd) {
   app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
@@ -53,8 +77,6 @@ if (isNonProd) {
   console.log("[swagger] UI available at /api/docs");
 }
 
-// CSRF protection — Double Submit Cookie via "csrf-csrf" package.
-app.use(csrfProtection);
 
 // Routes
 app.use("/api/auth", authRoutes);
@@ -62,9 +84,6 @@ app.use("/api/tasks", taskRoute);
 app.use("/api/clients", clientRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/sprints", sprintRoutes);
-
-// CSRF error handler — must be after routes
-app.use(csrfErrorHandler);
 
 // Global Error Handler
 app.use((err, req, res, next) => {
@@ -101,13 +120,15 @@ const gracefulShutdown = async (signal) => {
   setTimeout(() => process.exit(1), 10000);
 };
 process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
-process.on("SIGINT",  () => gracefulShutdown("SIGINT"));
+process.on("SIGINT", () => gracefulShutdown("SIGINT"));
 
 (async () => {
   try {
     const prisma = (await import('./lib/prisma.js')).default;
     await prisma.$queryRaw`SELECT 1`;
     console.log('[db] Connected.');
+
+
 
     server = app.listen(PORT, "0.0.0.0", () => {
       console.log(`[server] Running on port ${PORT}`);

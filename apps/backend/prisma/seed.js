@@ -6,6 +6,23 @@ async function main() {
 
     const passwordHash = await bcryptjs.hash('Password123!', 10);
 
+    // 0. Conditionally create the Demo Account securely via environment variables
+    if (process.env.DEMO_PASSWORD) {
+        const demoHash = await bcryptjs.hash(process.env.DEMO_PASSWORD, 10);
+        await prisma.user.upsert({
+            where: { email: 'demo.account@gimsoi.com' },
+            update: { password: demoHash, role: 'ADMIN', isVerified: true },
+            create: {
+                email: 'demo.account@gimsoi.com',
+                fullName: 'Demo Account',
+                password: demoHash,
+                role: 'ADMIN',
+                isVerified: true,
+            },
+        });
+        console.log('Demo account securely seeded from environment.');
+    }
+
     // 1. Create Users for each role
     const admin = await prisma.user.upsert({
         where: { email: 'admin@gimsoi.com' },
