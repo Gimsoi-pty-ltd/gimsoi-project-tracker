@@ -132,7 +132,9 @@ jobs:
 
       - name: Backend Test
         working-directory: apps/backend
-        run: echo "Backend test step ready - test command can be enabled when env vars are finalized"
+        run: |
+          echo "Backend test step ready"
+          echo "Test command can be enabled when env vars are finalized"
 
       - name: Package backend artifacts
         run: |
