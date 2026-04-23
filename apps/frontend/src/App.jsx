@@ -26,7 +26,6 @@ import ActiveProjects from './Pages/Tasks/ActiveProjects';
 
 // Projects & Phases
 import Projects from './Pages/Project Management/projects';
-import ProjectOverview from './Pages/Project Management/projectOverview';
 import ProjectPhasesGantt from "./Pages/Phases/Phases-of-tasks.jsx";
 
 // Reports
@@ -193,12 +192,6 @@ function App() {
             <DashboardLayout><Projects /></DashboardLayout>
           </ProtectedRoute>
         } />
-        <Route path="/project-overview" element={
-          <ProtectedRoute>
-            <DashboardLayout><ProjectOverview /></DashboardLayout>
-          </ProtectedRoute>
-        } />
-
         <Route path="/phases" element={
           <ProtectedRoute>
             <DashboardLayout><ProjectPhasesGantt /></DashboardLayout>

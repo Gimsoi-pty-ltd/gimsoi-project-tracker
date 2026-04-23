@@ -71,6 +71,7 @@ web_modules/
 !.env.example
 app-config.json
 app-config.staging.json
+catalyst.json
 .catalystrc
 
 # parcel-bundler cache (https://parceljs.org/)

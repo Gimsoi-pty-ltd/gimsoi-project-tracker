@@ -44,11 +44,3 @@ export const loginLimiter = isTestEnv ? passThrough : rateLimit({
     max: 5,
     message: { success: false, message: "Too many login attempts. Please try again later." },
 });
-
-export const healthLimiter = isTestEnv ? passThrough : rateLimit({
-    ...sharedOptions,
-    windowMs: 1 * 60 * 1000,
-    max: 30,
-    message: { status: "rate_limited", message: "Too many health check requests" },
-});
-

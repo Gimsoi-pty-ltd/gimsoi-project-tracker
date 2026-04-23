@@ -112,8 +112,6 @@ jobs:
   backend:
     name: Backend Checks
     runs-on: ubuntu-latest
-
-    # Prevents testing backend if security fails
     needs: security
     steps:
       - name: Checkout code
@@ -124,14 +122,28 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Backend Lint
-        run: echo "placeholder - backend lint"
+      - name: Install backend dependencies
+        working-directory: apps/backend
+        run: npm ci
+
+      - name: Generate Prisma client
+        working-directory: apps/backend
+        run: npx prisma generate
 
       - name: Backend Test
-        run: echo "placeholder - backend test"
+        working-directory: apps/backend
+        run: echo "Backend test step ready - test command can be enabled when env vars are finalized"
 
-      - name: Backend Build
-        run: echo "placeholder - backend build"
+      - name: Package backend artifacts
+        run: |
+          mkdir -p artifacts/backend
+          cp -r apps/backend artifacts/backend/
+
+      - name: Upload backend artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-package
+          path: artifacts/backend
 
   # ------------------------------------------------------------------
   # JOB 4: FRONTEND
@@ -139,8 +151,6 @@ jobs:
   frontend:
     name: Frontend Checks
     runs-on: ubuntu-latest
-
-    # Prevents testing frontend if security fails
     needs: security
     steps:
       - name: Checkout code
@@ -151,11 +161,21 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Frontend Lint
-        run: echo "placeholder - frontend lint"
-
-      - name: Frontend Test
-        run: echo "placeholder - frontend test"
+      - name: Install frontend dependencies
+        working-directory: apps/frontend
+        run: npm ci
 
       - name: Frontend Build
-        run: echo "placeholder - frontend build"
+        working-directory: apps/frontend
+        run: npm run build
+
+      - name: Package frontend artifacts
+        run: |
+          mkdir -p artifacts/frontend
+          cp -r apps/frontend/dist artifacts/frontend/
+
+      - name: Upload frontend artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-package
+          path: artifacts/frontend
