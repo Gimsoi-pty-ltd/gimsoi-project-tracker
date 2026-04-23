@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import NavyButton from '../../Components/Buttons';
 
 const ProjectPhasesGantt = () =>
 {
@@ -36,9 +37,9 @@ const ProjectPhasesGantt = () =>
                     <h1 className="text-2xl font-bold text-gray-800">Phases</h1>
                     <p className="text-gray-500 text-sm">Track project progress and timelines</p>
                 </div>
-                <button className="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition shadow-sm">
-                    + New Phase
-                </button>
+<NavyButton onClick={() => console.log("Creating new phase...")}>
+  + New Phase
+</NavyButton>
             </div>
 
             {/* Gantt Container */}

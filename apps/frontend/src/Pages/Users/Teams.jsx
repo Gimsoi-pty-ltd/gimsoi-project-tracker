@@ -168,10 +168,18 @@ export default function Teams() {
 
           <div className="bg-white rounded-xl w-[650px] p-6">
 
-            <h2 className="text-xl font-semibold mb-4">
-              Add New Team
-            </h2>
-
+          <div className="md:flex md:items-center md:justify-between mb-8">
+              <div>
+                <h2 className="text-2xl font-bold text-slate-900">Manage Teams</h2>
+                <nav className="flex mt-1 text-sm text-gray-500">
+                  <Link to="/users" >
+                  <span className="text-slate-900 hover:text-slate-600 cursor-pointer">User Management</span>
+                  </Link>
+                  <span className="mx-2">/</span>
+                  <span>Teams</span>
+                </nav>
+              </div>
+        </div>
             <div className="grid grid-cols-2 gap-4">
 
               <div className="col-span-2">
