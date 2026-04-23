@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = import.meta.env.MODE === "development" ? "http://localhost:5001/api/auth" : "/api/auth";
+const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : (import.meta.env.MODE === "development" ? "http://localhost:5001/api" : "/api");
 
 const axiosInstance = axios.create({
     baseURL: API_URL,
@@ -15,7 +15,7 @@ let csrfToken = null;
 // 1. Fetch CSRF token on initialization
 const fetchCsrfToken = async () => {
     try {
-        const response = await axiosInstance.get("/csrf-token");
+        const response = await axiosInstance.get("/auth/csrf-token");
         csrfToken = response.data.csrfToken;
         console.log("CSRF Token initialized");
     } catch (error) {

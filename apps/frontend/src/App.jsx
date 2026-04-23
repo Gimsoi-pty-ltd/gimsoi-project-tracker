@@ -2,17 +2,17 @@ import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 
 // ─── AUTH PAGES ─────────────────────────────
-import LoginPage from './Pages/LogInOut flow/LoginPage';
-import SignUpPage from './Pages/LogInOut flow/SignUpPage';
-import ResetPassword from './Pages/LogInOut flow/ResetPassword';
-import EmailVerification from './Pages/LogInOut flow/EmailVerification';
-import ForgotEmailPage from './Pages/LogInOut flow/ForgotEmailPage';
+import LoginPage from './Pages/LogInOutFlow/LoginPage';
+import SignUpPage from './Pages/LogInOutFlow/SignUpPage';
+import ResetPassword from './Pages/LogInOutFlow/ResetPassword';
+import EmailVerification from './Pages/LogInOutFlow/EmailVerification';
+import ForgotEmailPage from './Pages/LogInOutFlow/ForgotEmailPage';
 
 // ─── DASHBOARD LAYOUT & PAGES  ─────────────────────────────
 import DashboardLayout from "./Layouts/DashboardLayout";
 
 // Dashboard & Overview
-import Dashboard from './Pages/LoginOut Flow/Dashboard';
+import Dashboard from './Pages/LogInOutFlow/Dashboard';
 import DashboardCards from "./Components/Dashboard/DashboardCards";
 import DaysRemainingPage from "./Components/Dashboard/DaysRemainingPage";
 import SprintOverview from './Pages/Sprints/SprintOverview';
@@ -25,18 +25,18 @@ import OverdueTasks from './Pages/Tasks/Overduetasks';
 import ActiveProjects from './Pages/Tasks/ActiveProjects';
 
 // Projects & Phases
-import Projects from './Pages/Project Management/projects';
-import ProjectOverview from './Pages/Project Management/projectOverview';
+import Projects from './Pages/ProjectManagement/projects';
+import ProjectOverview from './Pages/ProjectManagement/projectOverview';
 import ProjectPhasesGantt from "./Pages/Phases/Phases-of-tasks.jsx";
 
 // Reports
-import ReportsHub from './Pages/Reports and Exporting/reports';
-import SprintReports from './Pages/Reports and Exporting/sprintReports';
-import ProjectReport from './Pages/Reports and Exporting/projectReports';
-import TeamPerformance from './Pages/Reports and Exporting/teamPerformance';
+import ReportsHub from './Pages/ReportsAndExporting/reports';
+import SprintReports from './Pages/ReportsAndExporting/sprintReports';
+import ProjectReport from './Pages/ReportsAndExporting/projectReports';
+import TeamPerformance from './Pages/ReportsAndExporting/teamPerformance';
 
 // Team & Insights
-import TeamInsights from './Pages/Team Insights/teamInsights';
+import TeamInsights from './Pages/TeamInsights/teamInsights';
 
 // Calendar & Documents
 import Calendar from './Pages/Calendar/Calendar';
@@ -48,11 +48,11 @@ import SearchPage from './Pages/Profile/Search';
 
 // Settings
 import Settings from './Pages/Settings';
-import ProfileSection from './Pages/Settings Page/ProfileSection';
-import PreferencesSection from './Pages/Settings Page/PreferencesSection';
-import ActivitySection from './Pages/Settings Page/ActivitySection';
-import StorageSection from './Pages/Settings Page/StorageSection';
-import SecuritySection from './Pages/Settings Page/SecuritySection';
+import ProfileSection from './Pages/SettingsPage/ProfileSection';
+import PreferencesSection from './Pages/SettingsPage/PreferencesSection';
+import ActivitySection from './Pages/SettingsPage/ActivitySection';
+import StorageSection from './Pages/SettingsPage/StorageSection';
+import SecuritySection from './Pages/SettingsPage/SecuritySection';
 
 // Help
 import HelpSupport from './Pages/Help/HelpSupport';

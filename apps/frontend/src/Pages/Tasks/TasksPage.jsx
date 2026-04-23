@@ -1,7 +1,7 @@
 import { useSearchParams } from "react-router-dom";
 import Overduetasks from "./Overduetasks";
-import PieChart from "../Task Progress/PieChart";
-import TaskCard from "../Task Progress/TaskCard";
+import PieChart from "../TaskProgress/PieChart";
+import TaskCard from "../TaskProgress/TaskCard";
 
 const TABS = [
   { id: "overdue", label: "Overdue Tasks", count: 8 },
