@@ -9,7 +9,7 @@ export default defineConfig({
         baseURL: 'http://localhost:5001',
     },
     webServer: {
-        command: 'npx.cmd cross-env NODE_ENV=test npm.cmd run start',
+        command: 'npx cross-env NODE_ENV=test npm run start',
         port: 5001,
         reuseExistingServer: false,
     },
