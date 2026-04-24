@@ -77,9 +77,6 @@ async function createAuthenticatedApiContext(rolePrefix, emailSuffix, baseURL) {
             const value = target[prop];
             if (typeof value === 'function' && ['post', 'patch', 'put', 'delete'].includes(prop)) {
                 return async (url, options = {}) => {
-                    // We need a fresh CSRF token if we want to be safe, 
-                    // but for performance we can use the last known one.
-                    // Actually, let's just use the one we have.
                     const headers = { ...options.headers };
                     if (!headers['x-csrf-token']) {
                         headers['x-csrf-token'] = csrfToken;

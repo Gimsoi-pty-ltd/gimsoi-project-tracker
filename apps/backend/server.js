@@ -4,7 +4,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import authRoutes from "./routes/auth.route.js";
 import taskRoute from "./routes/task.route.js";
-import { csrfProtection, csrfErrorHandler } from "./middleware/csrf.middleware.js";
+import methodOverride from "method-override";
 import clientRoutes from "./routes/client.route.js";
 import projectRoutes from "./routes/project.route.js";
 import sprintRoutes from "./routes/sprint.route.js";
@@ -15,6 +15,7 @@ import healthRoute from "./routes/health.route.js";
 import swaggerUi from "swagger-ui-express";
 import { swaggerSpec } from "./lib/swagger.js";
 import { healthLimiter } from "./middleware/rate-limiter.middleware.js";
+import { csrfProtection, csrfErrorHandler, generateCsrfToken } from "./middleware/csrf.middleware.js";
 
 dotenv.config();
 
@@ -29,17 +30,42 @@ const app = express();
 app.disable("x-powered-by");
 app.set("trust proxy", 1);
 
+// CORS — origin callback for explicit multi-origin matching
+const corsOptions = {
+  origin: (origin, callback) => {
+    const allowed = [
+      process.env.CLIENT_URL,
+      "http://localhost:5173",
+      "http://localhost:5001",
+    ].filter(Boolean);
+    // Allow requests with no origin (e.g. curl, mobile, health probes)
+    if (!origin || allowed.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error(`CORS: origin '${origin}' not allowed`));
+    }
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "x-csrf-token"],
+  optionsSuccessStatus: 204,
+};
+
 // Middleware
 app.use(express.json());
+app.use(express.urlencoded({ extended: true, limit: "100kb", parameterLimit: 1000 }));
 app.use(cookieParser());
-app.use(
-  cors({
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "x-csrf-token"],
-  })
-);
+app.use(methodOverride(function (req, res) {
+  if (req.body && typeof req.body === 'object' && '_method' in req.body) {
+    const method = req.body._method;
+    delete req.body._method;
+    return method;
+  }
+}));
+
+// Explicit OPTIONS handler — required for AppSail proxy to pass preflight
+app.options(/.*/, cors(corsOptions));
+app.use(cors(corsOptions));
 
 // Health endpoint
 app.use("/api/health", healthLimiter, healthRoute);
@@ -52,7 +78,6 @@ if (isNonProd) {
 }
 
 // Register the public CSRF token endpoint before the global CSRF protection
-import { generateCsrfToken } from "./middleware/csrf.middleware.js";
 app.get("/api/auth/csrf-token", (req, res) => {
     try {
         const token = generateCsrfToken(req, res);
@@ -62,7 +87,7 @@ app.get("/api/auth/csrf-token", (req, res) => {
     }
 });
 
-// CSRF protection
+// Global CSRF protection
 app.use(csrfProtection);
 
 // Routes
