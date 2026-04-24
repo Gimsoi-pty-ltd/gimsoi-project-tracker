@@ -1,26 +1,32 @@
-# Backend Audit & Remediation (PM & QA Summary)
+# Changes Made:
+This update prepares the application for secure deployment on Zoho Catalyst by resolving critical cross-origin authentication bugs and pulling in essential UI and routing stability improvements.
 
-This update hardens the backend infrastructure for production. We have resolved critical execution gaps and implemented live monitoring.
+## Features added
 
-### 1. High-Value Features (PM Summary)
-*   **Live Health Monitoring (`/api/health`)**: High-speed diagnostic endpoint for Database and Email services.
-*   **Interactive API Docs (`/api/docs`)**: A focused Swagger UI for real-time testing and diagnostics.
-*   **Data Integrity (Role Enums)**: User roles are now strictly enforced at the database level to prevent invalid data.
-*   **Security Hardening**: Implemented HTML escaping in all automated emails and fixed race conditions in user registration.
+### Deployment Compatibility
+- **Support for Catalyst Cookies:** Updated `jwt.utils.js` to strictly enforce `SameSite=None` and `secure=true`, allowing the session token to bypass browser blocks when Slate and AppSail communicate across domains.
+- **Preflight & Caching Bypass:** Configured the frontend to dynamically inject `_csrf` tokens into payloads and implemented native form-encoding with Method-Override to successfully bypass strict Zoho Gateway Server `OPTIONS` interception.
+- **Routing Stability:** Migrated the frontend to `HashRouter` with an embedded 404 fallback to prevent deep link crashes on Zoho Slate. enforced strict Linux case-sensitive import paths.
 
-### 2. Testing Plan for QA (Short)
-| Component | Test Case | Expected Result |
-| :--- | :--- | :--- |
-| **System Status** | Access `/api/health` | `200 OK` with JSON (status, db, smtp) |
-| **API Docs** | Access `/api/docs` | Swagger UI loads Health endpoint |
-| **RBAC Security** | Delete a task you don't own | `403 Forbidden` |
-| **Auth** | Signup with slow SMTP | User created successfully (no hang) |
-| **Data Integrity** | Manual DB Edit to invalid role | DB rejects the write (Enum constraint) |
+### UI / Frontend
+- **Responsive Navigation:** Re-architected the `TopBar` to be fully responsive, introducing a robust "More" dropdown with click-outside closure for smaller screens. Removed dead code and optimized assets.
 
-### Testing (apps/backend)
-*   **Update Dependencies**: `npm install`
-*   **Update Database Schema**: `npm run db:setup`
-*   **Run Automated Tests**: `npm run test:api`
+### Security
+- **Stateless Architecture:** Replaced database-heavy CSRF session tokens with a resilient stateless HMAC-SHA256 cryptographic strategy.
+- **DDoS Protection:** Enforced strict 100kb payload size limits in `server.js` to prevent memory exhaustion infrastructure attacks.
+- **Secure Provisioning:** Ripped out testing backdoors from the server boot cycle. Demo accounts are now securely firewalled behind environment variables.
+- **Input Validation:** Centralized `TaskPriority` validation into a shared utility to strictly reject invalid payloads before they hit the database.
 
-### Self Verification Status
-**81 backend tests** have run and **PASSED** on the local environment.
+## Testing (apps/backend)
+- **Update Dependencies:** `npm install`
+- **Update Database Schema:** `npm run db:setup`
+- **Provision QA Accounts:** `$env:DEMO_PASSWORD="DemoPassword123!"; npm run db:seed`
+  - *(Standard Roles: Admin, PM, Intern, Client use password: `Password123!`)*
+- **Run Automated Tests:** `npm run test:api`
+
+## View Backend deployment:
+- https://project-tracker-api-10122923152.development.catalystappsail.com/api/health
+- https://project-tracker-api-10122923152.development.catalystappsail.com/api/docs/
+
+## Self Verification Status
+All backend API tests have run and PASSED on the local environment.

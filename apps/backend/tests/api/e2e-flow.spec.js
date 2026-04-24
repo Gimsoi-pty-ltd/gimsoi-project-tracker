@@ -105,7 +105,11 @@ test.describe('E2E Backend Flow Verification', () => {
         });
 
         await test.step('Phase 4: RBAC & Negative Scenarios', async () => {
-            await request.post('/api/auth/logout');
+            await request.post('/api/auth/logout', {
+                headers: { 'x-csrf-token': csrfToken }
+            });
+            const csrfRes = await request.get('/api/auth/csrf-token');
+            csrfToken = (await csrfRes.json()).csrfToken;
 
             const internSignupRes = await request.post('/api/auth/signup', {
                 data: { fullName: 'Intern User', email: internEmail, password },
@@ -137,7 +141,11 @@ test.describe('E2E Backend Flow Verification', () => {
         });
 
         await test.step('Phase 5: Analytics Validation', async () => {
-            await request.post('/api/auth/logout');
+            await request.post('/api/auth/logout', {
+                headers: { 'x-csrf-token': csrfToken }
+            });
+            const csrfRes = await request.get('/api/auth/csrf-token');
+            csrfToken = (await csrfRes.json()).csrfToken;
             await request.post('/api/auth/login', {
                 data: { email: adminEmail, password },
                 headers: { 'x-csrf-token': csrfToken }
@@ -162,7 +170,9 @@ test.describe('E2E Backend Flow Verification', () => {
                 headers: { 'x-csrf-token': csrfToken }
             });
 
-            await request.post('/api/auth/logout');
+            await request.post('/api/auth/logout', {
+                headers: { 'x-csrf-token': csrfToken }
+            });
         });
     });
 

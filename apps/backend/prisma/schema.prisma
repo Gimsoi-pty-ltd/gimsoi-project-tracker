@@ -88,6 +88,7 @@ model Project {
   tasks           Task[]
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
+  analytics       ProjectAnalytics?
 
   @@index([clientId])
 }
@@ -137,6 +138,24 @@ model Task {
   @@index([projectId])
   @@index([sprintId])
   @@index([assigneeId])
+}
+
+model ProjectAnalytics {
+  projectId String  @id
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  totalTasks      Int @default(0)
+  completedTasks  Int @default(0)
+  blockedTasks    Int @default(0)
+  cancelledTasks  Int @default(0)
+  totalSprints     Int @default(0)
+  activeSprints    Int @default(0)
+
+  // Zoho Sync Metadata
+  lastSyncedAt DateTime @default(now())
+  syncStatus   String   @default("pending") // synced | error | pending
+
+  @@index([projectId])
 }
 
 

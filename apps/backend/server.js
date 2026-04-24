@@ -14,6 +14,7 @@ import registerTestingRoutes from "./utils/registerTestingRoutes.js";
 import healthRoute from "./routes/health.route.js";
 import swaggerUi from "swagger-ui-express";
 import { swaggerSpec } from "./lib/swagger.js";
+import { healthLimiter } from "./middleware/rate-limiter.middleware.js";
 
 dotenv.config();
 
@@ -40,28 +41,28 @@ app.use(
   })
 );
 
-import { healthLimiter } from "./middleware/rate-limiter.middleware.js";
-
-// Health endpoint — registered before CSRF so probes require no session token
+// Health endpoint
 app.use("/api/health", healthLimiter, healthRoute);
 
-
-// Swagger UI — development only, never exposed in production
+// Swagger UI
 const isNonProd = process.env.NODE_ENV !== "production" || process.env.PRODUCTION === "false";
 if (isNonProd) {
   app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
   app.get("/api/docs.json", (req, res) => res.json(swaggerSpec));
-  console.log("[swagger] UI available at /api/docs");
 }
 
 // Register the public CSRF token endpoint before the global CSRF protection
 import { generateCsrfToken } from "./middleware/csrf.middleware.js";
 app.get("/api/auth/csrf-token", (req, res) => {
-    const token = generateCsrfToken(req, res);
-    res.json({ success: true, csrfToken: token });
+    try {
+        const token = generateCsrfToken(req, res);
+        res.json({ success: true, csrfToken: token });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
 });
 
-// CSRF protection — Double Submit Cookie via "csrf-csrf" package.
+// CSRF protection
 app.use(csrfProtection);
 
 // Routes
@@ -72,7 +73,7 @@ app.use("/api/projects", projectRoutes);
 app.use("/api/sprints", sprintRoutes);
 app.use("/api/analytics", analyticsRoutes);
 
-// CSRF error handler — must be after routes
+// CSRF error handler
 app.use(csrfErrorHandler);
 
 // Global Error Handler
@@ -87,7 +88,6 @@ app.use((err, req, res, next) => {
 // Test-only routes
 await registerTestingRoutes(app);
 
-// Initialize DB and Start Server
 const PORT = process.env.X_ZOHO_CATALYST_LISTEN_PORT || process.env.PORT || 5000;
 
 process.on("unhandledRejection", (reason) => {
@@ -110,7 +110,7 @@ const gracefulShutdown = async (signal) => {
   setTimeout(() => process.exit(1), 10000);
 };
 process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
-process.on("SIGINT",  () => gracefulShutdown("SIGINT"));
+process.on("SIGINT", () => gracefulShutdown("SIGINT"));
 
 (async () => {
   try {

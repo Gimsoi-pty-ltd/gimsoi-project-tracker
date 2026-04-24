@@ -1,5 +1,6 @@
 import * as authService from "../services/auth.service.js";
 import { generateTokenAndSetCookie } from "../utils/jwt.utils.js";
+import { generateStatelessCsrfToken } from "../utils/security.utils.js";
 
 export const signup = async (req, res, next) => {
     try {
@@ -10,6 +11,8 @@ export const signup = async (req, res, next) => {
         
         const user = await authService.signup({ email, password, fullName });
         const token = generateTokenAndSetCookie(res, user.id, user.role);
+
+
         
         return res.status(201).json({
             success: true,
@@ -51,6 +54,8 @@ export const login = async (req, res, next) => {
         const user = await authService.login(email, password);
         const token = generateTokenAndSetCookie(res, user.id, user.role);
 
+
+
         return res.status(200).json({
             success: true,
             message: "Logged in successfully",
@@ -64,7 +69,7 @@ export const login = async (req, res, next) => {
 
 export const logout = async (req, res, next) => {
     try {
-        res.clearCookie("token");
+        res.clearCookie('token');
         return res.status(200).json({ success: true, message: "Logged out successfully" });
     } catch (error) {
         next(error);

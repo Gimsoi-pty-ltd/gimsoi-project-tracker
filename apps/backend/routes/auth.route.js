@@ -9,7 +9,7 @@ import {
     checkAuth,
 } from "../controllers/auth.controller.js";
 import { verifyToken } from "../middleware/verify-token.middleware.js";
-import { authLimiter, loginLimiter, readLimiter } from "../middleware/rate-limiter.middleware.js";
+import { loginLimiter, authLimiter, readLimiter } from "../middleware/rate-limiter.middleware.js";
 
 const router = express.Router();
 
@@ -33,9 +33,9 @@ router.post("/login", loginLimiter, login);
 
 /**
  * POST /api/auth/logout — Clears the authentication context
- * Allowed: ALL (Public)
+ * Allowed: Authenticated Users
  */
-router.post("/logout", logout);
+router.post("/logout", authLimiter, verifyToken, logout);
 
 /**
  * POST /api/auth/verify-email

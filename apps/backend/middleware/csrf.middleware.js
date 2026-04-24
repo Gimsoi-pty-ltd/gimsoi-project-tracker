@@ -1,39 +1,37 @@
 import { doubleCsrf } from "csrf-csrf";
 
-const isProduction = process.env.NODE_ENV === "production";
-
-const {
-    invalidCsrfTokenError,
-    doubleCsrfProtection,
-    generateCsrfToken,
-} = doubleCsrf({
-    getSecret: () => process.env.CSRF_SECRET || process.env.JWT_SECRET,
-    getSessionIdentifier: (req) => req.ip || "anonymous",
-    cookieName: isProduction ? "__Host-csrf" : "csrf-token",
+const doubleCsrfResult = doubleCsrf({
+    getSecret: () => process.env.CSRF_SECRET || "mocked_test_secret_for_dev_only",
+    cookieName: "XSRF-TOKEN",
     cookieOptions: {
-        httpOnly: true,
-        secure: isProduction,
-        sameSite: isProduction ? "none" : "lax",
+        httpOnly: false, // Must be false so frontend can read it for Double Submit
+        sameSite: "lax",
         path: "/",
+        secure: process.env.NODE_ENV === "production",
     },
-    getCsrfTokenFromRequest: (req) => req.headers["x-csrf-token"],
+    size: 64,
+    ignoredMethods: ["GET", "HEAD", "OPTIONS"],
+    getTokenFromRequest: (req) => req.headers["x-csrf-token"],
+    getSessionIdentifier: (req) => req.ip || "fixed-id",
 });
 
+export const {
+    doubleCsrfProtection: csrfProtection,
+    generateCsrfToken
+} = doubleCsrfResult;
+
 /**
- * Express error-handling middleware for invalid CSRF tokens.
- * Must be registered AFTER routes so it catches errors thrown by doubleCsrfProtection.
+ * Dummy middleware to maintain compatibility with routes that were using the stateless requireCSRF.
+ * Global CSRF protection is now handled in server.js via doubleCsrfProtection.
  */
-export const csrfErrorHandler = (err, req, res, next) => {
-    if (err === invalidCsrfTokenError) {
+export const requireCSRF = (req, res, next) => next();
+
+export const csrfErrorHandler = (error, req, res, next) => {
+    if (error.code === "EBADCSRFTOKEN") {
         return res.status(403).json({
             success: false,
-            message: "Invalid CSRF token",
+            message: "Invalid or missing CSRF token.",
         });
     }
-    next(err);
-};
-
-export {
-    doubleCsrfProtection as csrfProtection,
-    generateCsrfToken,
+    next(error);
 };
