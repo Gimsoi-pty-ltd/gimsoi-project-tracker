@@ -54,6 +54,13 @@ if (isNonProd) {
   console.log("[swagger] UI available at /api/docs");
 }
 
+// Register the public CSRF token endpoint before the global CSRF protection
+import { generateCsrfToken } from "./middleware/csrf.middleware.js";
+app.get("/api/auth/csrf-token", (req, res) => {
+    const token = generateCsrfToken(req, res);
+    res.json({ success: true, csrfToken: token });
+});
+
 // CSRF protection — Double Submit Cookie via "csrf-csrf" package.
 app.use(csrfProtection);
 
