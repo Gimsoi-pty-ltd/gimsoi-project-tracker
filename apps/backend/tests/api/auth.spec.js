@@ -57,9 +57,13 @@ test.describe('Auth API Tests', () => {
 
         test.beforeAll(async ({ request }) => {
             testUserEmail = `login-${Date.now()}-${Math.random().toString(36).substring(7)}@example.com`;
-            await request.post('/api/auth/signup', {
+            const signupRes = await request.post('/api/auth/signup', {
                 data: { email: testUserEmail, password: testPassword, fullName: 'Login Test User' }
             });
+            
+            const cookies = signupRes.headers()['set-cookie'] || '';
+            const match = cookies.match(/XSRF-TOKEN=([^;]+)/);
+            const setupCsrfToken = match ? match[1] : '';
 
             // Verify user via testing endpoint
             await request.post('/api/testing/promote-role', {
@@ -93,6 +97,10 @@ test.describe('Auth API Tests', () => {
             const signupRes = await request.post('/api/auth/signup', {
                 data: { email, password: 'password123', fullName: 'Check Auth User' }
             });
+            
+            const cookies = signupRes.headers()['set-cookie'] || '';
+            const match = cookies.match(/XSRF-TOKEN=([^;]+)/);
+            const setupCsrfToken = match ? match[1] : '';
             
             // Verify user via testing endpoint
             await request.post('/api/testing/promote-role', {
@@ -142,10 +150,20 @@ test.describe('Auth API Tests', () => {
             const password = 'Password123!';
 
             // 1. Signup fresh user
-            await request.post('/api/auth/signup', {
+            const signupRes = await request.post('/api/auth/signup', {
                 data: { email, password, fullName: 'Logout User' }
             });
+            
+            // Get CSRF token for the promote-role request
+            const cookies = signupRes.headers()['set-cookie'] || '';
+            const match = cookies.match(/XSRF-TOKEN=([^;]+)/);
+            const setupCsrfToken = match ? match[1] : '';
 
+            // Verify user via testing endpoint
+            await request.post('/api/testing/promote-role', {
+                headers: { 'x-csrf-token': setupCsrfToken },
+                data: { email }
+            });
 
             // 2. Login to get token and CSRF token
             const loginRes = await request.post('/api/auth/login', {
