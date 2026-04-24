@@ -9,6 +9,7 @@ import clientRoutes from "./routes/client.route.js";
 import projectRoutes from "./routes/project.route.js";
 import sprintRoutes from "./routes/sprint.route.js";
 import { validateEnv } from "./utils/validateEnv.js";
+import analyticsRoutes from "./routes/analytics.route.js";
 import registerTestingRoutes from "./utils/registerTestingRoutes.js";
 import healthRoute from "./routes/health.route.js";
 import swaggerUi from "swagger-ui-express";
@@ -62,6 +63,7 @@ app.use("/api/tasks", taskRoute);
 app.use("/api/clients", clientRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/sprints", sprintRoutes);
+app.use("/api/analytics", analyticsRoutes);
 
 // CSRF error handler — must be after routes
 app.use(csrfErrorHandler);
