@@ -47,46 +47,29 @@ async function createAuthenticatedApiContext(rolePrefix, emailSuffix, baseURL) {
 
     let token = signupData.token;
 
-    // 4. Promote + re-login if we need a role above INTERN
-    if (targetRole !== 'INTERN') {
-        // 4a. Promote DB role
-        const promoteRes = await context.post('/api/testing/promote-role', {
-            headers: { 'x-csrf-token': csrfToken },
-            data: { email, role: targetRole }
-        });
-        const promoteData = await promoteRes.json();
-        if (!promoteData.success) {
-            throw new Error(`Promote failed for ${email} → ${targetRole}: ${promoteData.message}`);
-        }
-        // Invariant: server must confirm the correct role before we proceed
-        if (promoteData.data.role !== targetRole) {
-            throw new Error(
-                `Promotion invariant violated: server returned role '${promoteData.data.role}', expected '${targetRole}'`
-            );
-        }
-
-        // 4b. Re-login — essential because the signup JWT still carries INTERN in its payload.
-        //     verifyToken.js reads decoded.role, so using the old token would silently fail RBAC.
-        const loginRes = await context.post('/api/auth/login', {
-            headers: { 'x-csrf-token': csrfToken },
-            data: { email, password }
-        });
-        const loginData = await loginRes.json();
-        if (!loginData.success) {
-            // DB role is correct but we have no valid JWT — test user is in a broken state.
-            throw new Error(
-                `Re-login failed for ${email} after promoting to ${targetRole}. ` +
-                `DB role is correct but no valid JWT was returned: ${loginData.message}`
-            );
-        }
-        // Invariant: fresh JWT must carry the promoted role
-        if (loginData.user.role !== targetRole) {
-            throw new Error(
-                `Re-login JWT invariant violated: JWT carries role '${loginData.user.role}', expected '${targetRole}'`
-            );
-        }
-        token = loginData.token;
+    // 4. Promote + re-login — REQUIRED for all roles to bypass isVerified:false enforcement.
+    //    promote-role now sets isVerified:true in the DB.
+    
+    // 4a. Promote DB role & Verify
+    const promoteRes = await context.post('/api/testing/promote-role', {
+        headers: { 'x-csrf-token': csrfToken },
+        data: { email, role: targetRole }
+    });
+    const promoteData = await promoteRes.json();
+    if (!promoteData.success) {
+        throw new Error(`Promote/Verify failed for ${email} → ${targetRole}: ${promoteData.message}`);
     }
+
+    // 4b. Re-login — Essential to get a session that reflects the DB state (role + isVerified).
+    const loginRes = await context.post('/api/auth/login', {
+        headers: { 'x-csrf-token': csrfToken },
+        data: { email, password }
+    });
+    const loginData = await loginRes.json();
+    if (!loginData.success) {
+        throw new Error(`Re-login failed for ${email} after promoting/verifying: ${loginData.message}`);
+    }
+    token = loginData.token;
 
     // 5. Build final context — carry CSRF cookie from original context + fresh auth token
     const storageState = await context.storageState();

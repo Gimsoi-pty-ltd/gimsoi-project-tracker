@@ -102,6 +102,12 @@ test.describe('Auth API Tests', () => {
                 headers: { 'x-csrf-token': setupCsrfToken },
                 data: { email: testUserEmail, password: testPassword, fullName: 'Login Test User' }
             });
+
+            // Verify user via testing endpoint
+            await request.post('/api/testing/promote-role', {
+                headers: { 'x-csrf-token': setupCsrfToken },
+                data: { email: testUserEmail }
+            });
         });
 
         test('returns 200 + token on valid credentials', async ({ request }) => {
@@ -175,6 +181,13 @@ test.describe('Auth API Tests', () => {
                 headers: { 'x-csrf-token': setupCsrfToken },
                 data: { email, password: 'password123', fullName: 'Check Auth User' }
             });
+            
+            // Verify user via testing endpoint
+            await request.post('/api/testing/promote-role', {
+                headers: { 'x-csrf-token': setupCsrfToken },
+                data: { email }
+            });
+            
             localAuthToken = (await signupRes.json()).token;
         });
 
@@ -280,6 +293,13 @@ test.describe('Auth API Tests', () => {
                 headers: { 'x-csrf-token': setupCsrfToken },
                 data: { email, password: 'password123', fullName: 'Logout User' }
             });
+
+            // Verify user via testing endpoint
+            await request.post('/api/testing/promote-role', {
+                headers: { 'x-csrf-token': setupCsrfToken },
+                data: { email }
+            });
+
             localAuthToken = (await signupRes.json()).token;
         });
 
@@ -314,6 +334,12 @@ test.describe('Auth API Tests', () => {
             await request.post('/api/auth/signup', {
                 headers: { 'x-csrf-token': setupCsrfToken },
                 data: { email: testUserEmail, password: 'password123', fullName: 'Forgot Test User' }
+            });
+
+            // Verify user via testing endpoint
+            await request.post('/api/testing/promote-role', {
+                headers: { 'x-csrf-token': setupCsrfToken },
+                data: { email: testUserEmail }
             });
         });
 

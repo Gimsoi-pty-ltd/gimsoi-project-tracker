@@ -182,7 +182,7 @@ test.describe('Task Deletion — Ownership-Gated Access', () => {
 
         // Action: PM deletes
         const res = await pmApi.delete(`/api/tasks/${task.id}`);
-        expect(res.status()).toBe(200);
+        expect(res.status()).toBe(204);
 
         // Verify: Check no longer exists
         const checkRes = await pmApi.get(`/api/tasks/${task.id}`);
@@ -206,7 +206,7 @@ test.describe('Task Deletion — Ownership-Gated Access', () => {
 
         // Action: Intern deletes
         const res = await internApi.delete(`/api/tasks/${task.id}`);
-        expect(res.status()).toBe(200);
+        expect(res.status()).toBe(204);
     });
 
     test('PM cannot delete a task created by someone else (Sad Path)', async ({ adminApi, pmApi, testProject, testSprint }) => {
