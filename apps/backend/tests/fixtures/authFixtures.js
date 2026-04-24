@@ -41,7 +41,7 @@ async function createAuthenticatedApiContext(rolePrefix, emailSuffix, baseURL) {
     const signupRes = await context.post('/api/auth/signup', {
         data: { email, password, fullName: `Test ${rolePrefix.toUpperCase()}` }
     });
-    
+
     if (signupRes.status() >= 400) {
         const body = await signupRes.text();
         throw new Error(`Signup failed (${signupRes.status()}): ${body}`);
@@ -51,10 +51,10 @@ async function createAuthenticatedApiContext(rolePrefix, emailSuffix, baseURL) {
     let csrfToken = getCookie(signupRes, 'XSRF-TOKEN');
     let token = (await signupRes.json()).token;
 
-    // 4. Promote + re-login — REQUIRED for all roles to bypass isVerified:false enforcement.
-    //    promote-role now sets isVerified:true in the DB.
-    
-    // 4a. Promote DB role & Verify
+    // Promote + re-login — REQUIRED for all roles to bypass isVerified:false enforcement.
+    // promote-role now sets isVerified:true in the DB.
+
+    // Promote DB role & Verify
     const promoteRes = await context.post('/api/testing/promote-role', {
         headers: { 'x-csrf-token': csrfToken },
         data: { email, role: targetRole }
@@ -64,7 +64,7 @@ async function createAuthenticatedApiContext(rolePrefix, emailSuffix, baseURL) {
         throw new Error(`Promote/Verify failed for ${email} → ${targetRole}: ${promoteData.message}`);
     }
 
-    // 4b. Re-login — Essential to get a session that reflects the DB state (role + isVerified).
+    // Re-login — Essential to get a session that reflects the DB state (role + isVerified).
     const loginRes = await context.post('/api/auth/login', {
         headers: { 'x-csrf-token': csrfToken },
         data: { email, password }
@@ -75,7 +75,7 @@ async function createAuthenticatedApiContext(rolePrefix, emailSuffix, baseURL) {
     }
     token = loginData.token;
 
-    // 5. Build final context — carry CSRF cookie from original context + fresh auth token
+    // Build final context — carry CSRF cookie from original context + fresh auth token
     const storageState = await context.storageState();
     const finalContext = await request.newContext({
         baseURL,
@@ -86,7 +86,6 @@ async function createAuthenticatedApiContext(rolePrefix, emailSuffix, baseURL) {
     });
 
     // Proxy the context to automatically inject _csrf into mutating methods
-    // We bind the target methods to ensure 'this' remains the APIRequestContext
     return new Proxy(finalContext, {
         get(target, prop) {
             const value = target[prop];
@@ -96,7 +95,7 @@ async function createAuthenticatedApiContext(rolePrefix, emailSuffix, baseURL) {
                     // Inject _csrf into the body if it's not already there
                     const newData = { ...data };
                     if (!newData._csrf) newData._csrf = csrfToken;
-                    
+
                     return value.call(target, url, {
                         ...options,
                         data: newData

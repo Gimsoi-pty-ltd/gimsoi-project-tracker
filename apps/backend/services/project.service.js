@@ -34,16 +34,6 @@ export const getProjects = async ({ limit = 50, cursor, search } = {}) => {
     where.name = { contains: search, mode: 'insensitive' };
   }
 
-  // KNOWN LIMITATION (tracked: fix/client-project-scoping):
-  // CLIENT users should be scoped to projects linked via Project.clientId → Client.
-  // That relationship requires a ClientUser join table not yet implemented.
-  // Current workaround: CLIENT role sees all projects (same as INTERN).
-  // This is intentionally permissive until the ClientUser schema is added.
-  // Do NOT scope by createdByUserId — CLIENTs never create projects and would see nothing.
-  //
-  // When ClientUser table is added, replace this block with:
-  //   where.client = { users: { some: { userId: requestingUser.id } } };
-
   return prisma.project.findMany({
     take: take + 1,         // fetch one extra to detect whether there's a next page
     ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
@@ -108,65 +98,65 @@ export const getProjectProgress = async (projectId, userRole) => {
 };
 
 export const getBatchProjectProgress = async (projectIds, userRole) => {
-    if (!projectIds || projectIds.length === 0) return {};
+  if (!projectIds || projectIds.length === 0) return {};
 
-    const summaries = await getProjectTaskSummaryBatch(projectIds);
-    const results = {};
+  const summaries = await getProjectTaskSummaryBatch(projectIds);
+  const results = {};
 
-    for (const projectId of projectIds) {
-        const summary = summaries[projectId];
-        if (userRole === ROLES.CLIENT) {
-            results[projectId] = { percentComplete: summary ? summary.percentComplete : 0 };
-        } else {
-            results[projectId] = summary;
-        }
+  for (const projectId of projectIds) {
+    const summary = summaries[projectId];
+    if (userRole === ROLES.CLIENT) {
+      results[projectId] = { percentComplete: summary ? summary.percentComplete : 0 };
+    } else {
+      results[projectId] = summary;
     }
+  }
 
-    return results;
+  return results;
 };
 
 export const deleteProject = async (id, userId, userRole) => {
-    const existing = await prisma.project.findUnique({ where: { id: String(id) } });
-    if (!existing) throw new NotFoundError(`Project ${id} not found`);
+  const existing = await prisma.project.findUnique({ where: { id: String(id) } });
+  if (!existing) throw new NotFoundError(`Project ${id} not found`);
 
-    assertOwnership(existing, userId, userRole);
+  assertOwnership(existing, userId, userRole);
 
-    return prisma.project.delete({ where: { id: String(id) } });
+  return prisma.project.delete({ where: { id: String(id) } });
 };
 
 export const syncProjectAnalytics = async (projectId) => {
   const taskSummary = await getProjectTaskSummary(projectId);
-  
+
   const totalSprints = await prisma.sprint.count({ where: { projectId: String(projectId) } });
-  const activeSprints = await prisma.sprint.count({ 
-      where: { 
-          projectId: String(projectId),
-          status: 'ACTIVE'
-      } 
+  const activeSprints = await prisma.sprint.count({
+    where: {
+      projectId: String(projectId),
+      status: 'ACTIVE'
+    }
   });
 
   return prisma.projectAnalytics.upsert({
-      where: { projectId: String(projectId) },
-      create: {
-          projectId: String(projectId),
-          totalTasks: taskSummary.total,
-          completedTasks: taskSummary.DONE,
-          blockedTasks: taskSummary.BLOCKED,
-          cancelledTasks: taskSummary.CANCELLED,
-          totalSprints,
-          activeSprints,
-          syncStatus: 'synced',
-          lastSyncedAt: new Date()
-      },
-      update: {
-          totalTasks: taskSummary.total,
-          completedTasks: taskSummary.DONE,
-          blockedTasks: taskSummary.BLOCKED,
-          cancelledTasks: taskSummary.CANCELLED,
-          totalSprints,
-          activeSprints,
-          syncStatus: 'synced',
-          lastSyncedAt: new Date()
-      }
+    where: { projectId: String(projectId) },
+    create: {
+      projectId: String(projectId),
+      totalTasks: taskSummary.total,
+      completedTasks: taskSummary.DONE,
+      blockedTasks: taskSummary.BLOCKED,
+      cancelledTasks: taskSummary.CANCELLED,
+      totalSprints,
+      activeSprints,
+      syncStatus: 'synced',
+      lastSyncedAt: new Date()
+    },
+    update: {
+      totalTasks: taskSummary.total,
+      completedTasks: taskSummary.DONE,
+      blockedTasks: taskSummary.BLOCKED,
+      cancelledTasks: taskSummary.CANCELLED,
+      totalSprints,
+      activeSprints,
+      syncStatus: 'synced',
+      lastSyncedAt: new Date()
+    }
   });
 };
