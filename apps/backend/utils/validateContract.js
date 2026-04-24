@@ -39,6 +39,7 @@ export const validateProjectSummaryShape = (summary) => {
         TASK_STATUS.IN_PROGRESS,
         TASK_STATUS.DONE,
         TASK_STATUS.CANCELLED,
+        TASK_STATUS.BLOCKED,
         'total',
         'percentComplete'
     ];
