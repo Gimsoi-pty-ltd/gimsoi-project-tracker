@@ -7,7 +7,7 @@ import { getProjectTaskSummary, getProjectTaskSummaryBatch } from "./task.servic
 import { PROJECT_STATUS } from "../constants/statuses.js";
 import ROLES from "../constants/roles.js";
 
-export const createProject = async ({ name, clientId, status, createdByUserId }) => {
+export const createProject = async ({ name, clientId, status, description, createdByUserId }) => {
   if (status && ![PROJECT_STATUS.DRAFT, PROJECT_STATUS.ACTIVE, PROJECT_STATUS.COMPLETED].includes(status)) {
     throw new StateTransitionError(`Invalid project status '${status}'. Allowed: ${PROJECT_STATUS.DRAFT}, ${PROJECT_STATUS.ACTIVE}, ${PROJECT_STATUS.COMPLETED}`);
   }
@@ -16,6 +16,7 @@ export const createProject = async ({ name, clientId, status, createdByUserId })
       name,
       clientId: String(clientId),
       status: status || PROJECT_STATUS.DRAFT,
+      description,
       createdByUserId,
     },
   });
@@ -25,11 +26,28 @@ export const createProject = async ({ name, clientId, status, createdByUserId })
  * @param {{ limit?: number, cursor?: string }} options
  * limit defaults to 50, max 100. cursor is the id of the last record from the previous page.
  */
-export const getProjects = async ({ limit = 50, cursor } = {}) => {
+export const getProjects = async ({ limit = 50, cursor, search } = {}) => {
   const take = Math.min(Number(limit) || 50, 100);
+
+  const where = {};
+  if (search) {
+    where.name = { contains: search, mode: 'insensitive' };
+  }
+
+  // KNOWN LIMITATION (tracked: fix/client-project-scoping):
+  // CLIENT users should be scoped to projects linked via Project.clientId → Client.
+  // That relationship requires a ClientUser join table not yet implemented.
+  // Current workaround: CLIENT role sees all projects (same as INTERN).
+  // This is intentionally permissive until the ClientUser schema is added.
+  // Do NOT scope by createdByUserId — CLIENTs never create projects and would see nothing.
+  //
+  // When ClientUser table is added, replace this block with:
+  //   where.client = { users: { some: { userId: requestingUser.id } } };
+
   return prisma.project.findMany({
     take: take + 1,         // fetch one extra to detect whether there's a next page
     ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
+    where,
     orderBy: { createdAt: 'desc' },
     include: { client: true },
   });
@@ -64,8 +82,10 @@ export const updateProject = async (id, data, userId, userRole) => {
   return prisma.project.update({
     where: { id: String(id) },
     data: {
-      ...(data.name !== undefined ? { name: data.name } : {}),
-      ...(data.status !== undefined ? { status: data.status } : {}),
+      ...(data.name && { name: data.name }),
+      ...(data.status && { status: data.status }),
+      ...(data.description !== undefined ? { description: data.description } : {}),
+      ...(data.endDate !== undefined ? { endDate: data.endDate } : {}),
     },
   });
 };
@@ -77,13 +97,10 @@ export const updateProject = async (id, data, userId, userRole) => {
  * @returns {{ TODO: number, IN_PROGRESS: number, DONE: number, total: number, percentComplete: number }}
  */
 export const getProjectProgress = async (projectId, userRole) => {
-  const project = await prisma.project.findUnique({ where: { id: String(projectId) } });
-  if (!project) return null;
-
   const summary = await getProjectTaskSummary(projectId);
 
   // CLIENT role receives percentComplete only. Full task breakdown is restricted to internal roles. See docs/DATA_CONTRACT.md.
-  if (userRole === 'CLIENT') {
+  if (userRole === ROLES.CLIENT) {
     return { percentComplete: summary.percentComplete };
   }
 
@@ -106,4 +123,13 @@ export const getBatchProjectProgress = async (projectIds, userRole) => {
     }
 
     return results;
+};
+
+export const deleteProject = async (id, userId, userRole) => {
+    const existing = await prisma.project.findUnique({ where: { id: String(id) } });
+    if (!existing) throw new NotFoundError(`Project ${id} not found`);
+
+    assertOwnership(existing, userId, userRole);
+
+    return prisma.project.delete({ where: { id: String(id) } });
 };

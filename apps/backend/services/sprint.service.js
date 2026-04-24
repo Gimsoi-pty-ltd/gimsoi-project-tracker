@@ -16,6 +16,13 @@ export const SPRINT_ALLOWED_TRANSITIONS = {
 };
 
 export const createSprint = async ({ name, projectId, status, startDate, endDate, createdByUserId }) => {
+    if (startDate !== undefined && startDate !== null && isNaN(Date.parse(startDate))) {
+        throw new StateTransitionError('Invalid startDate format.');
+    }
+    if (endDate !== undefined && endDate !== null && isNaN(Date.parse(endDate))) {
+        throw new StateTransitionError('Invalid endDate format.');
+    }
+
     // Guard: prevent creating sprints inside a COMPLETED project
     const project = await prisma.project.findUnique({ where: { id: projectId } });
     if (!project) throw new NotFoundError(`Project ${projectId} not found.`);
@@ -51,23 +58,22 @@ export const getSprintsByProject = async (projectId, { limit = 50, cursor } = {}
 };
 
 
-export const closeSprint = async (id, userId, userRole, db = prisma) => {
-    const sprint = await db.sprint.findUnique({ where: { id: String(id) } });
-
-    if (!sprint) throw new NotFoundError(`Sprint ${id} not found`);
-
-    if (userId && userRole) assertOwnership(sprint, userId, userRole);
-
+// Accepts the already-fetched sprint object to avoid a redundant DB round-trip.
+// Ownership must be asserted by the caller (updateSprintStatus) before invoking this.
+const closeSprint = async (sprint, db = prisma) => {
     // Task counts are owned by the Task domain. Do not query task tables directly from this file — use the Task service.
-    const openTaskCount = await getTaskCountBySprintId(id, { excludeStatus: TASK_STATUS.DONE }, db);
-
+    const openTaskCount = await getTaskCountBySprintId(
+        sprint.id,
+        { excludeStatus: [TASK_STATUS.DONE, TASK_STATUS.CANCELLED] },
+        db
+    );
 
     if (openTaskCount > 0) {
         throw new StateTransitionError("Cannot close sprint with active open tasks remaining.");
     }
 
     return db.sprint.update({
-        where: { id: String(id) },
+        where: { id: sprint.id },
         data: { status: SPRINT_STATUS.CLOSED }
     });
 }
@@ -88,7 +94,7 @@ export const updateSprintStatus = async (id, targetStatus, userId, userRole, db 
     }
 
     if (targetStatus === SPRINT_STATUS.CLOSED) {
-        return closeSprint(id, userId, userRole, db); // Pass down to the specific closer method
+        return closeSprint(sprint, db); // Pass down to the specific closer method
     }
 
     return db.sprint.update({
@@ -115,8 +121,12 @@ export const updateSprint = async (id, data, userId, userRole) => {
         where: { id: String(id) },
         data: {
             name: data.name !== undefined ? data.name : sprint.name,
-            startDate: data.startDate !== undefined ? new Date(data.startDate) : sprint.startDate,
-            endDate: data.endDate !== undefined ? new Date(data.endDate) : sprint.endDate,
+            startDate: data.startDate !== undefined
+                ? (data.startDate === null ? null : new Date(data.startDate))
+                : sprint.startDate,
+            endDate: data.endDate !== undefined
+                ? (data.endDate === null ? null : new Date(data.endDate))
+                : sprint.endDate,
         }
     });
 };

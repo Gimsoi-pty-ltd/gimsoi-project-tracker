@@ -8,6 +8,7 @@ import {
   getProjectById,
   updateProject,
   getProjectProgress,
+  deleteProject,
 } from "../controllers/project.controller.js";
 
 const router = express.Router();
@@ -21,8 +22,9 @@ router.get("/:id/progress", readLimiter, verifyToken, authorize("VIEW_PROJECTS")
 // Allowed: ADMIN, PM, INTERN, CLIENT
 router.get("/:id", readLimiter, verifyToken, authorize("VIEW_PROJECTS"), getProjectById);
 
-// Only Admin/PM can create/update
+// Only Admin/PM can create/update/delete
 router.post("/", writeLimiter, verifyToken, authorize("MANAGE_PROJECTS"), createProject);
 router.patch("/:id", writeLimiter, verifyToken, authorize("MANAGE_PROJECTS"), updateProject);
+router.delete("/:id", writeLimiter, verifyToken, authorize("MANAGE_PROJECTS"), deleteProject);
 
 export default router;
