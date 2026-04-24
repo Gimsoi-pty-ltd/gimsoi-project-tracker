@@ -9,7 +9,9 @@ import {
   updateProject,
   getProjectProgress,
   deleteProject,
+  syncProjectAnalytics,
 } from "../controllers/project.controller.js";
+import { requireCSRF } from "../middleware/csrf.middleware.js";
 
 const router = express.Router();
 
@@ -22,9 +24,10 @@ router.get("/:id/progress", readLimiter, verifyToken, authorize("VIEW_PROJECTS")
 // Allowed: ADMIN, PM, INTERN, CLIENT
 router.get("/:id", readLimiter, verifyToken, authorize("VIEW_PROJECTS"), getProjectById);
 
-// Only Admin/PM can create/update/delete
-router.post("/", writeLimiter, verifyToken, authorize("MANAGE_PROJECTS"), createProject);
-router.patch("/:id", writeLimiter, verifyToken, authorize("MANAGE_PROJECTS"), updateProject);
-router.delete("/:id", writeLimiter, verifyToken, authorize("MANAGE_PROJECTS"), deleteProject);
+// Only Admin/PM can create/update/delete/sync
+router.post("/", writeLimiter, verifyToken, authorize("MANAGE_PROJECTS"), requireCSRF, createProject);
+router.patch("/:id", writeLimiter, verifyToken, authorize("MANAGE_PROJECTS"), requireCSRF, updateProject);
+router.delete("/:id", writeLimiter, verifyToken, authorize("MANAGE_PROJECTS"), requireCSRF, deleteProject);
+router.post("/:id/analytics", writeLimiter, verifyToken, authorize("MANAGE_PROJECTS"), requireCSRF, syncProjectAnalytics);
 
 export default router;
