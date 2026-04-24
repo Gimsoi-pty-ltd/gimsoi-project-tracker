@@ -1,9 +1,5 @@
 import express from "express";
-import { createRequire } from "module";
 import { smtpClient } from "../services/email/smtp.config.js";
-
-const require = createRequire(import.meta.url);
-const { version } = require("../package.json");
 
 let cachedResult = null;
 let cacheExpiry  = 0;
