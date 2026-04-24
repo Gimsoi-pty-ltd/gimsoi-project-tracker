@@ -61,15 +61,14 @@ test.describe('Auth API Tests', () => {
                 data: { email: testUserEmail, password: testPassword, fullName: 'Login Test User' }
             });
             
-            const cookies = signupRes.headers()['set-cookie'] || '';
-            const match = cookies.match(/XSRF-TOKEN=([^;]+)/);
-            const setupCsrfToken = match ? match[1] : '';
+            const setupCsrfToken = getCsrfToken(signupRes) || '';
 
             // Verify user via testing endpoint
-            await request.post('/api/testing/promote-role', {
+            const promoteRes = await request.post('/api/testing/promote-role', {
                 headers: { 'x-csrf-token': setupCsrfToken },
                 data: { email: testUserEmail }
             });
+            expect(promoteRes.status()).toBe(200);
         });
 
         test('returns 200 + token on valid credentials', async ({ request }) => {
@@ -98,9 +97,7 @@ test.describe('Auth API Tests', () => {
                 data: { email, password: 'password123', fullName: 'Check Auth User' }
             });
             
-            const cookies = signupRes.headers()['set-cookie'] || '';
-            const match = cookies.match(/XSRF-TOKEN=([^;]+)/);
-            const setupCsrfToken = match ? match[1] : '';
+            const setupCsrfToken = getCsrfToken(signupRes) || '';
             
             // Verify user via testing endpoint
             await request.post('/api/testing/promote-role', {
@@ -155,9 +152,7 @@ test.describe('Auth API Tests', () => {
             });
             
             // Get CSRF token for the promote-role request
-            const cookies = signupRes.headers()['set-cookie'] || '';
-            const match = cookies.match(/XSRF-TOKEN=([^;]+)/);
-            const setupCsrfToken = match ? match[1] : '';
+            const setupCsrfToken = getCsrfToken(signupRes) || '';
 
             // Verify user via testing endpoint
             await request.post('/api/testing/promote-role', {
