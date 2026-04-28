@@ -2,7 +2,6 @@ import React from 'react';
 import { Download, TrendingUp, CheckCircle, Clock, Zap, Search, ChevronDown, ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { Link } from 'react-router-dom';
-import NavyButton from '../../Components/Buttons';
 
 const data = [
   { name: 'Kelebogile', velocity: 32 },
