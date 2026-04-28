@@ -24,8 +24,10 @@ export const requireCSRF = async (req, res, next) => {
     }
 
     // Sanitize transport fields before controllers see the body
-    delete req.body._csrf;
-    delete req.body._method;
+    if (req.body) {
+        delete req.body._csrf;
+        delete req.body._method;
+    }
 
     return next();
 };
