@@ -12,6 +12,10 @@ import { validateEnv } from "./utils/validateEnv.js";
 import registerTestingRoutes from "./utils/registerTestingRoutes.js";
 import healthRoute from "./routes/health.route.js";
 import userRoutes from "./routes/user.route.js";
+import phaseRoutes from "./routes/phase.route.js";
+import reportRoutes from "./routes/report.route.js";
+import searchRoutes from "./routes/search.route.js";
+import analyticsRoutes from "./routes/analytics.route.js";
 import swaggerUi from "swagger-ui-express";
 import { swaggerSpec } from "./lib/swagger.js";
 import { healthLimiter } from "./middleware/rate-limiter.middleware.js";
@@ -85,6 +89,10 @@ app.use("/api/tasks", taskRoute);
 app.use("/api/clients", clientRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/sprints", sprintRoutes);
+app.use("/api/phases", phaseRoutes);
+app.use("/api/reports", reportRoutes);
+app.use("/api/search", searchRoutes);
+app.use("/api/analytics", analyticsRoutes);
 
 // Global Error Handler
 app.use((err, req, res, next) => {

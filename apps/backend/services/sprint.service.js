@@ -130,3 +130,24 @@ export const updateSprint = async (id, data, userId, userRole) => {
         }
     });
 };
+
+/**
+ * Calculates velocity for a specific sprint.
+ * Velocity = total tasks with status 'DONE' in the sprint.
+ */
+export const getSprintVelocity = async (id) => {
+    const sprint = await prisma.sprint.findUnique({ where: { id: String(id) } });
+    if (!sprint) throw new NotFoundError(`Sprint ${id} not found`);
+
+    const velocity = await prisma.task.count({
+        where: {
+            sprintId: String(id),
+            status: TASK_STATUS.DONE
+        }
+    });
+
+    return {
+        sprintId: id,
+        velocity
+    };
+};
