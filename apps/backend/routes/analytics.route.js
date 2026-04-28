@@ -1,31 +1,16 @@
-import express from "express";
-import { verifyToken } from "../middleware/verify-token.middleware.js";
-import { requireAnyRole } from "../middleware/rbac.middleware.js";
-import { readLimiter } from "../middleware/rate-limiter.middleware.js";
-import { injectAnalyticsScope } from "../middleware/analyticsScope.middleware.js";
-import { getAIContext } from "../controllers/analytics.controller.js";
+import express from 'express';
+import { verifyToken } from '../middleware/verify-token.middleware.js';
+import authorize from '../middleware/authorize.middleware.js';
+import { readLimiter } from '../middleware/rate-limiter.middleware.js';
+import { validate } from '../middleware/validate.middleware.js';
+import { getTeamPerformanceHandler, teamAnalyticsSchema } from '../controllers/analytics.controller.js';
 
 const router = express.Router();
 
 /**
- * GET /api/analytics/ai-context
- *
- * Query params:
- *   projectId  {uuid}   — scope all analytics to a single project
- *   startDate  {date}   — ISO-8601 date, filters task createdAt (>=)
- *   endDate    {date}   — ISO-8601 date, filters task createdAt (<=)
- *   cursor     {uuid}   — keyset pagination cursor (last user id from previous page)
- *   limit      {int}    — page size, max 50, default 10
- *
- * Roles: ADMIN (global), PM (own projects), INTERN/CLIENT (own tasks/user entry only)
+ * GET /api/analytics/team — VIEW_ANALYTICS
+ * Allowed: ADMIN, PM
  */
-router.get(
-    "/ai-context",
-    readLimiter,
-    verifyToken,
-    requireAnyRole(["ADMIN", "PM", "INTERN"]),
-    injectAnalyticsScope,
-    getAIContext
-);
+router.get('/team', readLimiter, verifyToken, authorize('VIEW_ANALYTICS'), validate(teamAnalyticsSchema, 'query'), getTeamPerformanceHandler);
 
 export default router;
