@@ -32,6 +32,7 @@
     "method-override": "^3.0.0",
     "multer": "^2.1.1",
     "nodemailer": "^8.0.4",
+    "pdfkit": "^0.18.0",
     "pg": "^8.18.0",
     "prisma": "^7.6.0",
     "qs": "^6.15.1",
