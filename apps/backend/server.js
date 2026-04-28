@@ -11,6 +11,7 @@ import sprintRoutes from "./routes/sprint.route.js";
 import { validateEnv } from "./utils/validateEnv.js";
 import registerTestingRoutes from "./utils/registerTestingRoutes.js";
 import healthRoute from "./routes/health.route.js";
+import userRoutes from "./routes/user.route.js";
 import swaggerUi from "swagger-ui-express";
 import { swaggerSpec } from "./lib/swagger.js";
 import { healthLimiter } from "./middleware/rate-limiter.middleware.js";
@@ -79,6 +80,7 @@ if (isNonProd) {
 
 // Routes
 app.use("/api/auth", authRoutes);
+app.use("/api/users", userRoutes);
 app.use("/api/tasks", taskRoute);
 app.use("/api/clients", clientRoutes);
 app.use("/api/projects", projectRoutes);
