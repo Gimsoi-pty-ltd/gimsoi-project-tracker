@@ -9,6 +9,7 @@ import clientRoutes from "./routes/client.route.js";
 import projectRoutes from "./routes/project.route.js";
 import sprintRoutes from "./routes/sprint.route.js";
 import { validateEnv } from "./utils/validateEnv.js";
+import zohoRoutes from "./routes/zoho.route.js";
 
 dotenv.config();
 
@@ -44,6 +45,7 @@ app.use("/api/tasks", tasksRoutes);
 app.use("/api/clients", clientRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/sprints", sprintRoutes);
+app.use("/api/zoho", zohoRoutes);
 
 // CSRF error handler — must be after routes
 app.use(csrfErrorHandler);
