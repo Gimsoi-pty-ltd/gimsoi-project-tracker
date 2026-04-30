@@ -13,6 +13,7 @@ import registerTestingRoutes from "./utils/registerTestingRoutes.js";
 import healthRoute from "./routes/health.route.js";
 import swaggerUi from "swagger-ui-express";
 import { swaggerSpec } from "./lib/swagger.js";
+import zohoRoutes from "./routes/zoho.route.js";
 
 dotenv.config();
 
@@ -84,6 +85,7 @@ app.use("/api/tasks", taskRoute);
 app.use("/api/clients", clientRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/sprints", sprintRoutes);
+app.use("/api/zoho", zohoRoutes);
 
 // Global Error Handler
 app.use((err, req, res, next) => {
