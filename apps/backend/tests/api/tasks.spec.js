@@ -21,12 +21,22 @@ test.describe('Task Management - Core CRUD & Pipeline', () => {
         const taskRes = await pmApi.post('/api/tasks', {
             data: { title: "Task to complete", projectId: testProject.id, sprintId: testSprint.id }
         });
-        const taskId = (await taskRes.json()).data.id;
+        let task = (await taskRes.json()).data;
+        const taskId = task.id;
 
-        await pmApi.patch(`/api/tasks/${taskId}`, { data: { status: "IN_PROGRESS" } });
-        await pmApi.patch(`/api/sprints/${testSprint.id}/status`, { data: { status: 'ACTIVE' } });
+        const sprintRes = await pmApi.get(`/api/sprints?projectId=${testProject.id}`);
+        const sprint = (await sprintRes.json()).data[0];
 
-        const finishRes = await pmApi.patch(`/api/tasks/${taskId}`, { data: { status: "DONE" } });
+        const p1 = await pmApi.patch(`/api/tasks/${taskId}`, { data: { status: "IN_PROGRESS", version: task.version } });
+        task = (await p1.json()).data;
+
+        if (sprint.status !== 'ACTIVE') {
+            const sprintUpdate = await pmApi.patch(`/api/sprints/${testSprint.id}/status`, { data: { status: 'ACTIVE', version: sprint.version } });
+            if (sprintUpdate.status() !== 200) throw new Error(await sprintUpdate.text());
+        }
+
+        const finishRes = await pmApi.patch(`/api/tasks/${taskId}`, { data: { status: "DONE", version: task.version } });
+        if (finishRes.status() !== 200) throw new Error(await finishRes.text());
         expect(finishRes.status()).toBe(200);
         expect((await finishRes.json()).data.status).toBe('DONE');
     });
@@ -35,10 +45,11 @@ test.describe('Task Management - Core CRUD & Pipeline', () => {
         const taskRes = await pmApi.post('/api/tasks', {
             data: { title: 'Baseline Title', projectId: testProject.id, sprintId: testSprint.id }
         });
-        const taskId = (await taskRes.json()).data.id;
+        const task = (await taskRes.json()).data;
+        const taskId = task.id;
 
         const patchRes = await pmApi.patch(`/api/tasks/${taskId}`, {
-            data: { priority: 'HIGH' }
+            data: { priority: 'HIGH', version: task.version }
         });
         expect(patchRes.status()).toBe(200);
 
@@ -51,8 +62,9 @@ test.describe('Task Management - Core CRUD & Pipeline', () => {
         const projRes = await pmApi.post('/api/projects', {
             data: { name: 'Completed Project', clientId: testClient.id }
         });
-        const projectId = (await projRes.json()).data.id;
-        await pmApi.patch(`/api/projects/${projectId}`, { data: { status: 'COMPLETED' } });
+        const project = (await projRes.json()).data;
+        const projectId = project.id;
+        await pmApi.patch(`/api/projects/${projectId}`, { data: { status: 'COMPLETED', version: project.version } });
 
         const taskRes = await pmApi.post('/api/tasks', {
             data: { title: 'Illegal Task', projectId }
@@ -113,11 +125,20 @@ test.describe('Task Management - Core CRUD & Pipeline', () => {
 
         test('Transitioning a task to DONE sets completedAt automatically', async ({ pmApi, testProject, testSprint }) => {
             const taskRes = await pmApi.post('/api/tasks', { data: { title: 'Will Be Done', projectId: testProject.id, sprintId: testSprint.id } });
-            const taskId = (await taskRes.json()).data.id;
+            let task = (await taskRes.json()).data;
+            const taskId = task.id;
 
-            await pmApi.patch(`/api/sprints/${testSprint.id}/status`, { data: { status: 'ACTIVE' } });
-            await pmApi.patch(`/api/tasks/${taskId}`, { data: { status: 'IN_PROGRESS' } });
-            await pmApi.patch(`/api/tasks/${taskId}`, { data: { status: 'DONE' } });
+            const sprintRes = await pmApi.get(`/api/sprints?projectId=${testProject.id}`);
+            const sprint = (await sprintRes.json()).data[0];
+
+            if (sprint.status !== 'ACTIVE') {
+                const sprintUpdate = await pmApi.patch(`/api/sprints/${testSprint.id}/status`, { data: { status: 'ACTIVE', version: sprint.version } });
+                if (sprintUpdate.status() !== 200) throw new Error(await sprintUpdate.text());
+            }
+            const p1 = await pmApi.patch(`/api/tasks/${taskId}`, { data: { status: 'IN_PROGRESS', version: task.version } });
+            task = (await p1.json()).data;
+            const res2 = await pmApi.patch(`/api/tasks/${taskId}`, { data: { status: 'DONE', version: task.version } });
+            if (res2.status() !== 200) console.error(await res2.text());
 
             const dbTask = await prisma.task.findUnique({ where: { id: taskId } });
             expect(dbTask.completedAt).not.toBeNull();
@@ -125,8 +146,9 @@ test.describe('Task Management - Core CRUD & Pipeline', () => {
 
         test('non-status update does not affect completedAt', async ({ pmApi, testProject }) => {
             const taskRes = await pmApi.post('/api/tasks', { data: { title: 'Partial', projectId: testProject.id } });
-            const taskId = (await taskRes.json()).data.id;
-            await pmApi.patch(`/api/tasks/${taskId}`, { data: { title: 'Updated' } });
+            const task = (await taskRes.json()).data;
+            const taskId = task.id;
+            await pmApi.patch(`/api/tasks/${taskId}`, { data: { title: 'Updated', version: task.version } });
             const dbTask = await prisma.task.findUnique({ where: { id: taskId } });
             expect(dbTask.completedAt).toBeNull();
         });

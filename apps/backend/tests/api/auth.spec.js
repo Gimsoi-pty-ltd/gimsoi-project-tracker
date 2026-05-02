@@ -61,11 +61,16 @@ test.describe('Auth API Tests', () => {
                 data: { email: testUserEmail, password: testPassword, fullName: 'Login Test User' }
             });
             
+            const signupData = await signupRes.json();
             const setupCsrfToken = getCsrfToken(signupRes) || '';
+            const setupToken = signupData.token;
 
             // Verify user via testing endpoint
             const promoteRes = await request.post('/api/testing/promote-role', {
-                headers: { 'x-csrf-token': setupCsrfToken },
+                headers: { 
+                    'x-csrf-token': setupCsrfToken,
+                    'Authorization': `Bearer ${setupToken}`
+                },
                 data: { email: testUserEmail }
             });
             expect(promoteRes.status()).toBe(200);
@@ -97,15 +102,20 @@ test.describe('Auth API Tests', () => {
                 data: { email, password: 'password123', fullName: 'Check Auth User' }
             });
             
+            const signupData = await signupRes.json();
             const setupCsrfToken = getCsrfToken(signupRes) || '';
+            const setupToken = signupData.token;
             
             // Verify user via testing endpoint
             await request.post('/api/testing/promote-role', {
-                headers: { 'x-csrf-token': setupCsrfToken },
+                headers: { 
+                    'x-csrf-token': setupCsrfToken,
+                    'Authorization': `Bearer ${setupToken}`
+                },
                 data: { email }
             });
             
-            localAuthToken = (await signupRes.json()).token;
+            localAuthToken = signupData.token;
         });
 
         test('returns 200 with valid Bearer token', async ({ request }) => {
@@ -152,11 +162,16 @@ test.describe('Auth API Tests', () => {
             });
             
             // Get CSRF token for the promote-role request
+            const signupData = await signupRes.json();
             const setupCsrfToken = getCsrfToken(signupRes) || '';
+            const setupToken = signupData.token;
 
             // Verify user via testing endpoint
             await request.post('/api/testing/promote-role', {
-                headers: { 'x-csrf-token': setupCsrfToken },
+                headers: { 
+                    'x-csrf-token': setupCsrfToken,
+                    'Authorization': `Bearer ${setupToken}`
+                },
                 data: { email }
             });
 

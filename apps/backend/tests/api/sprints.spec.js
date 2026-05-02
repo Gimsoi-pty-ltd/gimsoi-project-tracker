@@ -17,7 +17,7 @@ test.describe('Sprint Lifecycle Validations', () => {
 
     test('PM successfully activates a PLANNING sprint', async ({ pmApi, testSprint }) => {
         const response = await pmApi.patch(`/api/sprints/${testSprint.id}/status`, {
-            data: { status: "ACTIVE" }
+            data: { status: "ACTIVE", version: testSprint.version }
         });
 
         expect(response.status()).toBe(200);
@@ -27,7 +27,8 @@ test.describe('Sprint Lifecycle Validations', () => {
 
     test('Invalid State Transition: PM Attempts Closing Sprint with Open Task', async ({ pmApi, testSprint, testProject }) => {
         // 0. Activate the Sprint
-        await pmApi.patch(`/api/sprints/${testSprint.id}/status`, { data: { status: "ACTIVE" } });
+        const res1 = await pmApi.patch(`/api/sprints/${testSprint.id}/status`, { data: { status: "ACTIVE", version: testSprint.version } });
+        const s1 = (await res1.json()).data;
 
         // 1. Create an active Task inside the Sprint
         await pmApi.post('/api/tasks', {
@@ -36,7 +37,7 @@ test.describe('Sprint Lifecycle Validations', () => {
 
         // 2. Attempt to Close Sprint (Should fail because Task is Open/TODO)
         const response = await pmApi.patch(`/api/sprints/${testSprint.id}/status`, {
-            data: { status: "CLOSED" }
+            data: { status: "CLOSED", version: s1.version }
         });
 
         expect(response.status()).toBe(400);
@@ -45,10 +46,11 @@ test.describe('Sprint Lifecycle Validations', () => {
     });
 
     test('Valid State Transition: PM Successfully Closes Empty Sprint', async ({ pmApi, testSprint }) => {
-        await pmApi.patch(`/api/sprints/${testSprint.id}/status`, { data: { status: "ACTIVE" } });
+        const res1 = await pmApi.patch(`/api/sprints/${testSprint.id}/status`, { data: { status: "ACTIVE", version: testSprint.version } });
+        const s1 = (await res1.json()).data;
 
         const response = await pmApi.patch(`/api/sprints/${testSprint.id}/status`, {
-            data: { status: "CLOSED" }
+            data: { status: "CLOSED", version: s1.version }
         });
 
         expect(response.status()).toBe(200);
@@ -58,7 +60,7 @@ test.describe('Sprint Lifecycle Validations', () => {
 
         test('PLANNING → CLOSED transition is blocked (must activate first)', async ({ pmApi, testSprint }) => {
             const response = await pmApi.patch(`/api/sprints/${testSprint.id}/status`, {
-                data: { status: 'CLOSED' }
+                data: { status: 'CLOSED', version: testSprint.version }
             });
 
             expect(response.status()).toBe(400);
@@ -68,11 +70,13 @@ test.describe('Sprint Lifecycle Validations', () => {
 
         test('CLOSED → ACTIVE regression is blocked (sprint cannot be reopened)', async ({ pmApi, testSprint }) => {
             // Setup: Reach CLOSED state correctly
-            await pmApi.patch(`/api/sprints/${testSprint.id}/status`, { data: { status: 'ACTIVE' } });
-            await pmApi.patch(`/api/sprints/${testSprint.id}/status`, { data: { status: 'CLOSED' } });
+            const res1 = await pmApi.patch(`/api/sprints/${testSprint.id}/status`, { data: { status: 'ACTIVE', version: testSprint.version } });
+            const s1 = (await res1.json()).data;
+            const res2 = await pmApi.patch(`/api/sprints/${testSprint.id}/status`, { data: { status: 'CLOSED', version: s1.version } });
+            const s2 = (await res2.json()).data;
 
             const response = await pmApi.patch(`/api/sprints/${testSprint.id}/status`, {
-                data: { status: 'ACTIVE' }
+                data: { status: 'ACTIVE', version: s2.version }
             });
 
             expect(response.status()).toBe(400);

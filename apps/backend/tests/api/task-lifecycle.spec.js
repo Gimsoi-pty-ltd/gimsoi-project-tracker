@@ -32,7 +32,7 @@ test.describe('Task Lifecycle & Transition Guards', () => {
                 data: { title: 'Transition Baseline Task', projectId: testProject.id, sprintId: testSprint.id }
             });
             const task = (await taskRes.json()).data;
-            const validRes = await pmApi.patch(`/api/tasks/${task.id}`, { data: { status: 'IN_PROGRESS' } });
+            const validRes = await pmApi.patch(`/api/tasks/${task.id}`, { data: { status: 'IN_PROGRESS', version: task.version } });
             expect(validRes.status()).toBe(200);
         });
 
@@ -40,12 +40,17 @@ test.describe('Task Lifecycle & Transition Guards', () => {
             const taskRes = await pmApi.post('/api/tasks', {
                 data: { title: 'Illegal Regression Task', projectId: testProject.id, sprintId: testSprint.id }
             });
-            const task = (await taskRes.json()).data;
-            await pmApi.patch(`/api/tasks/${task.id}`, { data: { status: 'IN_PROGRESS' } });
-            await pmApi.patch(`/api/sprints/${testSprint.id}/status`, { data: { status: 'ACTIVE' } });
-            await pmApi.patch(`/api/tasks/${task.id}`, { data: { status: 'DONE' } });
+            let task = (await taskRes.json()).data;
 
-            const failRes = await pmApi.patch(`/api/tasks/${task.id}`, { data: { status: 'IN_PROGRESS' } });
+            const res1 = await pmApi.patch(`/api/tasks/${task.id}`, { data: { status: 'IN_PROGRESS', version: task.version } });
+            task = (await res1.json()).data;
+
+            await pmApi.patch(`/api/sprints/${testSprint.id}/status`, { data: { status: 'ACTIVE', version: testSprint.version } });
+
+            const res2 = await pmApi.patch(`/api/tasks/${task.id}`, { data: { status: 'DONE', version: task.version } });
+            task = (await res2.json()).data;
+
+            const failRes = await pmApi.patch(`/api/tasks/${task.id}`, { data: { status: 'IN_PROGRESS', version: task.version } });
             expect(failRes.status()).toBe(400);
             expect((await failRes.json()).message).toContain('Cannot modify');
         });
@@ -54,16 +59,20 @@ test.describe('Task Lifecycle & Transition Guards', () => {
             const taskRes = await pmApi.post('/api/tasks', {
                 data: { title: 'Immutable Done Task', projectId: testProject.id, sprintId: testSprint.id }
             });
-            const task = (await taskRes.json()).data;
+            let task = (await taskRes.json()).data;
             
             // Setup: Reach DONE state correctly
-            await pmApi.patch(`/api/tasks/${task.id}`, { data: { status: 'IN_PROGRESS' } });
-            await pmApi.patch(`/api/sprints/${testSprint.id}/status`, { data: { status: 'ACTIVE' } });
-            await pmApi.patch(`/api/tasks/${task.id}`, { data: { status: 'DONE' } });
+            const r1 = await pmApi.patch(`/api/tasks/${task.id}`, { data: { status: 'IN_PROGRESS', version: task.version } });
+            task = (await r1.json()).data;
+
+            await pmApi.patch(`/api/sprints/${testSprint.id}/status`, { data: { status: 'ACTIVE', version: testSprint.version } });
+
+            const r2 = await pmApi.patch(`/api/tasks/${task.id}`, { data: { status: 'DONE', version: task.version } });
+            task = (await r2.json()).data;
 
             // Action: Attempt non-status update (title)
             const failRes = await pmApi.patch(`/api/tasks/${task.id}`, {
-                data: { title: 'Attempting to modify a done task' }
+                data: { title: 'Attempting to modify a done task', version: task.version }
             });
 
             expect(failRes.status()).toBe(400);
@@ -77,7 +86,7 @@ test.describe('Task Lifecycle & Transition Guards', () => {
                 data: { title: 'Jump Task', projectId: testProject.id, sprintId: testSprint.id }
             });
             const task = (await taskRes.json()).data;
-            const failRes = await pmApi.patch(`/api/tasks/${task.id}`, { data: { status: 'DONE' } });
+            const failRes = await pmApi.patch(`/api/tasks/${task.id}`, { data: { status: 'DONE', version: task.version } });
             expect(failRes.status()).toBe(400);
             expect((await failRes.json()).message).toContain('Illegal task transition');
         });
@@ -87,7 +96,7 @@ test.describe('Task Lifecycle & Transition Guards', () => {
                 data: { title: 'Cancel from TODO', projectId: testProject.id, sprintId: testSprint.id }
             });
             const task = (await taskRes.json()).data;
-            const res = await pmApi.patch(`/api/tasks/${task.id}`, { data: { status: 'CANCELLED' } });
+            const res = await pmApi.patch(`/api/tasks/${task.id}`, { data: { status: 'CANCELLED', version: task.version } });
             expect(res.status()).toBe(200);
         });
 
@@ -95,9 +104,10 @@ test.describe('Task Lifecycle & Transition Guards', () => {
             const taskRes = await pmApi.post('/api/tasks', {
                 data: { title: 'To Block', projectId: testProject.id, sprintId: testSprint.id }
             });
-            const task = (await taskRes.json()).data;
-            await pmApi.patch(`/api/tasks/${task.id}`, { data: { status: 'IN_PROGRESS' } });
-            const res = await pmApi.patch(`/api/tasks/${task.id}`, { data: { status: 'BLOCKED' } });
+            let task = (await taskRes.json()).data;
+            const r1 = await pmApi.patch(`/api/tasks/${task.id}`, { data: { status: 'IN_PROGRESS', version: task.version } });
+            task = (await r1.json()).data;
+            const res = await pmApi.patch(`/api/tasks/${task.id}`, { data: { status: 'BLOCKED', version: task.version } });
             expect(res.status()).toBe(200);
             expect((await res.json()).data.status).toBe('BLOCKED');
         });
@@ -106,10 +116,12 @@ test.describe('Task Lifecycle & Transition Guards', () => {
             const taskRes = await pmApi.post('/api/tasks', {
                 data: { title: 'Unblock', projectId: testProject.id, sprintId: testSprint.id }
             });
-            const task = (await taskRes.json()).data;
-            await pmApi.patch(`/api/tasks/${task.id}`, { data: { status: 'IN_PROGRESS' } });
-            await pmApi.patch(`/api/tasks/${task.id}`, { data: { status: 'BLOCKED' } });
-            const res = await pmApi.patch(`/api/tasks/${task.id}`, { data: { status: 'IN_PROGRESS' } });
+            let task = (await taskRes.json()).data;
+            const r1 = await pmApi.patch(`/api/tasks/${task.id}`, { data: { status: 'IN_PROGRESS', version: task.version } });
+            task = (await r1.json()).data;
+            const r2 = await pmApi.patch(`/api/tasks/${task.id}`, { data: { status: 'BLOCKED', version: task.version } });
+            task = (await r2.json()).data;
+            const res = await pmApi.patch(`/api/tasks/${task.id}`, { data: { status: 'IN_PROGRESS', version: task.version } });
             expect(res.status()).toBe(200);
         });
     });
@@ -129,8 +141,8 @@ test.describe('Task Lifecycle & Transition Guards', () => {
             const taskRes = await adminApi.post('/api/tasks', {
                 data: { title: 'Bad Status Task', projectId: testProject.id }
             });
-            const taskId = (await taskRes.json()).data.id;
-            const res = await adminApi.patch(`/api/tasks/${taskId}`, { data: { status: 'FLYING' } });
+            const task = (await taskRes.json()).data;
+            const res = await adminApi.patch(`/api/tasks/${task.id}`, { data: { status: 'FLYING', version: task.version } });
             expect(res.status()).toBe(400);
         });
 
@@ -138,18 +150,21 @@ test.describe('Task Lifecycle & Transition Guards', () => {
             const projRes = await pmApi.post('/api/projects', {
                 data: { name: 'Guard Project', clientId: testClient.id }
             });
-            const projectId = (await projRes.json()).data.id;
-            await pmApi.patch(`/api/projects/${projectId}`, { data: { status: 'ACTIVE' } });
+            const project = (await projRes.json()).data;
+            const projectId = project.id;
+            const res1 = await pmApi.patch(`/api/projects/${projectId}`, { data: { status: 'ACTIVE', version: project.version } });
+            const p1 = (await res1.json()).data;
             
             const taskRes = await pmApi.post('/api/tasks', {
                 data: { title: 'Guard Task', projectId }
             });
-            const taskId = (await taskRes.json()).data.id;
+            const task = (await taskRes.json()).data;
+            const taskId = task.id;
 
             // Complete the project
-            await pmApi.patch(`/api/projects/${projectId}`, { data: { status: 'COMPLETED' } });
+            await pmApi.patch(`/api/projects/${projectId}`, { data: { status: 'COMPLETED', version: p1.version } });
 
-            const editRes = await pmApi.patch(`/api/tasks/${taskId}`, { data: { title: 'Updated' } });
+            const editRes = await pmApi.patch(`/api/tasks/${taskId}`, { data: { title: 'Updated', version: task.version } });
             expect(editRes.status()).toBe(400);
             expect((await editRes.json()).message).toContain('COMPLETED');
         });
@@ -158,13 +173,16 @@ test.describe('Task Lifecycle & Transition Guards', () => {
             const sprintRes = await pmApi.post('/api/sprints', {
                 data: { name: 'Planning Sprint', projectId: testProject.id }
             });
-            const sprintId = (await sprintRes.json()).data.id;
+            const sprint = (await sprintRes.json()).data;
+            const sprintId = sprint.id;
             const taskRes = await pmApi.post('/api/tasks', {
                 data: { title: 'To DONE', projectId: testProject.id, sprintId }
             });
-            const taskId = (await taskRes.json()).data.id;
-            await pmApi.patch(`/api/tasks/${taskId}`, { data: { status: 'IN_PROGRESS' } });
-            const doneRes = await pmApi.patch(`/api/tasks/${taskId}`, { data: { status: 'DONE' } });
+            const task = (await taskRes.json()).data;
+            const taskId = task.id;
+            await pmApi.patch(`/api/tasks/${taskId}`, { data: { status: 'IN_PROGRESS', version: task.version } });
+            // Note: sprint is still PLANNING, not ACTIVE.
+            const doneRes = await pmApi.patch(`/api/tasks/${taskId}`, { data: { status: 'DONE', version: task.version + 1 } });
             expect(doneRes.status()).toBe(400);
             expect((await doneRes.json()).message.toLowerCase()).toContain('active sprint');
         });

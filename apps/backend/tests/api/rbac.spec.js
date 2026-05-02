@@ -38,7 +38,7 @@ test.describe('RBAC & Permission Hardening', () => {
             const { data: task } = await taskRes.json();
 
             const updateRes = await adminApi.patch(`/api/tasks/${task.id}`, {
-                data: { title: 'Updated By Admin' }
+                data: { title: 'Updated By Admin', version: task.version }
             });
             expect(updateRes.status()).toBe(200);
         });
@@ -51,7 +51,7 @@ test.describe('RBAC & Permission Hardening', () => {
             const { data: task } = await taskRes.json();
 
             const updateRes = await pmApi.patch(`/api/tasks/${task.id}`, {
-                data: { description: 'Updated by PM' }
+                data: { description: 'Updated by PM', version: task.version }
             });
             expect(updateRes.status()).toBe(200);
         });
@@ -76,21 +76,27 @@ test.describe('RBAC & Permission Hardening', () => {
             const authRes = await internApi.get('/api/auth/check-auth');
             const internUser = (await authRes.json()).user;
 
-            // 1. PM creates task and assigns to Intern
+            // 1. PM adds Intern as member
+            await pmApi.post(`/api/projects/${testProject.id}/members`, {
+                data: { userId: internUser.id, role: 'MEMBER' }
+            });
+
+            // 2. PM creates task and assigns to Intern
             const createRes = await pmApi.post('/api/tasks', {
                 data: { title: 'Editable Task', projectId: testProject.id, assigneeId: internUser.id }
             });
             const task = (await createRes.json()).data;
 
-            // 2. Intern attempts to update title -> 403
+            // 2. Intern attempts to update title -> 403 (Permitted or not, should be 403 based on RBAC logic in service)
+            // Even with correct version, it should be 403.
             const res1 = await internApi.patch(`/api/tasks/${task.id}`, {
-                data: { title: 'Intern Changed Title' }
+                data: { title: 'Intern Changed Title', version: task.version }
             });
             expect(res1.status()).toBe(403);
 
             // 3. Intern attempts to update status -> 200 (Permitted via UPDATE_OWN_TASK_STATUS)
             const res2 = await internApi.patch(`/api/tasks/${task.id}`, {
-                data: { status: 'IN_PROGRESS' }
+                data: { status: 'IN_PROGRESS', version: task.version }
             });
             expect(res2.status()).toBe(200);
             const body2 = await res2.json();
@@ -102,11 +108,11 @@ test.describe('RBAC & Permission Hardening', () => {
             const taskRes = await pmApi.post('/api/tasks', {
                 data: { title: 'Secret PM Task', projectId: testProject.id }
             });
-            const taskId = (await taskRes.json()).data.id;
+            const task = (await taskRes.json()).data;
 
             // Intern (different user) attempts to update
-            const res = await internApi.patch(`/api/tasks/${taskId}`, {
-                data: { status: "IN_PROGRESS" }
+            const res = await internApi.patch(`/api/tasks/${task.id}`, {
+                data: { status: "IN_PROGRESS", version: task.version }
             });
             expect(res.status()).toBe(403);
         });
@@ -146,7 +152,7 @@ test.describe('RBAC & Permission Hardening', () => {
 
         test('Intern gets 403 when modifying a PM project (Ownership check)', async ({ internApi, testProject }) => {
             const response = await internApi.patch(`/api/projects/${testProject.id}`, {
-                data: { name: "Hacked Name" }
+                data: { name: "Hacked Name", version: testProject.version }
             });
 
             expect(response.status()).toBe(403);
