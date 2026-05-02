@@ -3,7 +3,8 @@ import { verifyToken } from '../middleware/verify-token.middleware.js';
 import authorize from '../middleware/authorize.middleware.js';
 import { readLimiter } from '../middleware/rate-limiter.middleware.js';
 import { validate } from '../middleware/validate.middleware.js';
-import { getTeamPerformanceHandler, teamAnalyticsSchema } from '../controllers/analytics.controller.js';
+import { getTeamPerformanceHandler } from '../controllers/analytics.controller.js';
+import { teamAnalyticsSchema } from '../schemas/analytics.schema.js';
 
 const router = express.Router();
 

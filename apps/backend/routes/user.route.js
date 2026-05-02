@@ -11,6 +11,8 @@ import {
   updateAvatar,
 } from '../controllers/user.controller.js';
 import { upload } from '../utils/upload.js';
+import { validate } from "../middleware/validate.middleware.js";
+import { adminCreateUserSchema, updateProfileSchema, updateUserRoleSchema } from "../schemas/user.schema.js";
 
 const router = express.Router();
 
@@ -22,17 +24,17 @@ const router = express.Router();
 router.get('/', readLimiter, verifyToken, authorize('VIEW_USERS'), getUsers);
 
 // Create new user (admin-level bypass)
-router.post('/', writeLimiter, verifyToken, authorize('MANAGE_USERS'), requireCSRF, adminCreateUser);
+router.post('/', writeLimiter, verifyToken, authorize('MANAGE_USERS'), requireCSRF, validate(adminCreateUserSchema), adminCreateUser);
 
 // Update user role
-router.patch('/:id/role', writeLimiter, verifyToken, authorize('MANAGE_USERS'), requireCSRF, updateUserRole);
+router.patch('/:id/role', writeLimiter, verifyToken, authorize('MANAGE_USERS'), requireCSRF, validate(updateUserRoleSchema), updateUserRole);
 
 /**
  * AUTHENTICATED Endpoints (Any Role)
  */
 
 // Update own profile
-router.patch('/me', writeLimiter, verifyToken, requireCSRF, updateProfile);
+router.patch('/me', writeLimiter, verifyToken, requireCSRF, validate(updateProfileSchema), updateProfile);
 
 // Upload own avatar
 router.post('/me/avatar', writeLimiter, verifyToken, requireCSRF, upload.single('avatar'), updateAvatar);

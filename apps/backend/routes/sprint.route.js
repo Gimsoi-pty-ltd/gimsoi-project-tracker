@@ -4,6 +4,8 @@ import authorize from "../middleware/authorize.middleware.js";
 import { readLimiter, writeLimiter } from "../middleware/rate-limiter.middleware.js";
 import { createSprint, getSprints, updateSprintStatus, updateSprint, getSprintVelocity } from "../controllers/sprint.controller.js";
 import { requireCSRF } from "../middleware/csrf.middleware.js";
+import { validate } from "../middleware/validate.middleware.js";
+import { createSprintSchema, updateSprintSchema, updateSprintStatusSchema } from "../schemas/sprint.schema.js";
 
 const router = express.Router();
 
@@ -23,18 +25,18 @@ router.get("/", readLimiter, verifyToken, authorize("VIEW_SPRINTS"), getSprints)
  * POST /api/sprints — MANAGE_SPRINTS
  * Allowed: ADMIN, PM
  */
-router.post("/", writeLimiter, verifyToken, authorize("MANAGE_SPRINTS"), requireCSRF, createSprint);
+router.post("/", writeLimiter, verifyToken, authorize("MANAGE_SPRINTS"), requireCSRF, validate(createSprintSchema), createSprint);
 
 /**
  * PATCH /api/sprints/:id/status — MANAGE_SPRINTS
  * Allowed: ADMIN, PM
  */
-router.patch("/:id/status", writeLimiter, verifyToken, authorize("MANAGE_SPRINTS"), requireCSRF, updateSprintStatus);
+router.patch("/:id/status", writeLimiter, verifyToken, authorize("MANAGE_SPRINTS"), requireCSRF, validate(updateSprintStatusSchema), updateSprintStatus);
 
 /**
  * PATCH /api/sprints/:id — MANAGE_SPRINTS
  * Allowed: ADMIN, PM
  */
-router.patch("/:id", writeLimiter, verifyToken, authorize("MANAGE_SPRINTS"), requireCSRF, updateSprint);
+router.patch("/:id", writeLimiter, verifyToken, authorize("MANAGE_SPRINTS"), requireCSRF, validate(updateSprintSchema), updateSprint);
 
 export default router;
