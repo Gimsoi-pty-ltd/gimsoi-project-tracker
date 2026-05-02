@@ -1,4 +1,4 @@
-import prisma from '../../lib/prisma.js';
+import { rawPrisma as prisma } from '../../lib/prisma.js';
 
 export default async function globalSetup() {
     // SAFETY GUARD: in CI environments, refuse to wipe any database that doesn't look like
@@ -28,12 +28,21 @@ export default async function globalSetup() {
         // Delete all records in the correct dependency order
         // Projects -> Sprints -> Tasks structure.
         // Actually since we use PostgreSQL, we can TRUNCATE or just delete from bottom up.
-        await prisma.task.deleteMany();
-        await prisma.sprint.deleteMany();
-        await prisma.project.deleteMany();
-        await prisma.client.deleteMany();
-        await prisma.user.deleteMany();
-        console.log('--- Test environment initialized ---');
+        // Truncate all tables in one go, bypassing foreign key checks
+        const tables = [
+            '"ActivityLog"',
+            '"Comment"',
+            '"Label"',
+            '"_LabelToTask"',
+            '"Task"',
+            '"Sprint"',
+            '"ProjectMember"',
+            '"Project"',
+            '"Client"',
+            '"User"'
+        ];
+        await prisma.$executeRawUnsafe(`TRUNCATE TABLE ${tables.join(', ')} CASCADE;`);
+        console.log('--- Test environment initialized via TRUNCATE ---');
     } catch (e) {
         console.error('Failed to wipe database in globalSetup:', e);
         throw e;
