@@ -1,10 +1,4 @@
-import { z } from 'zod';
 import { globalSearch } from '../services/search.service.js';
-
-export const searchSchema = z.object({
-    q: z.string().min(1, 'Search query is required'),
-    type: z.enum(['all', 'project', 'task', 'user']).optional().default('all')
-});
 
 export const searchHandler = async (req, res, next) => {
     try {

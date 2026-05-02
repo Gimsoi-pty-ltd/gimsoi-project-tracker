@@ -1,6 +1,6 @@
 /** @see {@link docs/DATA_CONTRACT.md} */
 import prisma from "../lib/prisma.js";
-import { StateTransitionError, NotFoundError } from "../utils/errors.js";
+import { StateTransitionError, NotFoundError, ConflictError } from "../utils/errors.js";
 import { assertOwnership } from "../utils/ownership.js";
 // Cross-domain dependency: Project domain requires task summary data. Access only via the narrow summary function — do not import broad task service internals.
 import { getProjectTaskSummary, getProjectTaskSummaryBatch } from "./task.service.js";
@@ -8,17 +8,32 @@ import { PROJECT_STATUS } from "../constants/statuses.js";
 import ROLES from "../constants/roles.js";
 
 export const createProject = async ({ name, clientId, status, description, createdByUserId }) => {
-  if (status && ![PROJECT_STATUS.DRAFT, PROJECT_STATUS.ACTIVE, PROJECT_STATUS.COMPLETED].includes(status)) {
-    throw new StateTransitionError(`Invalid project status '${status}'. Allowed: ${PROJECT_STATUS.DRAFT}, ${PROJECT_STATUS.ACTIVE}, ${PROJECT_STATUS.COMPLETED}`);
+  if (status && ![PROJECT_STATUS.DRAFT, PROJECT_STATUS.ACTIVE, PROJECT_STATUS.COMPLETED, PROJECT_STATUS.ARCHIVED].includes(status)) {
+    throw new StateTransitionError(`Invalid project status '${status}'.`);
   }
-  return prisma.project.create({
-    data: {
-      name,
-      clientId: String(clientId),
-      status: status || PROJECT_STATUS.DRAFT,
-      description,
-      createdByUserId,
-    },
+
+  return prisma.$transaction(async (tx) => {
+    const project = await tx.project.create({
+      data: {
+        name,
+        clientId: String(clientId),
+        status: status || PROJECT_STATUS.DRAFT,
+        description,
+        createdByUserId,
+      },
+    });
+
+    if (createdByUserId) {
+      await tx.projectMember.create({
+        data: {
+          projectId: project.id,
+          userId: createdByUserId,
+          role: 'OWNER'
+        }
+      });
+    }
+
+    return project;
   });
 };
 
@@ -26,12 +41,21 @@ export const createProject = async ({ name, clientId, status, description, creat
  * @param {{ limit?: number, cursor?: string }} options
  * limit defaults to 50, max 100. cursor is the id of the last record from the previous page.
  */
-export const getProjects = async ({ limit = 50, cursor, search } = {}) => {
+export const getProjects = async ({ limit = 50, cursor, search, status, createdByUserId, includeArchived } = {}) => {
   const take = Math.min(Number(limit) || 50, 100);
 
   const where = {};
   if (search) {
     where.name = { contains: search, mode: 'insensitive' };
+  }
+  if (status) {
+    where.status = status;
+  } else if (includeArchived !== 'true' && includeArchived !== true) {
+    // Exclude archived by default if no explicit status is requested
+    where.status = { not: PROJECT_STATUS.ARCHIVED };
+  }
+  if (createdByUserId) {
+    where.createdByUserId = createdByUserId;
   }
 
   return prisma.project.findMany({
@@ -59,8 +83,9 @@ export const updateProject = async (id, data, userId, userRole) => {
   if (data.status && existing.status !== data.status) {
     const validTransitions = {
       [PROJECT_STATUS.DRAFT]: [PROJECT_STATUS.ACTIVE, PROJECT_STATUS.COMPLETED],
-      [PROJECT_STATUS.ACTIVE]: [PROJECT_STATUS.COMPLETED, PROJECT_STATUS.DRAFT],
-      [PROJECT_STATUS.COMPLETED]: []
+      [PROJECT_STATUS.ACTIVE]: [PROJECT_STATUS.COMPLETED, PROJECT_STATUS.DRAFT, PROJECT_STATUS.ARCHIVED],
+      [PROJECT_STATUS.COMPLETED]: [PROJECT_STATUS.ARCHIVED],
+      [PROJECT_STATUS.ARCHIVED]: [PROJECT_STATUS.ACTIVE]
     };
 
     const allowed = validTransitions[existing.status] || [];
@@ -69,15 +94,23 @@ export const updateProject = async (id, data, userId, userRole) => {
     }
   }
 
-  return prisma.project.update({
-    where: { id: String(id) },
-    data: {
-      ...(data.name && { name: data.name }),
-      ...(data.status && { status: data.status }),
-      ...(data.description !== undefined ? { description: data.description } : {}),
-      ...(data.endDate !== undefined ? { endDate: data.endDate } : {}),
-    },
-  });
+  try {
+    return await prisma.project.update({
+      where: { id: String(id), version: data.version },
+      data: {
+        ...(data.name && { name: data.name }),
+        ...(data.status && { status: data.status }),
+        ...(data.description !== undefined ? { description: data.description } : {}),
+        ...(data.endDate !== undefined ? { endDate: data.endDate } : {}),
+        version: { increment: 1 }
+      },
+    });
+  } catch (err) {
+    if (err.code === 'P2025') {
+      throw new ConflictError("Project was modified by another user. Please refresh and try again.");
+    }
+    throw err;
+  }
 };
 
 /**

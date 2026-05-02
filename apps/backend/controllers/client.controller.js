@@ -1,4 +1,5 @@
 import * as clientService from "../services/client.service.js";
+import { parsePagination, buildPage } from "../utils/pagination.js";
 
 export const createClient = async (req, res, next) => {
   try {
@@ -23,8 +24,10 @@ export const createClient = async (req, res, next) => {
 
 export const getClients = async (req, res, next) => {
   try {
-    const clients = await clientService.getClients();
-    return res.status(200).json({ success: true, data: clients });
+    const { limit } = parsePagination(req.query);
+    const records = await clientService.getClients(req.query);
+    const { data, nextCursor } = buildPage(records, limit);
+    return res.status(200).json({ success: true, data, nextCursor });
   } catch (err) {
     next(err);
   }
@@ -37,6 +40,26 @@ export const getClientById = async (req, res, next) => {
     const client = await clientService.getClientById(id);
 
     return res.status(200).json({ success: true, data: client });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const updateClient = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const client = await clientService.updateClient(id, req.body);
+    return res.status(200).json({ success: true, message: "Client updated", data: client });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const deleteClient = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    await clientService.deleteClient(id);
+    return res.status(200).json({ success: true, message: "Client deleted" });
   } catch (err) {
     next(err);
   }

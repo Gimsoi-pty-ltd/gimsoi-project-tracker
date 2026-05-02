@@ -9,12 +9,15 @@ export const resetDatabase = async (req, res, next) => {
     }
 
     try {
-        // Delete in reverse dependency order
-        await prisma.task.deleteMany({});
-        await prisma.sprint.deleteMany({});
-        await prisma.project.deleteMany({});
-        await prisma.client.deleteMany({});
-        await prisma.user.deleteMany({});
+        // Use raw SQL to bypass the soft delete extension and actually wipe the tables.
+        await prisma.$executeRawUnsafe('TRUNCATE TABLE "Comment" CASCADE');
+        await prisma.$executeRawUnsafe('TRUNCATE TABLE "Report" CASCADE');
+        await prisma.$executeRawUnsafe('TRUNCATE TABLE "Phase" CASCADE');
+        await prisma.$executeRawUnsafe('TRUNCATE TABLE "Task" CASCADE');
+        await prisma.$executeRawUnsafe('TRUNCATE TABLE "Sprint" CASCADE');
+        await prisma.$executeRawUnsafe('TRUNCATE TABLE "Project" CASCADE');
+        await prisma.$executeRawUnsafe('TRUNCATE TABLE "Client" CASCADE');
+        await prisma.$executeRawUnsafe('TRUNCATE TABLE "User" CASCADE');
 
         return res.status(200).json({ success: true, message: "Database wiped for testing." });
     } catch (error) {

@@ -1,7 +1,8 @@
 /** @see {@link docs/DATA_CONTRACT.md} */
 import prisma from "../lib/prisma.js";
-import { StateTransitionError, NotFoundError } from '../utils/errors.js';
+import { StateTransitionError, NotFoundError, ConflictError } from '../utils/errors.js';
 import { assertOwnership } from "../utils/ownership.js";
+import { assertProjectMembership } from "../utils/membership.js";
 import { SPRINT_STATUS, PROJECT_STATUS, TASK_STATUS } from "../constants/statuses.js";
 import { getTaskCountBySprintId } from "./task.service.js";
 
@@ -46,21 +47,24 @@ export const createSprint = async ({ name, projectId, status, startDate, endDate
  * @param {{ limit?: number, cursor?: string }} options
  * limit defaults to 50, max 100. cursor is the id of the last record from the previous page.
  */
-export const getSprintsByProject = async (projectId, { limit = 50, cursor } = {}) => {
+export const getSprintsByProject = async (projectId, { limit = 50, cursor } = {}, requestingUser) => {
+    if (requestingUser) {
+        await assertProjectMembership(projectId, requestingUser.id, requestingUser.role);
+    }
     const take = Math.min(Number(limit) || 50, 100);
     return prisma.sprint.findMany({
         where: { projectId },
         take: take + 1,         // fetch one extra to detect whether there's a next page
         ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
         orderBy: { createdAt: 'desc' },
-        select: { id: true, name: true, status: true, projectId: true, createdAt: true, createdByUserId: true },
+        select: { id: true, name: true, status: true, projectId: true, createdAt: true, createdByUserId: true, version: true },
     });
 };
 
 
 // Accepts the already-fetched sprint object to avoid a redundant DB round-trip.
 // Ownership must be asserted by the caller (updateSprintStatus) before invoking this.
-const closeSprint = async (sprint, db = prisma) => {
+const closeSprint = async (sprint, version, db = prisma) => {
     // Task counts are owned by the Task domain. Do not query task tables directly from this file — use the Task service.
     const openTaskCount = await getTaskCountBySprintId(
         sprint.id,
@@ -72,19 +76,32 @@ const closeSprint = async (sprint, db = prisma) => {
         throw new StateTransitionError("Cannot close sprint with active open tasks remaining.");
     }
 
-    return db.sprint.update({
-        where: { id: sprint.id },
-        data: { status: SPRINT_STATUS.CLOSED }
-    });
+    try {
+        return await db.sprint.update({
+            where: { id: sprint.id, version },
+            data: { 
+                status: SPRINT_STATUS.CLOSED,
+                version: { increment: 1 }
+            }
+        });
+    } catch (err) {
+        if (err.code === 'P2025') {
+            throw new ConflictError("Sprint was modified by another user. Please refresh and try again.");
+        }
+        throw err;
+    }
 }
 
 
-export const updateSprintStatus = async (id, targetStatus, userId, userRole, db = prisma) => {
+export const updateSprintStatus = async (id, targetStatus, userId, userRole, version, db = prisma) => {
     const sprint = await db.sprint.findUnique({ where: { id: String(id) } });
 
     if (!sprint) throw new NotFoundError(`Sprint ${id} not found`);
 
-    if (userId && userRole) assertOwnership(sprint, userId, userRole);
+    if (userId && userRole) {
+        assertOwnership(sprint, userId, userRole);
+        await assertProjectMembership(sprint.projectId, userId, userRole);
+    }
 
     const currentStatus = sprint.status;
 
@@ -94,13 +111,23 @@ export const updateSprintStatus = async (id, targetStatus, userId, userRole, db 
     }
 
     if (targetStatus === SPRINT_STATUS.CLOSED) {
-        return closeSprint(sprint, db); // Pass down to the specific closer method
+        return closeSprint(sprint, version, db);
     }
 
-    return db.sprint.update({
-        where: { id: String(id) },
-        data: { status: targetStatus }
-    });
+    try {
+        return await db.sprint.update({
+            where: { id: String(id), version },
+            data: { 
+                status: targetStatus,
+                version: { increment: 1 }
+            }
+        });
+    } catch (err) {
+        if (err.code === 'P2025') {
+            throw new ConflictError("Sprint was modified by another user. Please refresh and try again.");
+        }
+        throw err;
+    }
 }
 
 
@@ -108,7 +135,10 @@ export const updateSprint = async (id, data, userId, userRole) => {
     const sprint = await prisma.sprint.findUnique({ where: { id: String(id) } });
     if (!sprint) throw new NotFoundError(`Sprint ${id} not found`);
 
-    if (userId && userRole) assertOwnership(sprint, userId, userRole);
+    if (userId && userRole) {
+        assertOwnership(sprint, userId, userRole);
+        await assertProjectMembership(sprint.projectId, userId, userRole);
+    }
 
     if (data.startDate !== undefined && data.startDate !== null && isNaN(Date.parse(data.startDate))) {
         throw new StateTransitionError('Invalid startDate format.');
@@ -117,18 +147,26 @@ export const updateSprint = async (id, data, userId, userRole) => {
         throw new StateTransitionError('Invalid endDate format.');
     }
 
-    return prisma.sprint.update({
-        where: { id: String(id) },
-        data: {
-            name: data.name !== undefined ? data.name : sprint.name,
-            startDate: data.startDate !== undefined
-                ? (data.startDate === null ? null : new Date(data.startDate))
-                : sprint.startDate,
-            endDate: data.endDate !== undefined
-                ? (data.endDate === null ? null : new Date(data.endDate))
-                : sprint.endDate,
+    try {
+        return await prisma.sprint.update({
+            where: { id: String(id), version: data.version },
+            data: {
+                name: data.name !== undefined ? data.name : sprint.name,
+                startDate: data.startDate !== undefined
+                    ? (data.startDate === null ? null : new Date(data.startDate))
+                    : sprint.startDate,
+                endDate: data.endDate !== undefined
+                    ? (data.endDate === null ? null : new Date(data.endDate))
+                    : sprint.endDate,
+                version: { increment: 1 }
+            }
+        });
+    } catch (err) {
+        if (err.code === 'P2025') {
+            throw new ConflictError("Sprint was modified by another user. Please refresh and try again.");
         }
-    });
+        throw err;
+    }
 };
 
 /**
@@ -139,12 +177,7 @@ export const getSprintVelocity = async (id) => {
     const sprint = await prisma.sprint.findUnique({ where: { id: String(id) } });
     if (!sprint) throw new NotFoundError(`Sprint ${id} not found`);
 
-    const velocity = await prisma.task.count({
-        where: {
-            sprintId: String(id),
-            status: TASK_STATUS.DONE
-        }
-    });
+    const velocity = await getTaskCountBySprintId(id, { status: TASK_STATUS.DONE });
 
     return {
         sprintId: id,

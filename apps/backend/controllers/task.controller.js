@@ -3,7 +3,7 @@ import { parsePagination, buildPage } from "../utils/pagination.js";
 
 export const createTask = async (req, res, next) => {
     try {
-        const { title, description, projectId, sprintId, assigneeId, priority, isBlocked, dueDate } = req.body;
+        const { title, description, projectId, sprintId, phaseId, assigneeId, priority, isBlocked, dueDate } = req.body;
 
         if (!title || !projectId) {
             return res.status(400).json({ success: false, message: "Task title and projectId are required" });
@@ -11,7 +11,7 @@ export const createTask = async (req, res, next) => {
 
         const task = await taskService.createTask({
             taskData: { title, description, priority, isBlocked, dueDate },
-            context: { projectId, sprintId, assigneeId, reporterId: req.user.id },
+            context: { projectId, sprintId, phaseId, assigneeId, reporterId: req.user.id },
             requestingUser: { role: req.user.role, id: req.user.id }
         });
 
@@ -23,25 +23,16 @@ export const createTask = async (req, res, next) => {
 
 export const getTasks = async (req, res, next) => {
     try {
-        const { projectId, status, isBlocked, isOverdue } = req.query;
-
+        const { projectId, status, isBlocked, isOverdue, sortBy } = req.query;
         const { limit, cursor } = parsePagination(req.query);
-
-        // Handle isBlocked boolean conversion
-        let blockedFilter = undefined;
-        if (isBlocked === 'true') blockedFilter = true;
-        if (isBlocked === 'false') blockedFilter = false;
-
-        let overdueFilter = undefined;
-        if (isOverdue === 'true') overdueFilter = true;
-        if (isOverdue === 'false') overdueFilter = false;
 
         const tasks = await taskService.getTasksByProject(projectId, req.user, {
             limit,
             cursor,
             status,
-            isBlocked: blockedFilter,
-            isOverdue: overdueFilter
+            isBlocked,
+            isOverdue,
+            sortBy
         });
 
         const { data, nextCursor } = buildPage(tasks, limit);
@@ -88,6 +79,28 @@ export const getTaskSummary = async (req, res, next) => {
         const { projectId } = req.params;
         const summary = await taskService.getProjectTaskSummary(projectId);
         return res.status(200).json({ success: true, data: summary });
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const bulkUpdateTasks = async (req, res, next) => {
+    try {
+        const { projectId } = req.params;
+        const { tasks, updateData } = req.body;
+        const result = await taskService.bulkUpdateTasks(projectId, tasks, updateData, req.user?.id, req.user?.role);
+        return res.status(200).json({ success: true, message: `Successfully updated ${result.count} tasks`, data: result });
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const bulkDeleteTasks = async (req, res, next) => {
+    try {
+        const { projectId } = req.params;
+        const { tasks } = req.body;
+        const result = await taskService.bulkDeleteTasks(projectId, tasks, req.user?.id, req.user?.role);
+        return res.status(200).json({ success: true, message: `Successfully deleted ${result.count} tasks`, data: result });
     } catch (err) {
         next(err);
     }

@@ -4,17 +4,8 @@ import { updateProjectSchema, createProjectSchema } from "../schemas/project.sch
 
 export const createProject = async (req, res, next) => {
   try {
-    const parseResult = createProjectSchema.safeParse(req.body);
-    if (!parseResult.success) {
-      return res.status(400).json({ error: 'Validation failed', details: parseResult.error.flatten() });
-    }
-    const { name, clientId, status, description } = parseResult.data;
-
     const project = await projectService.createProject({
-      name,
-      clientId,
-      status: status || 'DRAFT',
-      description,
+      ...req.body,
       createdByUserId: req.user.id,
     });
 
@@ -26,10 +17,10 @@ export const createProject = async (req, res, next) => {
 
 export const getProjects = async (req, res, next) => {
   try {
-    const { search } = req.query;
+    const { search, status, includeArchived, createdByUserId } = req.query;
     const { limit, cursor } = parsePagination(req.query);
 
-    const records = await projectService.getProjects({ limit, cursor, search, requestingUser: req.user });
+    const records = await projectService.getProjects({ limit, cursor, search, status, includeArchived, createdByUserId, requestingUser: req.user });
 
     const projectIds = records.map(p => p.id);
     const progressBatch = await projectService.getBatchProjectProgress(projectIds, req.user.role);
@@ -64,13 +55,7 @@ export const updateProject = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const parseResult = updateProjectSchema.safeParse(req.body);
-    if (!parseResult.success) {
-      return res.status(400).json({ error: 'Validation failed', details: parseResult.error.flatten() });
-    }
-    const validatedData = parseResult.data;
-
-    const updated = await projectService.updateProject(id, validatedData, req.user.id, req.user.role);
+    const updated = await projectService.updateProject(id, req.body, req.user.id, req.user.role);
     return res.status(200).json({ success: true, message: "Project updated", data: updated });
   } catch (err) {
     next(err);

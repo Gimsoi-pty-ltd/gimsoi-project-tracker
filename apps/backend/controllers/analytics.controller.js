@@ -1,11 +1,5 @@
-import { z } from 'zod';
 import { getTeamPerformance } from '../services/analytics.service.js';
 import { buildPage } from '../utils/pagination.js';
-
-export const teamAnalyticsSchema = z.object({
-    limit: z.string().optional().transform(val => val ? parseInt(val, 10) : 20),
-    cursor: z.string().optional(),
-});
 
 export const getTeamPerformanceHandler = async (req, res, next) => {
     try {
