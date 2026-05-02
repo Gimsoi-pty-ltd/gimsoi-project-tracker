@@ -15,6 +15,7 @@ enum ProjectStatus {
   DRAFT
   ACTIVE
   COMPLETED
+  ARCHIVED
 }
 
 enum SprintStatus {
@@ -31,6 +32,12 @@ enum TaskStatus {
   BLOCKED
 }
 
+enum PhaseStatus {
+  DRAFT
+  ACTIVE
+  COMPLETED
+}
+
 enum TaskPriority {
   LOW
   MEDIUM
@@ -43,6 +50,12 @@ enum Role {
   PM
   INTERN
   CLIENT
+}
+
+enum MemberRole {
+  OWNER
+  MEMBER
+  VIEWER
 }
 
 
@@ -63,8 +76,14 @@ model User {
   createdAt                  DateTime  @default(now())
   updatedAt                  DateTime  @updatedAt
 
+  version                    Int       @default(1)
+  isDeleted                  Boolean   @default(false)
+
   assignedTasks Task[] @relation("TaskAssignee")
   reportedTasks Task[] @relation("TaskReporter")
+  comments      Comment[]
+  projectMemberships ProjectMember[]
+  activityLogs  ActivityLog[]
 }
 
 model Client {
@@ -75,6 +94,8 @@ model Client {
   projects        Project[]
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
+  version         Int       @default(1)
+  isDeleted       Boolean   @default(false)
 }
 
 model Project {
@@ -92,7 +113,11 @@ model Project {
   endDate         DateTime?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
+  version         Int           @default(1)
+  isDeleted       Boolean       @default(false)
   analytics       ProjectAnalytics?
+  members         ProjectMember[]
+  labels          Label[]
 
   @@index([clientId])
   @@index([name])
@@ -110,6 +135,8 @@ model Sprint {
   tasks           Task[]
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
+  version         Int          @default(1)
+  isDeleted       Boolean      @default(false)
 
   @@index([projectId])
 }
@@ -143,6 +170,11 @@ model Task {
   priority  TaskPriority @default(MEDIUM)
   isBlocked Boolean      @default(false)
   dueDate   DateTime?
+  version   Int          @default(1)
+  isDeleted Boolean      @default(false)
+  comments  Comment[]
+  activityLogs ActivityLog[]
+  labels    Label[]
 
   @@index([projectId])
   @@index([sprintId])
@@ -174,12 +206,15 @@ model Phase {
   description     String?
   startDate       DateTime?
   endDate         DateTime?
+  status          PhaseStatus @default(DRAFT)
   order           Int       @default(0)
   projectId       String
   project         Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
   tasks           Task[]
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
+  version         Int       @default(1)
+  isDeleted       Boolean   @default(false)
 
   @@index([projectId])
 }
@@ -195,7 +230,66 @@ model Report {
   createdByUserId String
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
+  version         Int       @default(1)
+  isDeleted       Boolean   @default(false)
 
   @@index([projectId])
   @@index([createdByUserId])
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  content   String
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  version   Int      @default(1)
+  isDeleted Boolean  @default(false)
+
+  @@index([taskId])
+  @@index([userId])
+}
+
+model ProjectMember {
+  id        String     @id @default(uuid())
+  projectId String
+  project   Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      MemberRole @default(MEMBER)
+  createdAt DateTime   @default(now())
+
+  @@unique([projectId, userId])
+  @@index([projectId])
+  @@index([userId])
+}
+model ActivityLog {
+  id        String   @id @default(uuid())
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action    String   // e.g., "STATUS_CHANGE", "ASSIGNED", "CREATED", "UPDATED"
+  oldValue  String?  // Stringified JSON or simple value
+  newValue  String?  // Stringified JSON or simple value
+  createdAt DateTime @default(now())
+
+  @@index([taskId])
+  @@index([userId])
+}
+
+model Label {
+  id        String   @id @default(uuid())
+  name      String
+  color     String   @default("#6B7280") // Default gray
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks     Task[]
+  createdAt DateTime @default(now())
+
+  @@unique([projectId, name])
+  @@index([projectId])
 }
