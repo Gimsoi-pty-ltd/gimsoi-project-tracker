@@ -20,35 +20,35 @@ const passThrough = (req, res, next) => next();
 export const readLimiter = isTestEnv ? passThrough : rateLimit({
     ...sharedOptions,
     windowMs: 15 * 60 * 1000,
-    max: 100,
+    max: 10000,
     message: { success: false, message: "Too many requests. Please try again later." },
 });
 
 export const writeLimiter = isTestEnv ? passThrough : rateLimit({
     ...sharedOptions,
     windowMs: 15 * 60 * 1000,
-    max: 30,
+    max: 10000,
     message: { success: false, message: "Too many requests. Please try again later." },
 });
 
 export const authLimiter = isTestEnv ? passThrough : rateLimit({
     ...sharedOptions,
     windowMs: 15 * 60 * 1000,
-    max: 20,
+    max: 10000,
     message: { success: false, message: "Too many requests. Please try again later." },
 });
 
 export const loginLimiter = isTestEnv ? passThrough : rateLimit({
     ...sharedOptions,
     windowMs: 15 * 60 * 1000,
-    max: 5,
+    max: 10000,
     message: { success: false, message: "Too many login attempts. Please try again later." },
 });
 
 export const healthLimiter = isTestEnv ? passThrough : rateLimit({
     ...sharedOptions,
     windowMs: 1 * 60 * 1000,
-    max: 30,
+    max: 10000,
     message: { status: "rate_limited", message: "Too many health check requests" },
 });
 
