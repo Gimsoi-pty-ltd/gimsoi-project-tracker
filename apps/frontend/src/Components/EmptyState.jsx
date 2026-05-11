@@ -30,8 +30,8 @@ const EmptyState = ({ title = 'No Data', message, onAction, actionLabel = 'Creat
           {actionLabel}
         </NavyButton>
       )}
-    </div>
+    </div>  
   );
 };
 
-export default EmptyState;
+export default EmptyState;  
