@@ -1,7 +1,8 @@
 import { z } from 'zod';
 
-const TaskStatusEnum = z.enum(['TODO', 'IN_PROGRESS', 'DONE', 'CANCELLED', 'BLOCKED']);
+const TaskStatusEnum = z.enum(['TODO', 'IN_PROGRESS', 'REVIEW', 'DONE', 'CANCELLED', 'BLOCKED']);
 const TaskPriorityEnum = z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']);
+const SeverityEnum = z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']);
 
 export const createTaskSchema = z.object({
   title: z.string().min(1, 'Task title is required').max(200),
@@ -11,6 +12,10 @@ export const createTaskSchema = z.object({
   phaseId: z.string().uuid('phaseId must be a valid UUID').optional().nullable(),
   assigneeId: z.string().uuid('assigneeId must be a valid UUID').optional().nullable(),
   priority: TaskPriorityEnum.optional().default('MEDIUM'),
+  severity: SeverityEnum.optional().default('MEDIUM'),
+  storyPoints: z.number().int().min(0).optional().default(0),
+  estimatedHours: z.number().min(0).optional().nullable(),
+  actualHours: z.number().min(0).optional().nullable(),
   isBlocked: z.boolean().optional().default(false),
   dueDate: z.coerce.date().optional().nullable(),
 });
@@ -23,6 +28,10 @@ export const updateTaskSchema = z.object({
   phaseId: z.string().uuid().optional().nullable(),
   assigneeId: z.string().uuid().optional().nullable(),
   priority: TaskPriorityEnum.optional(),
+  severity: SeverityEnum.optional(),
+  storyPoints: z.number().int().min(0).optional(),
+  estimatedHours: z.number().min(0).optional().nullable(),
+  actualHours: z.number().min(0).optional().nullable(),
   isBlocked: z.boolean().optional(),
   dueDate: z.coerce.date().optional().nullable(),
   version: z.number().int().positive('version is required for optimistic locking'),
@@ -44,6 +53,10 @@ export const bulkUpdateTasksSchema = z.object({
     phaseId: z.string().uuid().optional().nullable(),
     assigneeId: z.string().uuid().optional().nullable(),
     priority: TaskPriorityEnum.optional(),
+    severity: SeverityEnum.optional(),
+    storyPoints: z.number().int().min(0).optional(),
+    estimatedHours: z.number().min(0).optional().nullable(),
+    actualHours: z.number().min(0).optional().nullable(),
     isBlocked: z.boolean().optional(),
     dueDate: z.coerce.date().optional().nullable(),
   }).refine(

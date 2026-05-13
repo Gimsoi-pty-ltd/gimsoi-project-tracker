@@ -7,6 +7,7 @@ export const createSprintSchema = z.object({
   projectId: z.string().uuid('projectId must be a valid UUID'),
   startDate: z.coerce.date().optional().nullable(),
   endDate: z.coerce.date().optional().nullable(),
+  goal: z.string().max(500).optional().nullable(),
   status: SprintStatusEnum.optional().default('PLANNING'),
 });
 
@@ -14,6 +15,7 @@ export const updateSprintSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   startDate: z.coerce.date().optional().nullable(),
   endDate: z.coerce.date().optional().nullable(),
+  goal: z.string().max(500).optional().nullable(),
   status: SprintStatusEnum.optional(),
   version: z.number().int().positive('version is required for optimistic locking'),
 }).refine(
