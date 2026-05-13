@@ -1,7 +1,4 @@
-/**
- * Task Service - Core business logic for task management.
- * @see {@link docs/DATA_CONTRACT.md} for authoritative response shapes.
- */
+// Task Service - Core business logic
 import prisma from "../lib/prisma.js";
 import { StateTransitionError, NotFoundError, ForbiddenError } from "../utils/errors.js";
 import { handlePrismaError } from "../utils/prismaErrors.js";
@@ -9,23 +6,9 @@ import ROLES from "../constants/roles.js";
 import { hasPermission } from "../constants/permissions.js";
 import { TASK_STATUS, SPRINT_STATUS, PROJECT_STATUS } from "../constants/statuses.js";
 import { validateTaskShape, validateProjectSummaryShape } from "../utils/validateContract.js";
+import { validatePriority } from "../utils/validators.js";
 
-/**
- * ALLOWED_TRANSITIONS defines the valid state machine for task status changes.
- * 
- * Rules:
- * - Each key represents a source state (current status).
- * - Each value is an array of valid target states (next status).
- * - Empty array means the state is terminal (no further transitions allowed).
- * - This map is enforced in the updateTask service method.
- *
- * All Valid States:
- * - TODO (Initial status)
- * - IN_PROGRESS (Active work)
- * - BLOCKED (Reversible)
- * - DONE (Terminal)
- * - CANCELLED (Terminal)
- */
+// State machine for task status transitions. Empty array = terminal state.
 export const ALLOWED_TRANSITIONS = {
     [TASK_STATUS.TODO]: [TASK_STATUS.IN_PROGRESS, TASK_STATUS.CANCELLED],
     [TASK_STATUS.IN_PROGRESS]: [TASK_STATUS.DONE, TASK_STATUS.CANCELLED, TASK_STATUS.BLOCKED],
@@ -42,13 +25,7 @@ export const ALLOWED_TRANSITIONS = {
 
 const ALL_STATUSES = Object.keys(ALLOWED_TRANSITIONS);
 
-/**
- * Role-based access is evaluated via the PERMISSIONS matrix in constants/permissions.js.
- * Do not hardcode role strings in this function.
- *
- * NOTE: Not replaced by assertOwnership — task modification requires assignee and reporter-specific property guards, and tasks do not track createdByUserId.
- * If ownership rules change, update both here and in utils/ownership.js.
- */
+// Evaluates role-based task modification access.
 const canModifyTask = (existingTask, userId, userRole, updates = {}) => {
     if (!userId || !userRole) {
         if (process.env.NODE_ENV === 'test') return true;
@@ -81,14 +58,7 @@ const canModifyTask = (existingTask, userId, userRole, updates = {}) => {
     return false;
 };
 
-/**
- * Registry of general modification guards:
- * - Cannot modify a task inside a COMPLETED project.
- * - Cannot modify a task that is already DONE.
- * - Cannot modify a task that is already CANCELLED.
- * - Cannot modify a task belonging to a closed sprint.
- * NOTE: Sprint ACTIVE -> DONE guard lives in updateTask directly (transition-scoped, not general).
- */
+// Guards against modifying tasks in closed sprints, completed projects, or terminal states.
 const assertTaskIsModifiable = (task) => {
     if (task.sprint && task.sprint.status === SPRINT_STATUS.CLOSED) {
         throw new StateTransitionError("Cannot modify a task belonging to a closed sprint.");
@@ -128,9 +98,7 @@ export const createTask = async ({ taskData, context, requestingUser }) => {
         throw new StateTransitionError('Cannot create a task inside a COMPLETED project.');
     }
 
-    if (priority && !['LOW', 'MEDIUM', 'HIGH', 'URGENT'].includes(priority)) {
-        throw new StateTransitionError(`Invalid priority '${priority}'. Allowed values: LOW, MEDIUM, HIGH, URGENT`);
-    }
+    validatePriority(priority);
 
     try {
         const task = await prisma.task.create({
@@ -203,10 +171,7 @@ export const getTaskById = async (id) => {
     return validateTaskShape(task);
 };
 
-/**
- * Guards against manually setting system-managed fields in an update payload.
- * completedAt is system-managed. Reject any payload that attempts to set it directly.
- */
+// Guards against manually setting system-managed completedAt field.
 const assertCompletedAtNotInPayload = (data) => {
     if ('completedAt' in data) {
         throw new Error(
@@ -215,11 +180,7 @@ const assertCompletedAtNotInPayload = (data) => {
     }
 };
 
-/**
- * Validates that a requested status transition is permitted by the ALLOWED_TRANSITIONS
- * state machine. Throws a StateTransitionError with verbose diagnostic codes if not.
- * All valid transitions are defined in ALLOWED_TRANSITIONS. Do not add inline transition logic here.
- */
+// Validates status transitions against ALLOWED_TRANSITIONS.
 const assertValidTransition = (currentStatus, nextStatus) => {
     if (!ALL_STATUSES.includes(nextStatus)) {
         throw new StateTransitionError(
@@ -236,11 +197,7 @@ const assertValidTransition = (currentStatus, nextStatus) => {
     }
 };
 
-/**
- * Enforces sprint-activation policy for DONE transitions.
- * Sprint must be ACTIVE to accept DONE transitions.
- * Use CANCELLED to close tasks in non-active sprints.
- */
+// Ensures tasks can only be marked DONE in an ACTIVE sprint.
 const assertSprintIsActiveForDone = (sprint, nextStatus) => {
     if (
         nextStatus === TASK_STATUS.DONE &&
@@ -251,9 +208,7 @@ const assertSprintIsActiveForDone = (sprint, nextStatus) => {
     }
 };
 
-/**
- * Auto-sets completedAt on DONE transition only.
- */
+// Auto-injects completedAt on DONE transition.
 const injectCompletedAt = (data, nextStatus) => {
     if (nextStatus === TASK_STATUS.DONE) {
         return { ...data, completedAt: new Date() };
@@ -263,6 +218,7 @@ const injectCompletedAt = (data, nextStatus) => {
 
 export const updateTask = async (id, data, userId, userRole) => {
     assertCompletedAtNotInPayload(data);
+    if (data.priority !== undefined) validatePriority(data.priority);
 
     const existing = await prisma.task.findUnique({ 
         where: { id },
@@ -326,10 +282,7 @@ export const deleteTask = async (id, userId, userRole) => {
     return true;
 };
 
-/**
- * Private helper — not exported. Called by getProjectTaskSummary and getTaskCompletionStats only.
- * Aggregates task counts by status and calculates the percentage of completed tasks.
- */
+// Aggregates task counts by status and calculates percent complete.
 const aggregateTasksByStatus = async (projectId) => {
     const counts = await prisma.task.groupBy({
         by: ['status'],
