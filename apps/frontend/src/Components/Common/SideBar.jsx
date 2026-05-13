@@ -28,7 +28,7 @@ export default function Sidebar({ onClose }) {
   ];
 
   const insightItems = [
-    { label: "Team Insights", icon: Users, href: "/teamInsights" },
+    { label: "Team-Insights", icon: Users, href: "/teamInsights" },
     { label: "Reports", icon: PieChart, href: "/reports" },
   ];
 

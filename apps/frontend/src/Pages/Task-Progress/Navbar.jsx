@@ -1,5 +1,5 @@
 import { Menu } from "lucide-react";
-import gimsoi from "../assets/Gimsoi AI.jpg";
+import gimsoi from "../assets/Gimsoi-AI.jpg";
 
 const Navbar = ({ onToggleSidebar }) => {
   return (

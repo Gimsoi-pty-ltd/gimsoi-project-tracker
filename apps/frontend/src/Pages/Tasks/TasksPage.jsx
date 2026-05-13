@@ -1,12 +1,12 @@
 import { useSearchParams } from "react-router-dom";
 import Overduetasks from "./Overduetasks";
-import PieChart from "../Task Progress/PieChart";
-import TaskCard from "../Task Progress/TaskCard";
+import PieChart from "../Task-Progress/PieChart";
+import TaskCard from "../Task-Progress/TaskCard";
 
 const TABS = [
   { id: "overdue", label: "Overdue Tasks", count: 8 },
   { id: "blocked", label: "Blocked Tasks", count: 6 },
-  { id: "progress", label: "Task Progress", count: null },
+  { id: "progress", label: "Task-Progress", count: null },
 ];
 
 const BLOCKED_TASKS = [
