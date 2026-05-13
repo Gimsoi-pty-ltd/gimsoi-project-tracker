@@ -1,6 +1,7 @@
 import prisma from "../lib/prisma.js";
-import { NotFoundError, ConflictError } from "../utils/errors.js";
+import { NotFoundError } from "../utils/errors.js";
 import { parsePagination } from "../utils/pagination.js";
+import { handleConcurrencyError } from "../utils/prismaErrors.js";
 
 export const createClient = async ({ name, contactEmail, createdByUserId }) => {
   return prisma.client.create({
@@ -47,9 +48,7 @@ export const updateClient = async (id, data) => {
     });
     return client;
   } catch (err) {
-    if (err.code === 'P2025') {
-      throw new ConflictError("Client was modified by another user. Please refresh and try again.");
-    }
+    handleConcurrencyError(err, 'Client');
     throw err;
   }
 };

@@ -4,6 +4,7 @@ import pkg from '../lib/generated/prisma/index.js';
 const { Prisma } = pkg;
 import { NotFoundError, ConflictError, ValidationError } from '../utils/errors.js';
 import { parsePagination, buildPage } from '../utils/pagination.js';
+import { handleConcurrencyError } from '../utils/prismaErrors.js';
 
 const BCRYPT_SALT_ROUNDS = 10;
 
@@ -99,9 +100,7 @@ export const updateUserRole = async (userId, role, version) => {
 
     return user;
   } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
-      throw new ConflictError('User was modified by another user or not found. Please refresh and try again.');
-    }
+    handleConcurrencyError(error, 'User');
     throw error;
   }
 };
@@ -129,9 +128,7 @@ export const updateProfile = async (userId, data) => {
 
     return user;
   } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
-      throw new ConflictError('User was modified by another user or not found. Please refresh and try again.');
-    }
+    handleConcurrencyError(error, 'User');
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
       throw new ConflictError('This email address is already in use');
     }
@@ -160,9 +157,7 @@ export const updateAvatarUrl = async (userId, avatarUrl, version) => {
 
     return user;
   } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
-      throw new ConflictError('User was modified by another user or not found. Please refresh and try again.');
-    }
+    handleConcurrencyError(error, 'User');
     throw error;
   }
 };

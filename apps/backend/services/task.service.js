@@ -1,7 +1,7 @@
 // Task Service - Core business logic
 import prisma from "../lib/prisma.js";
-import { StateTransitionError, NotFoundError, ForbiddenError, ConflictError } from "../utils/errors.js";
-import { handlePrismaError } from "../utils/prismaErrors.js";
+import { StateTransitionError, NotFoundError, ForbiddenError } from "../utils/errors.js";
+import { handlePrismaError, handleConcurrencyError } from "../utils/prismaErrors.js";
 import ROLES from "../constants/roles.js";
 import { hasPermission } from "../constants/permissions.js";
 import { TASK_STATUS, SPRINT_STATUS, PROJECT_STATUS } from "../constants/statuses.js";
@@ -14,7 +14,8 @@ import * as phaseService from "./phase.service.js";
 // State machine for task status transitions. Empty array = terminal state.
 export const ALLOWED_TRANSITIONS = {
     [TASK_STATUS.TODO]: [TASK_STATUS.IN_PROGRESS, TASK_STATUS.CANCELLED],
-    [TASK_STATUS.IN_PROGRESS]: [TASK_STATUS.DONE, TASK_STATUS.CANCELLED, TASK_STATUS.BLOCKED],
+    [TASK_STATUS.IN_PROGRESS]: [TASK_STATUS.REVIEW, TASK_STATUS.DONE, TASK_STATUS.CANCELLED, TASK_STATUS.BLOCKED],
+    [TASK_STATUS.REVIEW]: [TASK_STATUS.DONE, TASK_STATUS.IN_PROGRESS, TASK_STATUS.CANCELLED, TASK_STATUS.BLOCKED],
     
     // Reversible — task is obstructed but not abandoned. Must return to IN_PROGRESS before completing.
     [TASK_STATUS.BLOCKED]: [TASK_STATUS.IN_PROGRESS, TASK_STATUS.CANCELLED],
@@ -61,6 +62,41 @@ const canModifyTask = (existingTask, userId, userRole, updates = {}) => {
     return false;
 };
 
+/**
+ * Centrally logs changes to a task.
+ */
+export const logTaskChanges = async (taskId, userId, existing, updates, tx = prisma) => {
+    if (!userId) return;
+
+    // 1. Status Change
+    if (updates.status !== undefined && updates.status !== existing.status) {
+        await logActivity({ taskId, userId, action: "STATUS_CHANGE", oldValue: existing.status, newValue: updates.status }, tx);
+    }
+
+    // 2. Assignee Change
+    if (updates.assigneeId !== undefined && updates.assigneeId !== existing.assigneeId) {
+        await logActivity({ taskId, userId, action: "ASSIGNED", oldValue: existing.assigneeId, newValue: updates.assigneeId }, tx);
+    }
+
+    // 3. Priority Change
+    if (updates.priority !== undefined && updates.priority !== existing.priority) {
+        await logActivity({ taskId, userId, action: "PRIORITY_CHANGE", oldValue: existing.priority, newValue: updates.priority }, tx);
+    }
+
+    // 4. General updates
+    const otherFields = ['title', 'description', 'dueDate', 'isBlocked', 'sprintId', 'phaseId'];
+    const changedFields = otherFields.filter(f => updates[f] !== undefined && String(updates[f]) !== String(existing[f]));
+    
+    if (changedFields.length > 0) {
+        await logActivity({
+            taskId,
+            userId,
+            action: "UPDATED",
+            newValue: changedFields.reduce((acc, f) => ({ ...acc, [f]: updates[f] }), {})
+        }, tx);
+    }
+};
+
 // Guards against modifying tasks in closed sprints, completed projects, or terminal states.
 const assertTaskIsModifiable = (task) => {
     if (task.sprint && task.sprint.status === SPRINT_STATUS.CLOSED) {
@@ -75,7 +111,7 @@ const assertTaskIsModifiable = (task) => {
 };
 
 export const createTask = async ({ taskData, context, requestingUser }) => {
-    const { title, description, priority, isBlocked, dueDate } = taskData;
+    const { title, description, priority, severity, storyPoints, estimatedHours, actualHours, isBlocked, dueDate } = taskData;
     const { projectId, sprintId, phaseId, reporterId, assigneeId } = context;
     const { role: userRole } = requestingUser;
 
@@ -140,6 +176,10 @@ export const createTask = async ({ taskData, context, requestingUser }) => {
                 assigneeId,
                 status: TASK_STATUS.TODO,
                 priority: priority || 'MEDIUM',
+                severity: severity || 'MEDIUM',
+                storyPoints: storyPoints || 0,
+                estimatedHours: estimatedHours || null,
+                actualHours: actualHours || null,
                 isBlocked: isBlocked || false,
                 dueDate: dueDate ? new Date(dueDate) : null
             }
@@ -348,25 +388,14 @@ export const updateTask = async (id, data, userId, userRole) => {
     const { version, ...updatePayload } = finalData;
 
     try {
-        const updateData = {
-            title:       updatePayload.title       !== undefined ? updatePayload.title             : existing.title,
-            description: updatePayload.description !== undefined ? updatePayload.description       : existing.description,
-            status:      updatePayload.status      !== undefined ? updatePayload.status            : existing.status,
-            sprintId:    updatePayload.sprintId    !== undefined ? updatePayload.sprintId          : existing.sprintId,
-            assigneeId:  updatePayload.assigneeId  !== undefined ? updatePayload.assigneeId        : existing.assigneeId,
-            priority:    updatePayload.priority    !== undefined ? updatePayload.priority          : existing.priority,
-            isBlocked:   updatePayload.isBlocked   !== undefined ? updatePayload.isBlocked         : existing.isBlocked,
-            dueDate:     updatePayload.dueDate     !== undefined
-                ? (updatePayload.dueDate === null ? null : new Date(updatePayload.dueDate))
-                : existing.dueDate,
-            completedAt: existing.completedAt,
-            version: { increment: 1 }
-        };
+        const updateData = Object.entries(updatePayload).reduce((acc, [key, value]) => {
+            if (value !== undefined) {
+                acc[key] = (key === 'dueDate' && value !== null) ? new Date(value) : value;
+            }
+            return acc;
+        }, { version: { increment: 1 } });
 
-        if (updatePayload.status === TASK_STATUS.DONE) {
-            updateData.completedAt = new Date();
-        } else if (updatePayload.status !== undefined) {
-            // If transitioning away from DONE, clear the timestamp
+        if (updatePayload.status !== undefined && updatePayload.status !== TASK_STATUS.DONE) {
             updateData.completedAt = null;
         }
 
@@ -376,46 +405,7 @@ export const updateTask = async (id, data, userId, userRole) => {
         });
 
         // Log Activity: Detect changes and log
-        if (userId) {
-            if (updatePayload.status !== undefined && updatePayload.status !== existing.status) {
-                await logActivity({
-                    taskId: id,
-                    userId,
-                    action: "STATUS_CHANGE",
-                    oldValue: existing.status,
-                    newValue: updatePayload.status
-                });
-            }
-            if (updatePayload.assigneeId !== undefined && updatePayload.assigneeId !== existing.assigneeId) {
-                await logActivity({
-                    taskId: id,
-                    userId,
-                    action: "ASSIGNED",
-                    oldValue: existing.assigneeId,
-                    newValue: updatePayload.assigneeId
-                });
-            }
-            if (updatePayload.priority !== undefined && updatePayload.priority !== existing.priority) {
-                await logActivity({
-                    taskId: id,
-                    userId,
-                    action: "PRIORITY_CHANGE",
-                    oldValue: existing.priority,
-                    newValue: updatePayload.priority
-                });
-            }
-            // General update if other fields changed
-            const otherFields = ['title', 'description', 'dueDate', 'isBlocked'];
-            const changedFields = otherFields.filter(f => updatePayload[f] !== undefined && String(updatePayload[f]) !== String(existing[f]));
-            if (changedFields.length > 0) {
-                await logActivity({
-                    taskId: id,
-                    userId,
-                    action: "UPDATED",
-                    newValue: changedFields.reduce((acc, f) => ({ ...acc, [f]: updatePayload[f] }), {})
-                });
-            }
-        }
+        await logTaskChanges(id, userId, existing, updatePayload);
 
         // Wave 4: Trigger phase completion check
         if (updatePayload.status !== undefined && existing.phaseId) {
@@ -424,10 +414,7 @@ export const updateTask = async (id, data, userId, userRole) => {
 
         return validateTaskShape(updated);
     } catch (err) {
-        if (err.code === 'P2025') {
-            throw new ConflictError("Task was modified by another user. Please refresh and try again.");
-        }
-        throw err;
+        handleConcurrencyError(err, 'Task');
     }
 };
 
@@ -456,65 +443,12 @@ export const deleteTask = async (id, userId, userRole) => {
     return true;
 };
 
-// Aggregates task counts by status and calculates percent complete.
-const aggregateTasksByStatus = async (projectId) => {
-    const today = new Date();
-    
-    // Fetch status counts
-    const statusCounts = await prisma.task.groupBy({
-        by: ['status'],
-        where: { projectId: String(projectId) },
-        _count: { _all: true }
-    });
-
-    // Fetch blocked count
-    const blockedCount = await prisma.task.count({
-        where: { projectId: String(projectId), isBlocked: true }
-    });
-
-    // Fetch overdue count (NOT DONE and NOT CANCELLED)
-    const overdueCount = await prisma.task.count({
-        where: {
-            projectId: String(projectId),
-            status: { notIn: [TASK_STATUS.DONE, TASK_STATUS.CANCELLED] },
-            dueDate: { lt: today }
-        }
-    });
-
-    const summary = {
-        [TASK_STATUS.TODO]: 0,
-        [TASK_STATUS.IN_PROGRESS]: 0,
-        [TASK_STATUS.BLOCKED]: 0,
-        [TASK_STATUS.DONE]: 0,
-        [TASK_STATUS.CANCELLED]: 0,
-        blockedCount,
-        overdueCount
-    };
-
-    statusCounts.forEach((c) => {
-        if (summary[c.status] !== undefined) {
-            summary[c.status] = c._count._all;
-        }
-    });
-
-    summary.total = Object.values(TASK_STATUS).reduce((acc, status) => acc + (summary[status] || 0), 0);
-    summary.percentComplete = summary.total 
-        ? Math.round((summary[TASK_STATUS.DONE] / summary.total) * 100) 
-        : 0;
-
-    // healthScore = (DONE / total) * 100 - (5 * overdueCount) - (10 * blockedCount)
-    const baseScore = summary.percentComplete;
-    const penalty = (overdueCount * 5) + (blockedCount * 10);
-    summary.healthScore = Math.max(0, baseScore - penalty);
-
-    return summary;
-};
 
 export const getProjectTaskSummary = async (projectId) => {
     const project = await prisma.project.findUnique({ where: { id: String(projectId) } });
     if (!project) throw new NotFoundError(`Project ${projectId} not found`);
-    const summary = await aggregateTasksByStatus(projectId);
-    return validateProjectSummaryShape(summary);
+    const summaries = await getProjectTaskSummaryBatch([projectId]);
+    return summaries[projectId];
 };
 
 export const getProjectTaskSummaryBatch = async (projectIds) => {
@@ -592,10 +526,16 @@ export const getProjectTaskSummaryBatch = async (projectIds) => {
 };
 
 /**
- * Bulk updates tasks.
- * @param {string} projectId - To ensure scoping.
- * @param {Array<{id: string, version: number}>} tasks - Tasks to update with their expected version.
- * @param {Object} updateData - Fields to update.
+ * Bulk updates a list of tasks.
+ * Validates project membership, ensures all tasks belong to the specified project,
+ * verifies state transition legality, and handles optimistic locking conflicts.
+ * 
+ * @param {string} projectId - Project ID to scope the update
+ * @param {Array<{id: string, version: number}>} tasks - Tasks to update, requiring version for optimistic locking
+ * @param {Object} updateData - Shared fields to update across all specified tasks
+ * @param {string} userId - ID of the user requesting the change
+ * @param {string} userRole - Role of the user requesting the change
+ * @returns {Promise<{success: boolean, count: number}>}
  */
 export const bulkUpdateTasks = async (projectId, tasks, updateData, userId, userRole) => {
     // 1. Validate project membership
@@ -664,25 +604,14 @@ export const bulkUpdateTasks = async (projectId, tasks, updateData, userId, user
     try {
         await prisma.$transaction(async (tx) => {
             for (const existing of existingTasks) {
-                const updatedFields = {
-                    title:       updateData.title       !== undefined ? updateData.title             : existing.title,
-                    description: updateData.description !== undefined ? updateData.description       : existing.description,
-                    status:      updateData.status      !== undefined ? updateData.status            : existing.status,
-                    sprintId:    updateData.sprintId    !== undefined ? updateData.sprintId          : existing.sprintId,
-                    phaseId:     updateData.phaseId     !== undefined ? updateData.phaseId           : existing.phaseId,
-                    assigneeId:  updateData.assigneeId  !== undefined ? updateData.assigneeId        : existing.assigneeId,
-                    priority:    updateData.priority    !== undefined ? updateData.priority          : existing.priority,
-                    isBlocked:   updateData.isBlocked   !== undefined ? updateData.isBlocked         : existing.isBlocked,
-                    dueDate:     updateData.dueDate     !== undefined
-                        ? (updateData.dueDate === null ? null : new Date(updateData.dueDate))
-                        : existing.dueDate,
-                    completedAt: existing.completedAt,
-                    version: { increment: 1 }
-                };
+                const updatedFields = Object.entries(updateData).reduce((acc, [key, value]) => {
+                    if (value !== undefined) {
+                        acc[key] = (key === 'dueDate' && value !== null) ? new Date(value) : value;
+                    }
+                    return acc;
+                }, { version: { increment: 1 } });
 
-                if (updateData.status === TASK_STATUS.DONE) {
-                    updatedFields.completedAt = new Date();
-                } else if (updateData.status !== undefined) {
+                if (updateData.status !== undefined && updateData.status !== TASK_STATUS.DONE) {
                     updatedFields.completedAt = null;
                 }
 
@@ -691,27 +620,7 @@ export const bulkUpdateTasks = async (projectId, tasks, updateData, userId, user
                     data: updatedFields
                 });
 
-                if (userId) {
-                    if (updateData.status !== undefined && updateData.status !== existing.status) {
-                        await logActivity({ taskId: existing.id, userId, action: "STATUS_CHANGE", oldValue: existing.status, newValue: updateData.status }, tx);
-                    }
-                    if (updateData.assigneeId !== undefined && updateData.assigneeId !== existing.assigneeId) {
-                        await logActivity({ taskId: existing.id, userId, action: "ASSIGNED", oldValue: existing.assigneeId, newValue: updateData.assigneeId }, tx);
-                    }
-                    if (updateData.priority !== undefined && updateData.priority !== existing.priority) {
-                        await logActivity({ taskId: existing.id, userId, action: "PRIORITY_CHANGE", oldValue: existing.priority, newValue: updateData.priority }, tx);
-                    }
-                    const otherFields = ['sprintId', 'phaseId', 'dueDate', 'isBlocked'];
-                    const changedFields = otherFields.filter(f => updateData[f] !== undefined && String(updateData[f]) !== String(existing[f]));
-                    if (changedFields.length > 0) {
-                        await logActivity({
-                            taskId: existing.id,
-                            userId,
-                            action: "UPDATED",
-                            newValue: changedFields.reduce((acc, f) => ({ ...acc, [f]: updateData[f] }), {})
-                        }, tx);
-                    }
-                }
+                await logTaskChanges(existing.id, userId, existing, updateData, tx);
             }
         });
         
@@ -722,10 +631,7 @@ export const bulkUpdateTasks = async (projectId, tasks, updateData, userId, user
         
         return { success: true, count: taskIds.length };
     } catch (err) {
-        if (err.code === 'P2025') {
-            throw new ConflictError("One or more tasks were modified by another user. Please refresh and try again.");
-        }
-        throw err;
+        handleConcurrencyError(err, 'One or more tasks');
     }
 };
 
@@ -792,10 +698,7 @@ export const bulkDeleteTasks = async (projectId, tasks, userId, userRole) => {
 
         return { success: true, count: taskIds.length };
     } catch (err) {
-        if (err.code === 'P2025') {
-            throw new ConflictError("One or more tasks were modified by another user. Please refresh and try again.");
-        }
-        throw err;
+        handleConcurrencyError(err, 'One or more tasks');
     }
 };
 

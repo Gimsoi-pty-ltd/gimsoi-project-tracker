@@ -1,10 +1,12 @@
 /** @see {@link docs/DATA_CONTRACT.md} */
 import prisma from "../lib/prisma.js";
-import { StateTransitionError, NotFoundError, ConflictError } from '../utils/errors.js';
+import { StateTransitionError, NotFoundError } from '../utils/errors.js';
 import { assertOwnership } from "../utils/ownership.js";
 import { assertProjectMembership } from "../utils/membership.js";
 import { SPRINT_STATUS, PROJECT_STATUS, TASK_STATUS } from "../constants/statuses.js";
+import { validateDateString } from "../utils/validators.js";
 import { getTaskCountBySprintId } from "./task.service.js";
+import { handlePrismaError, handleConcurrencyError } from "../utils/prismaErrors.js";
 
 /**
  * Valid state transitions for a Sprint.
@@ -16,13 +18,9 @@ export const SPRINT_ALLOWED_TRANSITIONS = {
     [SPRINT_STATUS.CLOSED]: []
 };
 
-export const createSprint = async ({ name, projectId, status, startDate, endDate, createdByUserId }) => {
-    if (startDate !== undefined && startDate !== null && isNaN(Date.parse(startDate))) {
-        throw new StateTransitionError('Invalid startDate format.');
-    }
-    if (endDate !== undefined && endDate !== null && isNaN(Date.parse(endDate))) {
-        throw new StateTransitionError('Invalid endDate format.');
-    }
+export const createSprint = async ({ name, projectId, status, goal, startDate, endDate, createdByUserId }) => {
+    validateDateString(startDate, 'startDate');
+    validateDateString(endDate, 'endDate');
 
     // Guard: prevent creating sprints inside a COMPLETED project
     const project = await prisma.project.findUnique({ where: { id: projectId } });
@@ -36,6 +34,7 @@ export const createSprint = async ({ name, projectId, status, startDate, endDate
             name,
             projectId,
             status: status || SPRINT_STATUS.PLANNING,
+            goal: goal || null,
             startDate: startDate ? new Date(startDate) : null,
             endDate: endDate ? new Date(endDate) : null,
             createdByUserId,
@@ -85,10 +84,7 @@ const closeSprint = async (sprint, version, db = prisma) => {
             }
         });
     } catch (err) {
-        if (err.code === 'P2025') {
-            throw new ConflictError("Sprint was modified by another user. Please refresh and try again.");
-        }
-        throw err;
+        handleConcurrencyError(err, 'Sprint');
     }
 }
 
@@ -123,10 +119,7 @@ export const updateSprintStatus = async (id, targetStatus, userId, userRole, ver
             }
         });
     } catch (err) {
-        if (err.code === 'P2025') {
-            throw new ConflictError("Sprint was modified by another user. Please refresh and try again.");
-        }
-        throw err;
+        handleConcurrencyError(err, 'Sprint');
     }
 }
 
@@ -140,12 +133,8 @@ export const updateSprint = async (id, data, userId, userRole) => {
         await assertProjectMembership(sprint.projectId, userId, userRole);
     }
 
-    if (data.startDate !== undefined && data.startDate !== null && isNaN(Date.parse(data.startDate))) {
-        throw new StateTransitionError('Invalid startDate format.');
-    }
-    if (data.endDate !== undefined && data.endDate !== null && isNaN(Date.parse(data.endDate))) {
-        throw new StateTransitionError('Invalid endDate format.');
-    }
+    validateDateString(data.startDate, 'startDate');
+    validateDateString(data.endDate, 'endDate');
 
     try {
         return await prisma.sprint.update({
@@ -158,29 +147,116 @@ export const updateSprint = async (id, data, userId, userRole) => {
                 endDate: data.endDate !== undefined
                     ? (data.endDate === null ? null : new Date(data.endDate))
                     : sprint.endDate,
+                goal: data.goal !== undefined ? data.goal : sprint.goal,
                 version: { increment: 1 }
             }
         });
     } catch (err) {
-        if (err.code === 'P2025') {
-            throw new ConflictError("Sprint was modified by another user. Please refresh and try again.");
-        }
-        throw err;
+        handleConcurrencyError(err, 'Sprint');
     }
 };
 
 /**
  * Calculates velocity for a specific sprint.
- * Velocity = total tasks with status 'DONE' in the sprint.
+ * Velocity = total story points of tasks with status 'DONE' in the sprint.
  */
 export const getSprintVelocity = async (id) => {
     const sprint = await prisma.sprint.findUnique({ where: { id: String(id) } });
     if (!sprint) throw new NotFoundError(`Sprint ${id} not found`);
 
-    const velocity = await getTaskCountBySprintId(id, { status: TASK_STATUS.DONE });
+    const result = await prisma.task.aggregate({
+        where: { sprintId: String(id), status: TASK_STATUS.DONE },
+        _sum: { storyPoints: true }
+    });
 
     return {
         sprintId: id,
-        velocity
+        velocity: result._sum.storyPoints || 0
     };
+};
+
+/**
+ * Aggregates and calculates 20 metrics for a sprint.
+ */
+export const getSprintMetrics = async (id) => {
+    try {
+        const sprint = await prisma.sprint.findUnique({ where: { id: String(id) } });
+        if (!sprint) throw new NotFoundError(`Sprint ${id} not found`);
+
+        const tasks = await prisma.task.findMany({
+            where: { sprintId: String(id) }
+        });
+
+        const today = new Date();
+        const PRIORITY_WEIGHTS = { URGENT: 4, HIGH: 3, MEDIUM: 2, LOW: 1 };
+        const SEVERITY_WEIGHTS = { CRITICAL: 4, HIGH: 3, MEDIUM: 2, LOW: 1 };
+
+        const metrics = tasks.reduce((acc, t) => {
+            acc.total++;
+            acc.kanbanCounts[t.status]++;
+
+            if (t.status === TASK_STATUS.DONE) {
+                acc.completed++;
+                acc.velocity += (t.storyPoints || 0);
+            } else if (t.status === TASK_STATUS.BLOCKED) {
+                acc.blocked++;
+                acc.severityIndex += (SEVERITY_WEIGHTS[t.severity] || 0);
+            }
+
+            if (t.status !== TASK_STATUS.DONE && t.dueDate && t.dueDate < today) {
+                acc.overdue++;
+                acc.impactScore += (PRIORITY_WEIGHTS[t.priority] || 0);
+            }
+
+            acc.sumEstimatedHours += (t.estimatedHours || 0);
+            acc.sumActualHours += (t.actualHours || 0);
+
+            return acc;
+        }, {
+            total: 0,
+            completed: 0,
+            blocked: 0,
+            overdue: 0,
+            velocity: 0,
+            sumEstimatedHours: 0,
+            sumActualHours: 0,
+            impactScore: 0,
+            severityIndex: 0,
+            kanbanCounts: {
+                TODO: 0, IN_PROGRESS: 0, REVIEW: 0, DONE: 0, BLOCKED: 0, CANCELLED: 0
+            }
+        });
+
+        const completionRate = metrics.total > 0 ? (metrics.completed / metrics.total) * 100 : 0;
+        const overdueRate = metrics.total > 0 ? (metrics.overdue / metrics.total) * 100 : 0;
+        const blockedRate = metrics.total > 0 ? (metrics.blocked / metrics.total) * 100 : 0;
+
+        return {
+            sprintGoal: sprint.goal || "No goal set",
+            totalTasks: metrics.total,
+            completedTasks: metrics.completed,
+            completionPercentage: Math.round(completionRate),
+            velocity: metrics.velocity,
+            kanbanCounts: metrics.kanbanCounts,
+            taskProgress: metrics.sumEstimatedHours > 0 ? Math.round((metrics.sumActualHours / metrics.sumEstimatedHours) * 100) : 0,
+            overdueTasks: metrics.overdue,
+            overduePercentage: Math.round(overdueRate),
+            impactScore: metrics.impactScore,
+            blockedTasks: metrics.blocked,
+            blockedPercentage: Math.round(blockedRate),
+            severityIndex: metrics.severityIndex,
+            sprintProgress: Math.round(completionRate),
+            distribution: {
+                complete: Math.round(completionRate),
+                working: metrics.total > 0 ? Math.round((metrics.kanbanCounts.IN_PROGRESS / metrics.total) * 100) : 0,
+                blocked: Math.round(blockedRate),
+                todo: metrics.total > 0 ? Math.round((metrics.kanbanCounts.TODO / metrics.total) * 100) : 0
+            },
+            delayRate: metrics.completed > 0 ? Number((metrics.overdue / metrics.completed).toFixed(2)) : 0,
+            deliveryRisk: metrics.total > 0 ? Number(((metrics.overdue + metrics.blocked) / metrics.total).toFixed(2)) : 0,
+            sprintHealth: Math.max(0, Math.round(100 - (overdueRate * 0.6) - (blockedRate * 0.4)))
+        };
+    } catch (err) {
+        throw handlePrismaError(err);
+    }
 };

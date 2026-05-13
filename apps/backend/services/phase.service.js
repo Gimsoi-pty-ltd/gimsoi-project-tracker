@@ -1,7 +1,7 @@
 import prisma from '../lib/prisma.js';
-import { NotFoundError, ConflictError } from '../utils/errors.js';
+import { NotFoundError } from '../utils/errors.js';
 import { parsePagination } from '../utils/pagination.js';
-import { handlePrismaError } from '../utils/prismaErrors.js';
+import { handlePrismaError, handleConcurrencyError } from '../utils/prismaErrors.js';
 import { assertOwnership } from '../utils/ownership.js';
 import { assertProjectMembership } from '../utils/membership.js';
 import ROLES from '../constants/roles.js';
@@ -107,9 +107,7 @@ export const updatePhase = async (id, data, userId, userRole) => {
             },
         });
     } catch (err) {
-        if (err.code === 'P2025') {
-            throw new ConflictError("Phase was modified by another user. Please refresh and try again.");
-        }
+        handleConcurrencyError(err, 'Phase');
         return handlePrismaError(err);
     }
 };

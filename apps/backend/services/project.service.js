@@ -1,6 +1,7 @@
 /** @see {@link docs/DATA_CONTRACT.md} */
 import prisma from "../lib/prisma.js";
-import { StateTransitionError, NotFoundError, ConflictError } from "../utils/errors.js";
+import { StateTransitionError, NotFoundError } from "../utils/errors.js";
+import { handlePrismaError, handleConcurrencyError } from "../utils/prismaErrors.js";
 import { assertOwnership } from "../utils/ownership.js";
 // Cross-domain dependency: Project domain requires task summary data. Access only via the narrow summary function — do not import broad task service internals.
 import { getProjectTaskSummary, getProjectTaskSummaryBatch } from "./task.service.js";
@@ -106,10 +107,7 @@ export const updateProject = async (id, data, userId, userRole) => {
       },
     });
   } catch (err) {
-    if (err.code === 'P2025') {
-      throw new ConflictError("Project was modified by another user. Please refresh and try again.");
-    }
-    throw err;
+    handleConcurrencyError(err, 'Project');
   }
 };
 
@@ -168,28 +166,23 @@ export const syncProjectAnalytics = async (projectId) => {
     }
   });
 
+  const analyticsData = {
+    totalTasks: taskSummary.total,
+    completedTasks: taskSummary.DONE,
+    blockedTasks: taskSummary.BLOCKED,
+    cancelledTasks: taskSummary.CANCELLED,
+    totalSprints,
+    activeSprints,
+    syncStatus: 'synced',
+    lastSyncedAt: new Date()
+  };
+
   return prisma.projectAnalytics.upsert({
     where: { projectId: String(projectId) },
     create: {
       projectId: String(projectId),
-      totalTasks: taskSummary.total,
-      completedTasks: taskSummary.DONE,
-      blockedTasks: taskSummary.BLOCKED,
-      cancelledTasks: taskSummary.CANCELLED,
-      totalSprints,
-      activeSprints,
-      syncStatus: 'synced',
-      lastSyncedAt: new Date()
+      ...analyticsData
     },
-    update: {
-      totalTasks: taskSummary.total,
-      completedTasks: taskSummary.DONE,
-      blockedTasks: taskSummary.BLOCKED,
-      cancelledTasks: taskSummary.CANCELLED,
-      totalSprints,
-      activeSprints,
-      syncStatus: 'synced',
-      lastSyncedAt: new Date()
-    }
+    update: analyticsData
   });
 };
