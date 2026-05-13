@@ -1,5 +1,5 @@
 import { useSearchParams } from "react-router-dom";
-import Overduetasks from "./Overduetasks";
+import OverdueTasks from "./OverdueTasks";
 import PieChart from "../Task-Progress/PieChart";
 import TaskCard from "../Task-Progress/TaskCard";
 

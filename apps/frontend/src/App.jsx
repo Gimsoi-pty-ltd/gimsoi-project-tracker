@@ -21,7 +21,7 @@ import SprintVelocityPage from './Pages/Sprints/SprintVelocity';
 // Tasks
 import TasksPage from './Pages/Tasks/TasksPage';
 import BlockedTasks from './Pages/Tasks/BlockedTasks';
-import OverdueTasks from './Pages/Tasks/Overduetasks';
+import OverdueTasks from './Pages/Tasks/OverdueTasks';
 import ActiveProjects from './Pages/Tasks/ActiveProjects';
 
 // Projects & Phases
@@ -36,7 +36,7 @@ import ProjectReport from './Pages/Reports-and-Exporting/projectReports';
 import TeamPerformance from './Pages/Reports-and-Exporting/teamPerformance';
 
 // Team & Insights
-import TeamInsights from './Pages/Team-Insights/teamInsights';
+import TeamInsights from './Pages/Team-Insights/TeamInsights';
 
 // Calendar & Documents
 import Calendar from './Pages/Calendar/Calendar';
