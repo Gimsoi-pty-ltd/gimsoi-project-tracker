@@ -22,3 +22,18 @@ export const handlePrismaError = (err) => {
     }
     throw err;
 };
+
+/**
+ * Handles P2025 errors specifically for optimistic locking/concurrency conflicts.
+ * Maps Prisma P2025 to a 409 ConflictError with a standardized message.
+ *
+ * @param {unknown} err
+ * @param {string} resourceName - Name of the resource (e.g., 'Task', 'Sprint')
+ * @throws {ConflictError | unknown}
+ */
+export const handleConcurrencyError = (err, resourceName) => {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2025") {
+        throw new ConflictError(`${resourceName} was modified by another user. Please refresh and try again.`);
+    }
+    throw err;
+};
