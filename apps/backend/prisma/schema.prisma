@@ -27,6 +27,7 @@ enum SprintStatus {
 enum TaskStatus {
   TODO
   IN_PROGRESS
+  REVIEW
   DONE
   CANCELLED
   BLOCKED
@@ -43,6 +44,13 @@ enum TaskPriority {
   MEDIUM
   HIGH
   URGENT
+}
+
+enum Severity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
 }
 
 enum Role {
@@ -127,6 +135,7 @@ model Sprint {
   id              String       @id @default(uuid())
   name            String
   status          SprintStatus @default(PLANNING)
+  goal            String?
   startDate       DateTime?
   endDate         DateTime?
   projectId       String
@@ -168,6 +177,10 @@ model Task {
   // See task.service.js and docs/DATA_CONTRACT.md.
   completedAt DateTime?
   priority  TaskPriority @default(MEDIUM)
+  severity  Severity     @default(MEDIUM)
+  storyPoints Int        @default(0)
+  estimatedHours Float?
+  actualHours   Float?
   isBlocked Boolean      @default(false)
   dueDate   DateTime?
   version   Int          @default(1)
