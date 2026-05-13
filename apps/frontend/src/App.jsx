@@ -70,6 +70,8 @@ import { useAuthStore } from "./store/authStore";
 
 // ─── Auth Guard Components  ─────────────────────────────
 const ProtectedRoute = ({ children }) => {
+
+  // if (import.meta.env.DEV) return children; //for development
   const { isAuthenticated, user } = useAuthStore();
 
   if (!isAuthenticated) {
@@ -84,7 +86,12 @@ const ProtectedRoute = ({ children }) => {
 };
 
 const RedirectAuthenticatedUser = ({ children }) => {
+
+  
+  // if (import.meta.env.DEV) return <Navigate to='/dashboard' replace />; //for Development
+
   const { isAuthenticated, user } = useAuthStore();
+
 
   if (isAuthenticated && user?.isVerified) {
     return <Navigate to='/dashboard' replace />;
@@ -98,7 +105,8 @@ function App() {
   const { isCheckingAuth, checkAuth } = useAuthStore();
 
   useEffect(() => {
-    checkAuth();
+  //  if (!import.meta.env.DEV) checkAuth(); // for development
+  checkAuth();
   }, [checkAuth]);
 
   if (isCheckingAuth) return <div className="loading">Loading...</div>;
@@ -191,6 +199,11 @@ function App() {
         <Route path="/projects" element={
           <ProtectedRoute>
             <DashboardLayout><Projects /></DashboardLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/projects/:id" element={
+          <ProtectedRoute>
+            <DashboardLayout><ProjectOverview /></DashboardLayout>
           </ProtectedRoute>
         } />
         <Route path="/project-overview" element={

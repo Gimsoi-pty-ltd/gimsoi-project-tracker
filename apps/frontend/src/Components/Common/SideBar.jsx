@@ -1,9 +1,25 @@
 import React from "react";
-import { Link, useLocation } from "react-router-dom";
-import { Home, FolderKanban, ListTodo, Users, PieChart, X, Calendar, Zap } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Home, FolderKanban, ListTodo, Users, PieChart, X, Calendar, Zap, LogOut } from "lucide-react";
+import { useAuthStore } from "../../store/authStore";
 
 export default function Sidebar({ onClose }) {
   const location = useLocation();
+  const navigate = useNavigate();
+  const logout = useAuthStore((state) => state.logout);
+  const isLoading = useAuthStore((state) => state.isLoading);
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      // Clear localStorage to ensure session is fully cleared
+      localStorage.removeItem("user");
+      localStorage.removeItem("token");
+      navigate("/login");
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
+  };
 
   const menuItems = [
     { label: "Home", icon: Home, href: "/" },
@@ -84,6 +100,18 @@ export default function Sidebar({ onClose }) {
             ))}
           </nav>
         </div>
+      </div>
+
+      {/* Logout Button at Bottom */}
+      <div className="px-4 py-4 border-t border-blue-500/30">
+        <button
+          onClick={handleLogout}
+          disabled={isLoading}
+          className="w-full flex items-center justify-center gap-2 px-5 py-3 text-sm font-medium rounded-xl no-underline transition-all duration-200 group bg-red-500/20 text-red-100 hover:bg-red-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <LogOut size={20} className="text-red-300" />
+          {isLoading ? "Logging out..." : "Logout"}
+        </button>
       </div>
     </div>
   );

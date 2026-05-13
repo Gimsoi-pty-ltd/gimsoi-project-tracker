@@ -1,343 +1,392 @@
-import { useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { ArrowLeft, Trash2, Edit2, CheckCircle2, Clock, ChevronRight, Users, Calendar, Zap } from "lucide-react";
+import ProjectForm from "../../Components/ProjectForm/ProjectForm";
+import { useProjectStore } from "../../store/projectStore";
+import EmptyState from "../../Components/EmptyState";
+import ErrorAlert from "../../Components/ErrorAlert";
+import LoadingSpinner from "../../Components/LoadingSpinner";
 import NavyButton from "../../Components/Buttons";
 
-const STORAGE_KEY = "pm_projects";
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+const STATUS_CONFIG = {
+  ACTIVE:    { label: "Active",   dot: "bg-blue-500",    badge: "bg-blue-50 text-blue-700 border-blue-200"         },
+  COMPLETED: { label: "Complete", dot: "bg-emerald-500", badge: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+  "ON HOLD": { label: "On Hold",  dot: "bg-orange-400",  badge: "bg-orange-50 text-orange-700 border-orange-200"   },
+  ON_HOLD:   { label: "On Hold",  dot: "bg-orange-400",  badge: "bg-orange-50 text-orange-700 border-orange-200"   },
+  DRAFT:     { label: "Draft",    dot: "bg-gray-400",    badge: "bg-gray-50 text-gray-700 border-gray-200"          },
+  PLANNED:   { label: "Planned",  dot: "bg-purple-400",  badge: "bg-purple-50 text-purple-700 border-purple-200"   },
+};
+const getStatusCfg = (status) =>
+  STATUS_CONFIG[(status || "DRAFT").toUpperCase()] || STATUS_CONFIG.DRAFT;
 
-const colorMap = {
-  blue:   { bar: "bg-blue-500",    badge: "bg-blue-50 text-blue-700" },
-  green:  { bar: "bg-emerald-500", badge: "bg-emerald-50 text-emerald-700" },
-  orange: { bar: "bg-orange-500",  badge: "bg-orange-50 text-orange-700" },
+const MILESTONE_CONFIG = {
+  Done:        { icon: CheckCircle2, color: "text-emerald-500", bg: "bg-emerald-50" },
+  "In Progress": { icon: Clock,      color: "text-blue-500",    bg: "bg-blue-50"    },
+  Upcoming:    { icon: ChevronRight, color: "text-gray-400",    bg: "bg-gray-100"   },
 };
 
-const statusIcon = { Done: "✅", "In Progress": "🔄", Upcoming: "🔲" };
-const statusColorMap = { Active: "blue", Complete: "green", "On Hold": "orange" };
+const AVATAR_COLORS = [
+  "bg-blue-500", "bg-emerald-500", "bg-purple-500",
+  "bg-orange-400", "bg-pink-500", "bg-teal-500",
+];
 
-function persistProject(updated) {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    const projects = stored ? JSON.parse(stored) : [];
-    const next = projects.map((p) => (p.id === updated.id ? { ...p, ...updated } : p));
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-  } catch {
-    
-  }
-}
-
-
-function Dashboard({ project, colors, onEdit }) {
+// ─── Stat Card ────────────────────────────────────────────────────────────────
+function StatCard({ label, value, color = "text-gray-900" }) {
   return (
-    <div className="p-6 space-y-6 max-w-4xl mx-auto">
-      
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold text-slate-900">Project Overview</h2>
-        <nav className="flex mt-1 text-sm text-gray-500">
-          <Link to="/projects">
-            <span className="text-slate-900 hover:text-slate-600 cursor-pointer">Project Management</span>
-          </Link>
-          <span className="mx-2">/</span>
-          <span>{project.name}</span>
-        </nav>
-      </div>
-
-    
-      <div className="bg-white p-5 rounded-xl shadow">
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <h2 className="text-lg font-semibold text-gray-900">{project.name}</h2>
-          <span className={`text-sm font-medium px-3 py-1 rounded-full ${colors.badge}`}>
-            {project.status}
-          </span>
-        </div>
-        <p className="text-sm text-gray-500 mt-1">
-          Client: <span className="font-medium text-gray-700">{project.client}</span>
-        </p>
-        <p className="text-sm text-gray-500 mt-1">
-          Deadline: <span className="font-medium text-gray-700">{project.deadline}</span>
-        </p>
-      </div>
-
-      
-      <div className="bg-white p-5 rounded-xl shadow">
-        <div className="flex items-center justify-between mb-2">
-          <p className="font-semibold text-gray-700">Overall Progress</p>
-          <span className="text-sm font-bold text-gray-600">{project.progress}%</span>
-        </div>
-        <div className="w-full bg-gray-100 rounded-full h-4">
-          <div
-            className={`h-4 rounded-full transition-all duration-500 ${colors.bar}`}
-            style={{ width: `${project.progress}%` }}
-          />
-        </div>
-      </div>
-
-      
-      <div className="bg-white p-5 rounded-xl shadow border-2 border-blue-600">
-        <h3 className="font-semibold mb-3 text-gray-800">Milestones</h3>
-        <ul className="space-y-2">
-          {project.milestones.map((m, i) => (
-            <li key={i} className="flex items-center gap-2 text-sm text-gray-700">
-              <span>{statusIcon[m.status]}</span>
-              <span className="font-medium">{m.label}</span>
-              <span className="text-gray-400">–</span>
-              <span className="text-gray-500">{m.status}</span>
-              <span className="text-gray-400 ml-auto">{m.date}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      
-      <div className="bg-white p-5 rounded-xl shadow">
-        <h3 className="font-semibold text-gray-800">Current Sprint</h3>
-        <p className="text-sm text-gray-600 mt-1">{project.sprint}</p>
-      </div>
-
-      
-      <div className="bg-white p-5 rounded-xl shadow">
-        <h3 className="font-semibold text-gray-800 mb-2">Team Members</h3>
-        <div className="flex flex-wrap gap-2">
-          {project.team.map((member, i) => (
-            <span key={i} className="bg-gray-100 text-gray-700 text-sm px-3 py-1 rounded-full">
-              {member}
-            </span>
-          ))}
-        </div>
-      </div>
-
-      
-      <NavyButton onClick={onEdit}>Edit Project</NavyButton>
+    <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">{label}</p>
+      <p className={`text-3xl font-bold ${color}`}>{value ?? 0}</p>
     </div>
   );
 }
 
+// ─── Delete Modal ─────────────────────────────────────────────────────────────
+function DeleteModal({ projectName, onCancel, onConfirm, isLoading }) {
+  return (
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6">
+        <div className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center mb-4">
+          <Trash2 className="w-5 h-5 text-red-500" />
+        </div>
+        <h3 className="text-lg font-bold text-gray-900 mb-1">Delete Project</h3>
+        <p className="text-gray-500 text-sm mb-1">
+          Are you sure you want to delete{" "}
+          <span className="font-semibold text-gray-700">"{projectName}"</span>?
+        </p>
+        <p className="text-gray-400 text-xs mb-6">This action cannot be undone.</p>
+        <div className="flex gap-3">
+          <NavyButton
+            onClick={onCancel}
+            disabled={isLoading}
+            className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-gray-700 font-medium text-sm transition-colors disabled:opacity-50"
+          >
+            Cancel
+          </NavyButton>
+          <button
+            onClick={onConfirm}
+            disabled={isLoading}
+            className="flex-1 px-4 py-2.5 bg-red-500 text-white rounded-xl font-medium hover:bg-red-600 text-sm transition-colors disabled:opacity-50"
+          >
+            {isLoading ? "Deleting..." : "Delete"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
-function EditScreen({ project, onSave, onCancel }) {
-  const [draft, setDraft] = useState({ ...project });
+// ─── Main ─────────────────────────────────────────────────────────────────────
+export default function ProjectOverview() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const {
+    currentProject, projectProgress, isLoading, error,
+    getProjectById, getProjectProgress, deleteProject, clearError,
+  } = useProjectStore();
 
-  const updateField = (field, value) => setDraft((prev) => ({ ...prev, [field]: value }));
+  const [showEditForm, setShowEditForm]     = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteLoading, setDeleteLoading]   = useState(false);
 
-  const updateMilestone = (i, key, value) => {
-    const updated = draft.milestones.map((m, idx) =>
-      idx === i ? { ...m, [key]: value } : m
+  useEffect(() => {
+    if (id) {
+      getProjectById(id);
+      getProjectProgress(id);
+    }
+  }, [id, getProjectById, getProjectProgress]);
+
+  const handleDelete = async () => {
+    setDeleteLoading(true);
+    try {
+      await deleteProject(currentProject.id);
+      navigate("/projects");
+    } catch (err) {
+      console.error("Delete failed:", err);
+      setDeleteLoading(false);
+    }
+  };
+
+  // ── Full-page loading (first load) ──
+  if (isLoading && !currentProject) {
+    return (
+      <div className="min-h-screen bg-[#f5f7fb]">
+        <LoadingSpinner size="lg" message="Loading project..." />
+      </div>
     );
-    setDraft((prev) => ({ ...prev, milestones: updated }));
-  };
+  }
 
-  const addMilestone = () =>
-    setDraft((prev) => ({
-      ...prev,
-      milestones: [...prev.milestones, { label: "", status: "Upcoming", date: "" }],
-    }));
+  // ── Error state ──
+  if (error && !currentProject) {
+    return (
+      <div className="min-h-screen bg-[#f5f7fb] flex items-center justify-center p-6">
+        <div className="max-w-md w-full space-y-4">
+          <ErrorAlert
+            message={error}
+            type="error"
+            onDismiss={clearError}
+            actions={[
+              { label: "Retry", onClick: () => { clearError(); getProjectById(id); } },
+              { label: "Back to Projects", onClick: () => navigate("/projects") },
+            ]}
+          />
+        </div>
+      </div>
+    );
+  }
 
-  const removeMilestone = (i) =>
-    setDraft((prev) => ({
-      ...prev,
-      milestones: prev.milestones.filter((_, idx) => idx !== i),
-    }));
+  // ── Not found ──
+  if (!currentProject) {
+    return (
+      <div className="min-h-screen bg-[#f5f7fb] flex items-center justify-center p-6">
+        <EmptyState
+          title="Project not found"
+          message="This project may have been deleted or you don't have access to it."
+          onAction={() => navigate("/projects")}
+          actionLabel="Back to Projects"
+        />
+      </div>
+    );
+  }
 
-  const updateTeamMember = (i, value) => {
-    const updated = draft.team.map((m, idx) => (idx === i ? value : m));
-    setDraft((prev) => ({ ...prev, team: updated }));
-  };
+  const p   = currentProject;
+  const prog = projectProgress;
+  const cfg  = getStatusCfg(p.status);
 
-  const addTeamMember = () =>
-    setDraft((prev) => ({ ...prev, team: [...prev.team, ""] }));
+  const pct = prog?.totalTasks > 0
+    ? Math.round((prog.completedTasks / prog.totalTasks) * 100)
+    : (p.progress || 0);
 
-  const removeTeamMember = (i) =>
-    setDraft((prev) => ({ ...prev, team: prev.team.filter((_, idx) => idx !== i) }));
-
-  
-  const handleSave = () => {
-    const statusToColor = { Active: "blue", Complete: "green", "On Hold": "orange" };
-    const updatedProject = {
-      ...draft,
-      defaultColor: statusToColor[draft.status] || project.defaultColor,
-    };
-    onSave(updatedProject);
-  };
-
-  const inputClass =
-    "w-full border border-gray-200 bg-gray-50 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition";
-  const labelClass =
-    "block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1";
+  const progressBarColor =
+    pct >= 100 ? "bg-emerald-500" : pct >= 60 ? "bg-blue-500" : "bg-orange-400";
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6">
-      
-      <div className="mb-2">
-        <h2 className="text-2xl font-bold text-slate-900">Edit Project</h2>
-        <nav className="flex mt-1 text-sm text-gray-500">
-          <Link to="/projects">
-            <span className="text-slate-900 hover:text-slate-600 cursor-pointer">Project Management</span>
-          </Link>
-          <span className="mx-2">/</span>
-          
-          <span className="hover:text-slate-600 cursor-pointer" onClick={onCancel}>
-            {project.name}
-          </span>
-          <span className="mx-2">/</span>
-          <span>Edit</span>
-        </nav>
-      </div>
+    <div className="min-h-screen bg-[#f5f7fb] font-sans">
+      <div className="max-w-5xl mx-auto px-6 py-8 space-y-6">
 
-      {/* Basic Info */}
-      <div className="bg-white p-5 rounded-xl shadow space-y-4">
-        <h3 className="font-semibold text-gray-800 border-b pb-2">Project Details</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className={labelClass}>Client Name</label>
-            <input className={inputClass} value={draft.client}
-              onChange={(e) => updateField("client", e.target.value)} />
-          </div>
-          <div>
-            <label className={labelClass}>Deadline</label>
-            <input className={inputClass} value={draft.deadline}
-              onChange={(e) => updateField("deadline", e.target.value)} />
-          </div>
-          <div>
-            <label className={labelClass}>Status</label>
-            <select className={inputClass} value={draft.status}
-              onChange={(e) => updateField("status", e.target.value)}>
-              <option>Active</option>
-              <option>Complete</option>
-              <option>On Hold</option>
-            </select>
-          </div>
-          <div>
-            <label className={labelClass}>Sprint</label>
-            <input className={inputClass} value={draft.sprint}
-              onChange={(e) => updateField("sprint", e.target.value)} />
-          </div>
-        </div>
-
-        
+        {/* ── Back + Title ── */}
         <div>
-          <label className={labelClass}>Progress — {draft.progress}%</label>
-          <input
-            type="range" min={0} max={100} value={draft.progress}
-            onChange={(e) => updateField("progress", Number(e.target.value))}
-            className="w-full accent-blue-600"
-          />
-          <div className="w-full bg-gray-100 rounded-full h-2 mt-1">
-            <div
-              className="h-2 rounded-full bg-blue-500 transition-all"
-              style={{ width: `${draft.progress}%` }}
-            />
-          </div>
-        </div>
-      </div>
+          <Link
+            to="/projects"
+            className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-blue-600 transition-colors mb-3"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Projects
+          </Link>
 
-      
-      <div className="bg-white p-5 rounded-xl shadow space-y-3">
-        <h3 className="font-semibold text-gray-800 border-b pb-2">Team Members</h3>
-        {draft.team.map((member, i) => (
-          <div key={i} className="flex gap-2 items-center">
-            <input className={inputClass} value={member} placeholder="Name (Role)"
-              onChange={(e) => updateTeamMember(i, e.target.value)} />
-            <NavyButton
-              onClick={() => removeTeamMember(i)}
-              className="text-red-400 hover:text-red-600 text-lg font-bold px-2 flex-shrink-0"
-            >×</NavyButton>
-          </div>
-        ))}
-        <NavyButton onClick={addTeamMember} className="text-sm text-blue-600 hover:text-blue-800 font-medium mt-1">
-          + Add Member
-        </NavyButton>
-      </div>
+          <div className="flex items-start justify-between flex-wrap gap-3">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">{p.name}</h1>
+              {p.client && (
+                <p className="text-sm text-gray-400 mt-0.5">
+                  Client: <span className="text-gray-600 font-medium">{p.client}</span>
+                </p>
+              )}
+            </div>
 
-
-      <div className="bg-white p-5 rounded-xl shadow space-y-3">
-        <h3 className="font-semibold text-gray-800 border-b pb-2">Milestones</h3>
-        {draft.milestones.map((m, i) => (
-          <div key={i} className="grid grid-cols-1 md:grid-cols-3 gap-2 items-center">
-            <input className={inputClass} value={m.label} placeholder="Milestone label"
-              onChange={(e) => updateMilestone(i, "label", e.target.value)} />
-            <select className={inputClass} value={m.status}
-              onChange={(e) => updateMilestone(i, "status", e.target.value)}>
-              <option>Done</option>
-              <option>In Progress</option>
-              <option>Upcoming</option>
-            </select>
-            <div className="flex gap-2">
-              <input className={inputClass} value={m.date} placeholder="Date / range"
-                onChange={(e) => updateMilestone(i, "date", e.target.value)} />
+            {/* Action buttons using NavyButton + plain red */}
+            <div className="flex items-center gap-2">
               <NavyButton
-                onClick={() => removeMilestone(i)}
-                className="text-red-400 hover:text-red-600 text-lg font-bold px-2 flex-shrink-0"
-              >×</NavyButton>
+                onClick={() => setShowEditForm(true)}
+                className="!min-w-0 !px-4 !py-2 !rounded-xl flex items-center gap-2 !text-sm"
+              >
+                <Edit2 className="w-4 h-4" />
+                Edit Project
+              </NavyButton>
+              <button
+                onClick={() => setShowDeleteModal(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 hover:border-red-200 transition-colors shadow-sm"
+              >
+                <Trash2 className="w-4 h-4" />
+                Delete
+              </button>
             </div>
           </div>
-        ))}
-        <NavyButton onClick={addMilestone} className="text-sm text-blue-600 hover:text-blue-800 font-medium">
-          + Add Milestone
-        </NavyButton>
-      </div>
-      <div className="flex gap-3 pb-8">
-        <NavyButton onClick={handleSave}>Save Changes</NavyButton>
-        <NavyButton
-          onClick={onCancel}
-          className="px-4 py-2 rounded-xl border border-gray-300 text-sm text-gray-600 hover:bg-gray-50 transition"
-        >
-          Cancel
-        </NavyButton>
-      </div>
-    </div>
-  );
-}
-
-export default function ProjectOverview() {
-  const { state } = useLocation();
-  const navigate = useNavigate();
-
-  const resolveInitial = () => {
-    if (state?.project) return state.project;
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored && state?.projectId) {
-        const projects = JSON.parse(stored);
-        return projects.find((p) => p.id === state.projectId) || null;
-      }
-    } catch {}
-    return null;
-  };
-
-  const [project, setProject] = useState(resolveInitial);
-  const [screen, setScreen] = useState("dashboard");
-  const handleSave = (updatedProject) => {
-    setProject(updatedProject);
-    persistProject(updatedProject);
-    setScreen("dashboard");
-  };
-
-  const colors = colorMap[statusColorMap[project?.status]] || colorMap.blue;
-
-  if (!project) {
-    return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="bg-white p-8 rounded-xl shadow text-center">
-          <p className="text-gray-500 mb-4">No project selected.</p>
-          <Link to="/projects" className="text-blue-600 underline">Back to Projects</Link>
         </div>
-      </div>
-    );
-  }
 
-  return (
-    <div className="min-h-screen bg-gray-100">
-      {screen === "dashboard" && (
-        <Dashboard
-          project={project}
-          colors={colors}
-          onEdit={() => setScreen("edit")}
+        {/* ── Inline error (non-blocking) ── */}
+        {error && (
+          <ErrorAlert
+            message={error}
+            type="error"
+            onDismiss={clearError}
+            actions={[{ label: "Retry", onClick: () => getProjectById(id) }]}
+          />
+        )}
+
+        {/* ── Project Header Card ── */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <div className="flex flex-wrap items-center gap-3 mb-5">
+            <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold border ${cfg.badge}`}>
+              <span className={`w-2 h-2 rounded-full ${cfg.dot}`} />
+              Status: {cfg.label}
+            </span>
+
+            {p.deadline && (
+              <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-full text-sm text-gray-600">
+                <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                Deadline: {p.deadline}
+              </span>
+            )}
+
+            {p.sprint && (
+              <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-full text-sm text-gray-600">
+                <Zap className="w-3.5 h-3.5 text-gray-400" />
+                {p.sprint}
+              </span>
+            )}
+          </div>
+
+          {p.description && (
+            <p className="text-sm text-gray-500 mb-5 leading-relaxed">{p.description}</p>
+          )}
+
+          {/* Progress bar */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-semibold text-gray-700">Progress Bar:</span>
+              <span className="text-sm font-bold text-gray-600">{pct}%</span>
+            </div>
+            <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-700 ${progressBarColor}`}
+                style={{ width: `${Math.min(pct, 100)}%` }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* ── Task Stats ── */}
+        {prog ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <StatCard label="Total Tasks"  value={prog.totalTasks}      color="text-gray-900"    />
+            <StatCard label="Completed"    value={prog.completedTasks}  color="text-emerald-600" />
+            <StatCard label="In Progress"  value={prog.inProgressTasks} color="text-blue-600"    />
+            <StatCard label="Blocked"      value={prog.blockedTasks}    color="text-orange-500"  />
+          </div>
+        ) : !isLoading && (
+          <EmptyState
+            title="No task data yet"
+            message="Tasks will appear here once they are added to this project."
+          />
+        )}
+
+        {/* ── Milestones ── */}
+        {p.milestones?.length > 0 ? (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wider mb-5">
+              Milestones (Timeline View)
+            </h2>
+            <div className="space-y-3">
+              {p.milestones.map((m, i) => {
+                const mc   = MILESTONE_CONFIG[m.status] || MILESTONE_CONFIG.Upcoming;
+                const Icon = mc.icon;
+                return (
+                  <div key={i} className="flex items-center gap-4">
+                    <div className={`w-7 h-7 rounded-full ${mc.bg} flex items-center justify-center flex-shrink-0`}>
+                      <Icon className={`w-4 h-4 ${mc.color}`} />
+                    </div>
+                    <div className="flex-1 flex items-center justify-between flex-wrap gap-2">
+                      <span className="text-sm font-medium text-gray-800">
+                        {m.label}
+                        <span className={`ml-2 text-xs font-semibold ${mc.color}`}>— {m.status}</span>
+                      </span>
+                      {m.date && (
+                        <span className="text-xs text-gray-400 bg-gray-50 px-2 py-1 rounded-lg border border-gray-100">
+                          {m.date}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wider mb-2">
+              Milestones (Timeline View)
+            </h2>
+            <EmptyState
+              title="No milestones yet"
+              message="Add milestones to track key project phases."
+            />
+          </div>
+        )}
+
+        {/* ── Sprint Details ── */}
+        {(p.sprint || p.sprintGoal) && (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wider mb-4">
+              Current Sprint
+            </h2>
+            <div className="space-y-2 text-sm text-gray-600">
+              {p.sprint      && <p><span className="font-semibold text-gray-800">Sprint:</span> {p.sprint}</p>}
+              {p.sprintGoal  && <p><span className="font-semibold text-gray-800">Goal:</span> {p.sprintGoal}</p>}
+              {prog          && (
+                <p>
+                  <span className="font-semibold text-gray-800">Tasks:</span>{" "}
+                  {prog.completedTasks}/{prog.totalTasks} completed
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ── Team Members ── */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wider mb-4 flex items-center gap-2">
+            <Users className="w-4 h-4" />
+            Team Members
+          </h2>
+
+          {p.team?.length > 0 ? (
+            <div className="flex flex-wrap gap-3">
+              {p.team.map((member, i) => {
+                const [name, role] = (member || "").split("(");
+                const initials = (name || "?")
+                  .trim().split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
+                return (
+                  <div key={i} className="flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-100 rounded-xl">
+                    <div className={`w-7 h-7 rounded-full ${AVATAR_COLORS[i % AVATAR_COLORS.length]} flex items-center justify-center text-white text-xs font-bold`}>
+                      {initials}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-800">{name?.trim()}</p>
+                      {role && <p className="text-xs text-gray-400">{role.replace(")", "").trim()}</p>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <EmptyState
+              title="No team members assigned"
+              message="Edit the project to assign team members."
+              onAction={() => setShowEditForm(true)}
+              actionLabel="Edit Project"
+            />
+          )}
+        </div>
+
+      </div>
+
+      {/* ── Modals ── */}
+      {showDeleteModal && (
+        <DeleteModal
+          projectName={p.name}
+          onCancel={() => setShowDeleteModal(false)}
+          onConfirm={handleDelete}
+          isLoading={deleteLoading}
         />
       )}
-      {screen === "edit" && (
-        <EditScreen
-          project={project}
-          onSave={handleSave}
-          onCancel={() => setScreen("dashboard")}
-        />
-      )}
+
+      <ProjectForm
+        isOpen={showEditForm}
+        onClose={() => setShowEditForm(false)}
+        project={currentProject}
+        onSuccess={() => { setShowEditForm(false); if (id) getProjectById(id); }}
+      />
     </div>
   );
 }
