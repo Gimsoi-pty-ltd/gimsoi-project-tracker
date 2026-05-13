@@ -3,14 +3,14 @@ import { parsePagination, buildPage } from "../utils/pagination.js";
 
 export const createTask = async (req, res, next) => {
     try {
-        const { title, description, projectId, sprintId, phaseId, assigneeId, priority, isBlocked, dueDate } = req.body;
+        const { title, description, projectId, sprintId, phaseId, assigneeId, priority, severity, storyPoints, estimatedHours, actualHours, isBlocked, dueDate } = req.body;
 
         if (!title || !projectId) {
             return res.status(400).json({ success: false, message: "Task title and projectId are required" });
         }
 
         const task = await taskService.createTask({
-            taskData: { title, description, priority, isBlocked, dueDate },
+            taskData: { title, description, priority, severity, storyPoints, estimatedHours, actualHours, isBlocked, dueDate },
             context: { projectId, sprintId, phaseId, assigneeId, reporterId: req.user.id },
             requestingUser: { role: req.user.role, id: req.user.id }
         });

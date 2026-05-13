@@ -15,6 +15,7 @@ export const createSprint = async (req, res, next) => {
             status,
             startDate,
             endDate,
+            goal: req.body.goal,
             createdByUserId: req.user.id
         });
 
@@ -60,9 +61,9 @@ export const updateSprintStatus = async (req, res, next) => {
 export const updateSprint = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const { name, startDate, endDate, version } = req.body;
+        const { name, startDate, endDate, goal, version } = req.body;
 
-        const updated = await sprintService.updateSprint(id, { name, startDate, endDate, version }, req.user.id, req.user.role);
+        const updated = await sprintService.updateSprint(id, { name, startDate, endDate, goal, version }, req.user.id, req.user.role);
 
         return res.status(200).json({ success: true, message: "Sprint updated successfully", data: updated });
     } catch (err) {
@@ -75,6 +76,15 @@ export const getSprintVelocity = async (req, res, next) => {
         const { id } = req.params;
         const velocity = await sprintService.getSprintVelocity(id);
         return res.status(200).json({ success: true, data: velocity });
+    } catch (err) {
+        next(err);
+    }
+};
+export const getSprintMetrics = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const metrics = await sprintService.getSprintMetrics(id);
+        return res.status(200).json({ success: true, data: metrics });
     } catch (err) {
         next(err);
     }

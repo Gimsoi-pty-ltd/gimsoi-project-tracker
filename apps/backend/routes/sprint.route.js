@@ -2,11 +2,12 @@ import express from "express";
 import { verifyToken } from "../middleware/verify-token.middleware.js";
 import authorize from "../middleware/authorize.middleware.js";
 import { readLimiter, writeLimiter } from "../middleware/rate-limiter.middleware.js";
-import { createSprint, getSprints, updateSprintStatus, updateSprint, getSprintVelocity } from "../controllers/sprint.controller.js";
+import { createSprint, getSprints, updateSprintStatus, updateSprint, getSprintVelocity, getSprintMetrics } from "../controllers/sprint.controller.js";
 import { requireCSRF } from "../middleware/csrf.middleware.js";
 import { validate } from "../middleware/validate.middleware.js";
 import { createSprintSchema, updateSprintSchema, updateSprintStatusSchema } from "../schemas/sprint.schema.js";
 
+import { z } from "zod";
 const router = express.Router();
 
 /**
@@ -14,6 +15,12 @@ const router = express.Router();
  * Allowed: ADMIN, PM, INTERN, CLIENT
  */
 router.get("/:id/velocity", readLimiter, verifyToken, authorize("VIEW_SPRINTS"), getSprintVelocity);
+
+/**
+ * GET /api/sprints/:id/metrics — VIEW_ANALYTICS
+ * Allowed: ADMIN, PM
+ */
+router.get("/:id/metrics", readLimiter, verifyToken, authorize("VIEW_ANALYTICS"), validate(z.object({ id: z.string().uuid() }), 'params'), getSprintMetrics);
 
 /**
  * GET /api/sprints — VIEW_SPRINTS

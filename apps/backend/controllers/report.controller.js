@@ -34,6 +34,8 @@ export const getReportPdfHandler = async (req, res, next) => {
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename="report-${report.id}.pdf"`);
         res.setHeader('Content-Length', pdfBuffer.length);
+        res.setHeader('Content-Security-Policy', "default-src 'none'");
+        res.setHeader('X-Content-Type-Options', 'nosniff');
         return res.status(200).send(pdfBuffer);
     } catch (err) {
         next(err);
