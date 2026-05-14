@@ -1,13 +1,8 @@
 import { useSearchParams } from "react-router-dom";
-<<<<<<< HEAD
-import Overduetasks from "./Overduetasks";
-import PieChart from "../TaskProgress/PieChart";
-import TaskCard from "../TaskProgress/TaskCard";
-=======
 import OverdueTasks from "./OverdueTasks";
 import PieChart from "../Task-Progress/PieChart";
 import TaskCard from "../Task-Progress/TaskCard";
->>>>>>> origin/fix/frontend-functionality-restoration
+
 
 const TABS = [
   { id: "overdue", label: "Overdue Tasks", count: 8 },

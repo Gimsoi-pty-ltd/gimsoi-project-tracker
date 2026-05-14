@@ -10,7 +10,14 @@ export const csrfProtection = (req, res, next) => {
         return next();
     }
 
-    // 2. Extract token from header or body (fallback)
+    // 2. Skip if user is not authenticated (auth routes should handle their own safety)
+    console.log(`[CSRF Debug] Method: ${req.method}, URL: ${req.url}, User: ${req.user ? req.user.id : 'none'}`);
+    if (!req.user || !req.user.id) {
+        return next();
+    }
+
+
+    // 3. Extract token from header or body (fallback)
     const token = req.headers["x-csrf-token"] || req.body?._csrf;
 
     if (!token) {
@@ -18,10 +25,6 @@ export const csrfProtection = (req, res, next) => {
         return res.status(403).json({ success: false, message: "Invalid or missing CSRF token." });
     }
 
-    // 3. Skip if user is not authenticated (auth routes should handle their own safety)
-    if (!req.user || !req.user.id) {
-        return next();
-    }
 
     // 4. Verify the token signature against the current user session
     const isValid = verifyStatelessCsrfToken(req.user.id, token);

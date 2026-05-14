@@ -1,6 +1,6 @@
 import express from "express";
 import { verifyToken } from "../middleware/verify-token.middleware.js";
-import authorize from "../middleware/authorize.middleware.js";
+import { requireAnyRole } from "../middleware/rbac.middleware.js";
 import { readLimiter } from "../middleware/rate-limiter.middleware.js";
 import { injectAnalyticsScope } from "../middleware/analyticsScope.middleware.js";
 import { getAIContext } from "../controllers/analytics.controller.js";
@@ -23,7 +23,7 @@ router.get(
     "/ai-context",
     readLimiter,
     verifyToken,
-    authorize(["MANAGE_PROJECTS", "VIEW_PROJECTS"]),
+    requireAnyRole(["ADMIN", "PM", "INTERN"]),
     injectAnalyticsScope,
     getAIContext
 );
