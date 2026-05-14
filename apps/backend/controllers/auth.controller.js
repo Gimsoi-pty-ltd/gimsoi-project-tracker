@@ -1,19 +1,20 @@
 import bcryptjs from "bcryptjs";
 import crypto from "crypto";
 import prisma from "../lib/prisma.js";
-import { generateTokenAndSetCookie } from "../utils/generateTokenAndSetCookie.js";
+import { generateTokenAndSetCookie } from "../utils/jwt.utils.js";
+import { generateStatelessCsrfToken } from "../utils/security.utils.js";
 import ROLES from "../constants/roles.js";
 import {
     sendVerificationEmail,
     sendWelcomeEmail,
     sendPasswordResetEmail,
-    sendResetSuccessEmail,
-} from "../services/email.service.js";
+    sendPasswordResetSuccessEmail as sendResetSuccessEmail,
+} from "../services/email/email.service.js";
 
 const VALID_ROLES = Object.values(ROLES);
 
 export const signup = async (req, res) => {
-    const { email, password, fullName } = req.body;    // role intentionally excluded
+    const { email, password, fullName } = req.body;
 
     try {
         if (!email || !password || !fullName) {
@@ -28,7 +29,6 @@ export const signup = async (req, res) => {
         }
 
         const hashedPassword = await bcryptjs.hash(password, 10);
-        // crypto.randomInt(min, max) is exclusive of max — range is 100000..999999 inclusive
         const verificationToken = crypto.randomInt(100000, 999999).toString();
 
         const assignedRole = ROLES.INTERN;
@@ -45,6 +45,15 @@ export const signup = async (req, res) => {
         });
 
         const token = generateTokenAndSetCookie(res, user.id, user.role);
+        
+        // CSRF Token setup
+        const csrfToken = generateStatelessCsrfToken(user.id);
+        res.cookie("XSRF-TOKEN", csrfToken, {
+            httpOnly: false,
+            secure: true,
+            sameSite: "none",
+            maxAge: 7 * 24 * 60 * 60 * 1000,
+        });
 
         sendVerificationEmail(user.email, verificationToken)
             .catch(err => console.error("Failed to send verification email:", err));
@@ -129,6 +138,15 @@ export const login = async (req, res) => {
 
         const token = generateTokenAndSetCookie(res, user.id, user.role);
 
+        // CSRF Token setup
+        const csrfToken = generateStatelessCsrfToken(user.id);
+        res.cookie("XSRF-TOKEN", csrfToken, {
+            httpOnly: false,
+            secure: true,
+            sameSite: "none",
+            maxAge: 7 * 24 * 60 * 60 * 1000,
+        });
+
         await prisma.user.update({
             where: { id: user.id },
             data: { lastLogin: new Date() },
@@ -147,9 +165,15 @@ export const login = async (req, res) => {
     }
 };
 
-export const logout = async (req, res) => {
-    res.clearCookie("token");
-    res.status(200).json({ success: true, message: "Logged out successfully" });
+export const logout = async (req, res, next) => {
+    try {
+        res.clearCookie("token");
+        res.clearCookie("XSRF-TOKEN");
+        return res.status(200).json({ success: true, message: "Logged out successfully" });
+    } catch (error) {
+        if (next) next(error);
+        else res.status(500).json({ success: false, message: error.message });
+    }
 };
 
 export const forgotPassword = async (req, res) => {
@@ -158,7 +182,6 @@ export const forgotPassword = async (req, res) => {
         const user = await prisma.user.findUnique({ where: { email } });
 
         if (!user) {
-            // Return 200 regardless — do not reveal account existence
             return res.status(200).json({
                 success: true,
                 message: "If that email is registered, a reset link has been sent.",
@@ -183,7 +206,7 @@ export const forgotPassword = async (req, res) => {
 
         res.status(200).json({
             success: true,
-            message: "Password reset link sent to your email",
+            message: "If that email is registered, a reset link has been sent.",
         });
     } catch (error) {
         console.log("Error in forgotPassword ", error);
@@ -250,3 +273,4 @@ export const checkAuth = async (req, res) => {
         res.status(400).json({ success: false, message: error.message });
     }
 };
+

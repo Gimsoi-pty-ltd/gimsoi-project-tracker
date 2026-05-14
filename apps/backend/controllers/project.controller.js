@@ -15,10 +15,10 @@ export const createProject = async (req, res) => {
       createdByUserId: req.user?.id || null,
     });
 
-    return res.status(201).json({ message: "Project created", data: project });
+    return res.status(201).json({ success: true, message: "Project created", data: project });
   } catch (err) {
     console.error("createProject error:", err?.message);
-    return res.status(500).json({ message: "Failed to create project" });
+    return res.status(500).json({ success: false, message: "Failed to create project" });
   }
 };
 
@@ -50,12 +50,12 @@ export const getProjectById = async (req, res) => {
     const { id } = req.params;
 
     const project = await projectService.getProjectById(id);
-    if (!project) return res.status(404).json({ message: "Project not found" });
+    if (!project) return res.status(404).json({ success: false, message: "Project not found" });
 
-    return res.status(200).json({ data: project });
+    return res.status(200).json({ success: true, data: project });
   } catch (err) {
     console.error("getProjectById error:", err?.message);
-    return res.status(500).json({ message: "Failed to fetch project" });
+    return res.status(500).json({ success: false, message: "Failed to fetch project" });
   }
 };
 
@@ -65,10 +65,10 @@ export const updateProject = async (req, res) => {
     const { name, status } = req.body;
 
     const updated = await projectService.updateProject(id, { name, status }, req.user.id, req.user.role);
-    return res.status(200).json({ message: "Project updated", data: updated });
+    return res.status(200).json({ success: true, message: "Project updated", data: updated });
   } catch (err) {
     const statusCode = err.statusCode || 500;
-    return res.status(statusCode).json({ message: err.message || "Failed to update project" });
+    return res.status(statusCode).json({ success: false, message: err.message || "Failed to update project" });
   }
 };
 
@@ -78,15 +78,30 @@ export const getProjectProgress = async (req, res) => {
   try {
     const { id } = req.params;
     const progress = await projectService.getProjectProgress(id);
-    if (!progress) return res.status(404).json({ message: "Project not found" });
+    if (!progress) return res.status(404).json({ success: false, message: "Project not found" });
 
     if (req.user?.role === 'CLIENT') {
-      return res.status(200).json({ data: { percentComplete: progress.percentComplete } });
+      return res.status(200).json({ success: true, data: { percentComplete: progress.percentComplete } });
     }
 
-    return res.status(200).json({ data: progress });
+    return res.status(200).json({ success: true, data: progress });
   } catch (err) {
     console.error("getProjectProgress error:", err?.message);
-    return res.status(500).json({ message: "Failed to fetch project progress" });
+    return res.status(500).json({ success: false, message: "Failed to fetch project progress" });
+  }
+};
+
+export const syncProjectAnalytics = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    
+    // Check if project exists
+    const project = await projectService.getProjectById(id);
+    if (!project) return res.status(404).json({ success: false, message: "Project not found" });
+
+    const analytics = await projectService.syncProjectAnalytics(id);
+    return res.status(200).json({ success: true, message: "Project analytics synced", data: analytics });
+  } catch (err) {
+    next(err);
   }
 };
