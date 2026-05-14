@@ -1,8 +1,8 @@
-import ProfileSection from "./Settings Page/ProfileSection";
-import SecuritySection from "./Settings Page/SecuritySection";
-import PreferencesSection from "./Settings Page/PreferencesSection";
-import StorageSection from "./Settings Page/StorageSection";
-import ActivitySection from "./Settings Page/ActivitySection";
+import ProfileSection from "./Settings-Page/ProfileSection";
+import SecuritySection from "./Settings-Page/SecuritySection";
+import PreferencesSection from "./Settings-Page/PreferencesSection";
+import StorageSection from "./Settings-Page/StorageSection";
+import ActivitySection from "./Settings-Page/ActivitySection";
 
 export default function Settings() {
   return (

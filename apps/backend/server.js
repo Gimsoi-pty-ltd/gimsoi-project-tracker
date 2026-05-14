@@ -2,50 +2,77 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import methodOverride from "method-override";
 import authRoutes from "./routes/auth.route.js";
-import taskRoute from "./routes/task.route.js";
-import { csrfProtection, csrfErrorHandler } from "./middleware/csrf.middleware.js";
+import tasksRoutes from "./routes/task.route.js";
 import clientRoutes from "./routes/client.route.js";
 import projectRoutes from "./routes/project.route.js";
 import sprintRoutes from "./routes/sprint.route.js";
-import { validateEnv } from "./utils/validateEnv.js";
-import registerTestingRoutes from "./utils/registerTestingRoutes.js";
 import healthRoute from "./routes/health.route.js";
+import { validateEnv } from "./utils/validateEnv.js";
+import { csrfProtection, csrfErrorHandler } from "./middleware/csrf.middleware.js";
 import swaggerUi from "swagger-ui-express";
 import { swaggerSpec } from "./lib/swagger.js";
 
 dotenv.config();
 
-// Validate required environment variables
 validateEnv();
-
+// CLIENT_URL is only required in production
 if (process.env.NODE_ENV === "production" && !process.env.CLIENT_URL) {
   throw new Error("Missing required env var: CLIENT_URL (required in production for CORS)");
 }
 
 const app = express();
-app.disable("x-powered-by");
 app.set("trust proxy", 1);
+
+// CORS — origin callback for explicit multi-origin matching
+const corsOptions = {
+  origin: (origin, callback) => {
+    const allowed = [
+      process.env.CLIENT_URL,
+      process.env.X_ZOHO_CATALYST_LISTEN_PORT,
+      "http://localhost:5173",
+      "http://localhost:5001",
+    ].filter(Boolean);
+    // Allow requests with no origin (e.g. curl, mobile, health probes)
+    if (!origin || allowed.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error(`CORS: origin '${origin}' not allowed`));
+    }
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "x-csrf-token"],
+  optionsSuccessStatus: 204,
+};
 
 // Middleware
 app.use(express.json());
+app.use(express.urlencoded({ extended: true, limit: "100kb", parameterLimit: 1000 })); 
 app.use(cookieParser());
-app.use(
-  cors({
-    origin: process.env.CLIENT_URL || process.env.X_ZOHO_CATALYST_LISTEN_PORT || "http://localhost:5173",
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "x-csrf-token"],
-  })
-);
+app.use(methodOverride(function (req, res) {
+  if (req.body && typeof req.body === 'object' && '_method' in req.body) {
+    const method = req.body._method;
+    delete req.body._method;
+    return method;
+  }
+}));
+
+// Explicit OPTIONS handler — required for AppSail proxy to pass preflight
+app.options(/.*/, cors(corsOptions));
+app.use(cors(corsOptions));
+
 
 import { healthLimiter } from "./middleware/rate-limiter.middleware.js";
 
 // Health endpoint — registered before CSRF so probes require no session token
 app.use("/api/health", healthLimiter, healthRoute);
 
+// CSRF protection
+app.use(csrfProtection);
 
-// Swagger UI — development only, never exposed in production
+// Swagger UI
 const isNonProd = process.env.NODE_ENV !== "production" || process.env.PRODUCTION === "false";
 if (isNonProd) {
   app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
@@ -53,18 +80,22 @@ if (isNonProd) {
   console.log("[swagger] UI available at /api/docs");
 }
 
-// CSRF protection — Double Submit Cookie via "csrf-csrf" package.
-app.use(csrfProtection);
-
 // Routes
+app.get("/api/status", (req, res) => res.json({ status: "ok" }));
 app.use("/api/auth", authRoutes);
-app.use("/api/tasks", taskRoute);
+app.use("/api/tasks", tasksRoutes);
 app.use("/api/clients", clientRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/sprints", sprintRoutes);
 
 // CSRF error handler — must be after routes
 app.use(csrfErrorHandler);
+
+// Test-only routes
+if (process.env.NODE_ENV === 'test') {
+  const { default: testingRoutes } = await import('./routes/testing.route.js');
+  app.use('/api/testing', testingRoutes);
+}
 
 // Global Error Handler
 app.use((err, req, res, next) => {
@@ -75,20 +106,10 @@ app.use((err, req, res, next) => {
   return res.status(statusCode).json({ success: false, message: err.message || "Internal Server Error" });
 });
 
-// Test-only routes
-await registerTestingRoutes(app);
+// Start
+const PORT = process.env.PORT || 5001;
 
-// Initialize DB and Start Server
-const PORT = process.env.X_ZOHO_CATALYST_LISTEN_PORT || process.env.PORT || 5000;
-
-process.on("unhandledRejection", (reason) => {
-  console.error("[fatal] Unhandled rejection:", reason);
-});
-process.on("uncaughtException", (err) => {
-  console.error("[fatal] Uncaught exception:", err);
-  process.exit(1);
-});
-
+// Graceful Shutdown
 let server;
 const gracefulShutdown = async (signal) => {
   console.log(`[server] ${signal} received. Shutting down...`);
@@ -104,18 +125,28 @@ process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
 process.on("SIGINT", () => gracefulShutdown("SIGINT"));
 
 (async () => {
+  const prisma = (await import('./lib/prisma.js')).default;
   try {
-    const prisma = (await import('./lib/prisma.js')).default;
     await prisma.$queryRaw`SELECT 1`;
     console.log('[db] Connected.');
 
     server = app.listen(PORT, "0.0.0.0", () => {
       console.log(`[server] Running on port ${PORT}`);
     });
+
+    server.on('error', (err) => {
+      console.error(`\n[server] Failed to start: ${err.message}\n`);
+      process.exit(1);
+    });
   } catch (err) {
-    console.error(`\n[fatal] Initialization failed: ${err.message}\n`);
+    console.error(
+      `\n[db] Cannot connect to the database.\n` +
+      `     Check DATABASE_URL in your .env file.\n` +
+      `     Reason: ${err.message}\n`
+    );
     process.exit(1);
   }
 })();
 
 export default app;
+

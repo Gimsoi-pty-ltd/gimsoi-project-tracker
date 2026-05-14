@@ -2,9 +2,8 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider      = "prisma-client-js"
-  output        = "../lib/generated/prisma"
-  binaryTargets = ["native", "debian-openssl-3.0.x"]
+  provider = "prisma-client-js"
+  output   = "../lib/generated/prisma"
 }
 
 datasource db {
@@ -26,9 +25,10 @@ enum SprintStatus {
 enum TaskStatus {
   TODO
   IN_PROGRESS
+  BLOCKED
   DONE
   CANCELLED
-  BLOCKED
+  REVIEW
 }
 
 enum TaskPriority {
@@ -38,20 +38,12 @@ enum TaskPriority {
   URGENT
 }
 
-enum Role {
-  ADMIN
-  PM
-  INTERN
-  CLIENT
-}
-
-
 model User {
   id                         String    @id @default(uuid())
   email                      String    @unique
   fullName                   String
   password                   String
-  role                       Role      @default(INTERN)
+  role                       String    @default("INTERN")
   profilePic                 String    @default("")
   bio                        String?
   lastLogin                  DateTime  @default(now())
@@ -65,6 +57,8 @@ model User {
 
   assignedTasks Task[] @relation("TaskAssignee")
   reportedTasks Task[] @relation("TaskReporter")
+  comments      Comment[]
+  efforts       Effort[]
 }
 
 model Client {
@@ -88,6 +82,7 @@ model Project {
   tasks           Task[]
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
+  analytics       ProjectAnalytics?
 
   @@index([clientId])
 }
@@ -128,15 +123,61 @@ model Task {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  // Set automatically when status transitions to DONE. Never set manually.
-  // See task.service.js and docs/DATA_CONTRACT.md.
-  completedAt DateTime?
   priority  TaskPriority @default(MEDIUM)
   isBlocked Boolean      @default(false)
   dueDate   DateTime?
+  comments  Comment[]
+  efforts   Effort[]
+
   @@index([projectId])
   @@index([sprintId])
   @@index([assigneeId])
 }
 
+model Comment {
+  id        String   @id @default(uuid())
+  content   String
+  createdAt DateTime @default(now())
+  
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id])
+  
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
 
+  @@index([taskId])
+  @@index([userId])
+}
+
+model ProjectAnalytics {
+  projectId String  @id
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  totalTasks      Int @default(0)
+  completedTasks  Int @default(0)
+  blockedTasks    Int @default(0)
+  cancelledTasks  Int @default(0)
+  totalSprints     Int @default(0)
+  activeSprints    Int @default(0)
+
+  // Zoho Sync Metadata
+  lastSyncedAt DateTime @default(now())
+  syncStatus   String   @default("pending") // synced | error | pending
+
+  @@index([projectId])
+}
+
+model Effort {
+  id          String   @id @default(uuid())
+  hoursLogged Float
+  date        DateTime @default(now())
+  
+  taskId      String
+  task        Task     @relation(fields: [taskId], references: [id])
+  
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@index([taskId])
+  @@index([userId])
+}
