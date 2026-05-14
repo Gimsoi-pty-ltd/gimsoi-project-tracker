@@ -8,8 +8,8 @@ import {
     sendVerificationEmail,
     sendWelcomeEmail,
     sendPasswordResetEmail,
-    sendResetSuccessEmail,
-} from "../services/email.service.js";
+    sendPasswordResetSuccessEmail as sendResetSuccessEmail,
+} from "../services/email/email.service.js";
 
 const VALID_ROLES = Object.values(ROLES);
 
