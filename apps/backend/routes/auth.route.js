@@ -9,24 +9,12 @@ import {
     checkAuth,
 } from "../controllers/auth.controller.js";
 import { verifyToken } from "../middleware/verify-token.middleware.js";
-import { authLimiter, loginLimiter, readLimiter } from "../middleware/rate-limiter.middleware.js";
-import { generateCsrfToken } from "../middleware/csrf.middleware.js";
+import { requireCSRF } from "../middleware/csrf.middleware.js";
+import { loginLimiter, authLimiter, readLimiter } from "../middleware/rate-limiter.middleware.js";
 
 const router = express.Router();
 
-// CSRF token endpoint — SPA calls this on load to obtain a token
-router.get("/csrf-token", (req, res) => {
-    const token = generateCsrfToken(req, res);
-    res.json({ success: true, csrfToken: token });
-});
-
-router.get("/check-auth", readLimiter, verifyToken, checkAuth);
-
-router.post("/signup", authLimiter, signup);
-
-router.post("/login", loginLimiter, login);
-
-router.post("/logout", logout);
+router.post("/logout", authLimiter, verifyToken, requireCSRF, logout);
 
 router.post("/verify-email", loginLimiter, verifyEmail);
 

@@ -25,3 +25,9 @@ dist-ssr
 .env
 
 /lib/generated/prisma
+
+# Zoho Catalyst — deployment config & credentials (never commit these)
+.catalystrc
+catalyst.json
+app-config.json
+app-config.staging.json

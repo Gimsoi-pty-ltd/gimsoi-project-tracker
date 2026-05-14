@@ -1,0 +1,474 @@
+2026-04-28T21:09:59.836Z - ZodError: [
+  {
+    "code": "invalid_value",
+    "values": [
+      "TODO",
+      "IN_PROGRESS",
+      "DONE",
+      "CANCELLED",
+      "BLOCKED"
+    ],
+    "path": [
+      "status"
+    ],
+    "message": "Invalid option: expected one of \"TODO\"|\"IN_PROGRESS\"|\"DONE\"|\"CANCELLED\"|\"BLOCKED\""
+  }
+]
+ZodError: [
+  {
+    "code": "invalid_value",
+    "values": [
+      "TODO",
+      "IN_PROGRESS",
+      "DONE",
+      "CANCELLED",
+      "BLOCKED"
+    ],
+    "path": [
+      "status"
+    ],
+    "message": "Invalid option: expected one of \"TODO\"|\"IN_PROGRESS\"|\"DONE\"|\"CANCELLED\"|\"BLOCKED\""
+  }
+]
+    at file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/middleware/validate.middleware.js:9:31
+    at Layer.handleRequest (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\node_modules\router\lib\layer.js:152:17)
+    at next (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\node_modules\router\lib\route.js:157:13)
+    at requireCSRF (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/middleware/csrf.middleware.js:32:12)
+    at Layer.handleRequest (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\node_modules\router\lib\layer.js:152:17)
+    at next (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\node_modules\router\lib\route.js:157:13)
+    at file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/middleware/authorize.middleware.js:20:13
+    at Layer.handleRequest (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\node_modules\router\lib\layer.js:152:17)
+    at next (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\node_modules\router\lib\route.js:157:13)
+    at verifyToken (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/middleware/verify-token.middleware.js:18:9)
+
+2026-04-28T21:10:40.768Z - ZodError: [
+  {
+    "code": "invalid_value",
+    "values": [
+      "TODO",
+      "IN_PROGRESS",
+      "DONE",
+      "CANCELLED",
+      "BLOCKED"
+    ],
+    "path": [
+      "status"
+    ],
+    "message": "Invalid option: expected one of \"TODO\"|\"IN_PROGRESS\"|\"DONE\"|\"CANCELLED\"|\"BLOCKED\""
+  }
+]
+ZodError: [
+  {
+    "code": "invalid_value",
+    "values": [
+      "TODO",
+      "IN_PROGRESS",
+      "DONE",
+      "CANCELLED",
+      "BLOCKED"
+    ],
+    "path": [
+      "status"
+    ],
+    "message": "Invalid option: expected one of \"TODO\"|\"IN_PROGRESS\"|\"DONE\"|\"CANCELLED\"|\"BLOCKED\""
+  }
+]
+    at file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/middleware/validate.middleware.js:9:31
+    at Layer.handleRequest (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\node_modules\router\lib\layer.js:152:17)
+    at next (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\node_modules\router\lib\route.js:157:13)
+    at requireCSRF (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/middleware/csrf.middleware.js:32:12)
+    at Layer.handleRequest (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\node_modules\router\lib\layer.js:152:17)
+    at next (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\node_modules\router\lib\route.js:157:13)
+    at file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/middleware/authorize.middleware.js:20:13
+    at Layer.handleRequest (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\node_modules\router\lib\layer.js:152:17)
+    at next (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\node_modules\router\lib\route.js:157:13)
+    at verifyToken (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/middleware/verify-token.middleware.js:18:9)
+
+2026-04-28T21:14:22.715Z - ValidationError: Invalid or expired verification code
+ValidationError: Invalid or expired verification code
+    at Module.verifyEmail (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/services/auth.service.js:53:15)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async verifyEmail (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/controllers/auth.controller.js:41:22)
+
+2026-04-28T21:14:23.611Z - ConflictError: User already exists
+ConflictError: User already exists
+    at Module.signup (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/services/auth.service.js:19:15)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async signup (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/controllers/auth.controller.js:12:22)
+
+2026-04-28T21:14:24.821Z - ValidationError: Invalid credentials
+ValidationError: Invalid credentials
+    at Module.login (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/services/auth.service.js:84:15)
+    at async login (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/controllers/auth.controller.js:60:22)
+
+2026-04-28T21:14:28.976Z - UnauthorizedError: Unauthorized - user not found
+UnauthorizedError: Unauthorized - user not found
+    at Module.checkAuth (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/services/auth.service.js:152:15)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async checkAuth (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/controllers/auth.controller.js:128:22)
+
+2026-04-28T21:14:31.831Z - NotFoundError: Task with id 00000000-0000-0000-0000-000000000000 not found
+NotFoundError: Task with id 00000000-0000-0000-0000-000000000000 not found
+    at Module.getTaskById (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/services/task.service.js:185:15)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async getTaskById (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/controllers/task.controller.js:57:22)
+
+2026-04-28T21:14:33.072Z - StateTransitionError: Illegal task transition from TODO to DONE (codes: 68.79.78.69). Allowed: IN_PROGRESS (73.78.95.80.82.79.71.82.69.83.83) | CANCELLED (67.65.78.67.69.76.76.69.68)
+StateTransitionError: Illegal task transition from TODO to DONE (codes: 68.79.78.69). Allowed: IN_PROGRESS (73.78.95.80.82.79.71.82.69.83.83) | CANCELLED (67.65.78.67.69.76.76.69.68)
+    at assertValidTransition (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/services/task.service.js:210:15)
+    at Module.updateTask (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/services/task.service.js:256:9)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async updateTask (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/controllers/task.controller.js:67:25)
+
+2026-04-28T21:14:36.577Z - StateTransitionError: Illegal project state transition from COMPLETED to DRAFT
+StateTransitionError: Illegal project state transition from COMPLETED to DRAFT
+    at Module.updateProject (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/services/project.service.js:68:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async updateProject (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/controllers/project.controller.js:58:21)
+
+2026-04-28T21:14:39.545Z - NotFoundError: Project non-existent-id-xyz not found
+NotFoundError: Project non-existent-id-xyz not found
+    at getProjectTaskSummary (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/services/task.service.js:348:25)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async Module.getProjectProgress (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/services/project.service.js:98:19)
+    at async getProjectProgress (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/controllers/project.controller.js:68:22)
+
+2026-04-28T21:14:42.731Z - StateTransitionError: Cannot create a sprint inside a COMPLETED project.
+StateTransitionError: Cannot create a sprint inside a COMPLETED project.
+    at Module.createSprint (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/services/sprint.service.js:30:15)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async createSprint (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/controllers/sprint.controller.js:12:24)
+
+2026-04-28T21:14:53.964Z - ForbiddenError: You do not have permission to modify this task.
+ForbiddenError: You do not have permission to modify this task.
+    at Module.updateTask (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/services/task.service.js:252:15)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async updateTask (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/controllers/task.controller.js:67:25)
+
+2026-04-28T21:14:54.173Z - ForbiddenError: You do not have permission to modify this task.
+ForbiddenError: You do not have permission to modify this task.
+    at Module.updateTask (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/services/task.service.js:252:15)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async updateTask (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/controllers/task.controller.js:67:25)
+
+2026-04-28T21:14:55.793Z - ForbiddenError: You do not have permission to delete this task.
+ForbiddenError: You do not have permission to delete this task.
+    at Module.deleteTask (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/services/task.service.js:308:19)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async deleteTask (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/controllers/task.controller.js:78:9)
+
+2026-04-28T21:15:10.859Z - StateTransitionError: Illegal sprint state transition from PLANNING to CLOSED
+StateTransitionError: Illegal sprint state transition from PLANNING to CLOSED
+    at Module.updateSprintStatus (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/services/sprint.service.js:103:15)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async updateSprintStatus (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/controllers/sprint.controller.js:52:25)
+
+2026-04-28T21:15:12.305Z - StateTransitionError: Cannot close sprint with active open tasks remaining.
+StateTransitionError: Cannot close sprint with active open tasks remaining.
+    at closeSprint (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/services/sprint.service.js:72:15)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async updateSprintStatus (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/controllers/sprint.controller.js:52:25)
+
+2026-04-28T21:15:16.928Z - StateTransitionError: Illegal sprint state transition from CLOSED to ACTIVE
+StateTransitionError: Illegal sprint state transition from CLOSED to ACTIVE
+    at Module.updateSprintStatus (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/services/sprint.service.js:103:15)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async updateSprintStatus (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/controllers/sprint.controller.js:52:25)
+
+2026-04-28T21:15:20.186Z - StateTransitionError: Illegal task transition from TODO to DONE (codes: 68.79.78.69). Allowed: IN_PROGRESS (73.78.95.80.82.79.71.82.69.83.83) | CANCELLED (67.65.78.67.69.76.76.69.68)
+StateTransitionError: Illegal task transition from TODO to DONE (codes: 68.79.78.69). Allowed: IN_PROGRESS (73.78.95.80.82.79.71.82.69.83.83) | CANCELLED (67.65.78.67.69.76.76.69.68)
+    at assertValidTransition (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/services/task.service.js:210:15)
+    at Module.updateTask (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/services/task.service.js:256:9)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async updateTask (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/controllers/task.controller.js:67:25)
+
+2026-04-28T21:15:20.591Z - StateTransitionError: Cannot modify a task that is already DONE.
+StateTransitionError: Cannot modify a task that is already DONE.
+    at assertTaskIsModifiable (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/services/task.service.js:70:15)
+    at Module.updateTask (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/services/task.service.js:249:5)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async updateTask (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/controllers/task.controller.js:67:25)
+
+2026-04-28T21:15:26.246Z - StateTransitionError: Cannot modify a task that is already DONE.
+StateTransitionError: Cannot modify a task that is already DONE.
+    at assertTaskIsModifiable (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/services/task.service.js:70:15)
+    at Module.updateTask (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/services/task.service.js:249:5)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async updateTask (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/controllers/task.controller.js:67:25)
+
+2026-04-28T21:15:30.451Z - ZodError: [
+  {
+    "code": "invalid_value",
+    "values": [
+      "TODO",
+      "IN_PROGRESS",
+      "DONE",
+      "CANCELLED",
+      "BLOCKED"
+    ],
+    "path": [
+      "status"
+    ],
+    "message": "Invalid option: expected one of \"TODO\"|\"IN_PROGRESS\"|\"DONE\"|\"CANCELLED\"|\"BLOCKED\""
+  }
+]
+ZodError: [
+  {
+    "code": "invalid_value",
+    "values": [
+      "TODO",
+      "IN_PROGRESS",
+      "DONE",
+      "CANCELLED",
+      "BLOCKED"
+    ],
+    "path": [
+      "status"
+    ],
+    "message": "Invalid option: expected one of \"TODO\"|\"IN_PROGRESS\"|\"DONE\"|\"CANCELLED\"|\"BLOCKED\""
+  }
+]
+    at file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/middleware/validate.middleware.js:9:31
+    at Layer.handleRequest (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\node_modules\router\lib\layer.js:152:17)
+    at next (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\node_modules\router\lib\route.js:157:13)
+    at requireCSRF (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/middleware/csrf.middleware.js:32:12)
+    at Layer.handleRequest (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\node_modules\router\lib\layer.js:152:17)
+    at next (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\node_modules\router\lib\route.js:157:13)
+    at file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/middleware/authorize.middleware.js:20:13
+    at Layer.handleRequest (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\node_modules\router\lib\layer.js:152:17)
+    at next (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\node_modules\router\lib\route.js:157:13)
+    at verifyToken (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/middleware/verify-token.middleware.js:18:9)
+
+2026-04-28T21:15:31.822Z - StateTransitionError: Cannot modify a task inside a COMPLETED project.
+StateTransitionError: Cannot modify a task inside a COMPLETED project.
+    at assertTaskIsModifiable (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/services/task.service.js:67:15)
+    at Module.updateTask (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/services/task.service.js:249:5)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async updateTask (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/controllers/task.controller.js:67:25)
+
+2026-04-28T21:15:34.533Z - StateTransitionError: Cannot mark a task as DONE outside of an active sprint.
+StateTransitionError: Cannot mark a task as DONE outside of an active sprint.
+    at assertSprintIsActiveForDone (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/services/task.service.js:223:15)
+    at Module.updateTask (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/services/task.service.js:257:9)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async updateTask (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/controllers/task.controller.js:67:25)
+
+2026-04-28T21:15:38.248Z - NotFoundError: Task with id ba43c1da-b4f3-4b1b-b7a5-b66c5dbf9111 not found
+NotFoundError: Task with id ba43c1da-b4f3-4b1b-b7a5-b66c5dbf9111 not found
+    at Module.getTaskById (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/services/task.service.js:185:15)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async getTaskById (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/controllers/task.controller.js:57:22)
+
+2026-04-28T21:15:40.693Z - ForbiddenError: You do not have permission to delete this task.
+ForbiddenError: You do not have permission to delete this task.
+    at Module.deleteTask (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/services/task.service.js:308:19)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async deleteTask (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/controllers/task.controller.js:78:9)
+
+2026-04-28T21:15:40.696Z - ForbiddenError: You do not have permission to delete this task.
+ForbiddenError: You do not have permission to delete this task.
+    at Module.deleteTask (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/services/task.service.js:308:19)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async deleteTask (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/controllers/task.controller.js:78:9)
+
+2026-04-28T21:15:44.057Z - NotFoundError: Task with id 123e4567-e89b-12d3-a456-426614174000 not found
+NotFoundError: Task with id 123e4567-e89b-12d3-a456-426614174000 not found
+    at Module.getTaskById (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/services/task.service.js:185:15)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async getTaskById (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/controllers/task.controller.js:57:22)
+
+2026-04-28T21:15:46.063Z - ZodError: [
+  {
+    "expected": "number",
+    "code": "invalid_type",
+    "path": [
+      "version"
+    ],
+    "message": "Invalid input: expected number, received undefined"
+  }
+]
+ZodError: [
+  {
+    "expected": "number",
+    "code": "invalid_type",
+    "path": [
+      "version"
+    ],
+    "message": "Invalid input: expected number, received undefined"
+  }
+]
+    at file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/middleware/validate.middleware.js:9:31
+    at Layer.handleRequest (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\node_modules\router\lib\layer.js:152:17)
+    at next (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\node_modules\router\lib\route.js:157:13)
+    at requireCSRF (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/middleware/csrf.middleware.js:32:12)
+    at Layer.handleRequest (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\node_modules\router\lib\layer.js:152:17)
+    at next (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\node_modules\router\lib\route.js:157:13)
+    at file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/middleware/authorize.middleware.js:20:13
+    at Layer.handleRequest (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\node_modules\router\lib\layer.js:152:17)
+    at next (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\node_modules\router\lib\route.js:157:13)
+    at verifyToken (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/middleware/verify-token.middleware.js:18:9)
+
+2026-04-28T21:15:46.654Z - StateTransitionError: Cannot mark a task as DONE outside of an active sprint.
+StateTransitionError: Cannot mark a task as DONE outside of an active sprint.
+    at assertSprintIsActiveForDone (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/services/task.service.js:223:15)
+    at Module.updateTask (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/services/task.service.js:257:9)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async updateTask (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/controllers/task.controller.js:67:25)
+
+2026-04-28T21:15:46.851Z - StateTransitionError: Cannot create a task inside a COMPLETED project.
+StateTransitionError: Cannot create a task inside a COMPLETED project.
+    at Module.createTask (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/services/task.service.js:102:15)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async createTask (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/controllers/task.controller.js:12:22)
+
+2026-04-28T21:15:55.457Z - ZodError: [
+  {
+    "expected": "number",
+    "code": "invalid_type",
+    "path": [
+      "version"
+    ],
+    "message": "Invalid input: expected number, received undefined"
+  }
+]
+ZodError: [
+  {
+    "expected": "number",
+    "code": "invalid_type",
+    "path": [
+      "version"
+    ],
+    "message": "Invalid input: expected number, received undefined"
+  }
+]
+    at file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/middleware/validate.middleware.js:9:31
+    at Layer.handleRequest (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\node_modules\router\lib\layer.js:152:17)
+    at next (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\node_modules\router\lib\route.js:157:13)
+    at requireCSRF (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/middleware/csrf.middleware.js:32:12)
+    at Layer.handleRequest (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\node_modules\router\lib\layer.js:152:17)
+    at next (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\node_modules\router\lib\route.js:157:13)
+    at file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/middleware/authorize.middleware.js:20:13
+    at Layer.handleRequest (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\node_modules\router\lib\layer.js:152:17)
+    at next (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\node_modules\router\lib\route.js:157:13)
+    at verifyToken (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/middleware/verify-token.middleware.js:18:9)
+
+2026-04-28T21:15:56.780Z - StateTransitionError: Cannot mark a task as DONE outside of an active sprint.
+StateTransitionError: Cannot mark a task as DONE outside of an active sprint.
+    at assertSprintIsActiveForDone (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/services/task.service.js:223:15)
+    at Module.updateTask (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/services/task.service.js:257:9)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async updateTask (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/controllers/task.controller.js:67:25)
+
+2026-04-28T21:15:58.255Z - ZodError: [
+  {
+    "expected": "number",
+    "code": "invalid_type",
+    "path": [
+      "version"
+    ],
+    "message": "Invalid input: expected number, received undefined"
+  }
+]
+ZodError: [
+  {
+    "expected": "number",
+    "code": "invalid_type",
+    "path": [
+      "version"
+    ],
+    "message": "Invalid input: expected number, received undefined"
+  }
+]
+    at file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/middleware/validate.middleware.js:9:31
+    at Layer.handleRequest (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\node_modules\router\lib\layer.js:152:17)
+    at next (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\node_modules\router\lib\route.js:157:13)
+    at requireCSRF (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/middleware/csrf.middleware.js:32:12)
+    at Layer.handleRequest (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\node_modules\router\lib\layer.js:152:17)
+    at next (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\node_modules\router\lib\route.js:157:13)
+    at file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/middleware/authorize.middleware.js:20:13
+    at Layer.handleRequest (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\node_modules\router\lib\layer.js:152:17)
+    at next (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\node_modules\router\lib\route.js:157:13)
+    at verifyToken (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/middleware/verify-token.middleware.js:18:9)
+
+2026-04-28T21:16:00.334Z - ValidationError: Only image files are allowed
+ValidationError: Only image files are allowed
+    at fileFilter (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/utils/upload.js:16:8)
+    at wrappedFileFilter (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\node_modules\multer\index.js:45:7)
+    at Multipart.<anonymous> (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\node_modules\multer\lib\make-middleware.js:183:7)
+    at Multipart.emit (node:events:508:28)
+    at HeaderParser.cb (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\node_modules\busboy\lib\types\multipart.js:358:14)
+    at HeaderParser.push (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\node_modules\busboy\lib\types\multipart.js:162:20)
+    at SBMH.ssCb [as _cb] (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\node_modules\busboy\lib\types\multipart.js:394:37)
+    at feed (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\node_modules\streamsearch\lib\sbmh.js:219:14)
+    at SBMH.push (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\node_modules\streamsearch\lib\sbmh.js:104:16)
+    at Multipart._write (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\node_modules\busboy\lib\types\multipart.js:567:19)
+
+2026-04-28T21:17:29.065Z - ZodError: [
+  {
+    "expected": "number",
+    "code": "invalid_type",
+    "path": [
+      "version"
+    ],
+    "message": "Invalid input: expected number, received undefined"
+  }
+]
+ZodError: [
+  {
+    "expected": "number",
+    "code": "invalid_type",
+    "path": [
+      "version"
+    ],
+    "message": "Invalid input: expected number, received undefined"
+  }
+]
+    at file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/middleware/validate.middleware.js:9:31
+    at Layer.handleRequest (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\node_modules\router\lib\layer.js:152:17)
+    at next (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\node_modules\router\lib\route.js:157:13)
+    at requireCSRF (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/middleware/csrf.middleware.js:32:12)
+    at Layer.handleRequest (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\node_modules\router\lib\layer.js:152:17)
+    at next (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\node_modules\router\lib\route.js:157:13)
+    at file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/middleware/authorize.middleware.js:20:13
+    at Layer.handleRequest (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\node_modules\router\lib\layer.js:152:17)
+    at next (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\node_modules\router\lib\route.js:157:13)
+    at verifyToken (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/middleware/verify-token.middleware.js:18:9)
+
+2026-04-28T21:17:30.914Z - ZodError: [
+  {
+    "expected": "number",
+    "code": "invalid_type",
+    "path": [
+      "version"
+    ],
+    "message": "Invalid input: expected number, received undefined"
+  }
+]
+ZodError: [
+  {
+    "expected": "number",
+    "code": "invalid_type",
+    "path": [
+      "version"
+    ],
+    "message": "Invalid input: expected number, received undefined"
+  }
+]
+    at file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/middleware/validate.middleware.js:9:31
+    at Layer.handleRequest (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\node_modules\router\lib\layer.js:152:17)
+    at next (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\node_modules\router\lib\route.js:157:13)
+    at requireCSRF (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/middleware/csrf.middleware.js:32:12)
+    at Layer.handleRequest (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\node_modules\router\lib\layer.js:152:17)
+    at next (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\node_modules\router\lib\route.js:157:13)
+    at file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/middleware/authorize.middleware.js:20:13
+    at Layer.handleRequest (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\node_modules\router\lib\layer.js:152:17)
+    at next (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\node_modules\router\lib\route.js:157:13)
+    at verifyToken (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/middleware/verify-token.middleware.js:18:9)
+
+2026-04-28T21:17:32.060Z - StateTransitionError: Cannot mark a task as DONE outside of an active sprint.
+StateTransitionError: Cannot mark a task as DONE outside of an active sprint.
+    at assertSprintIsActiveForDone (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/services/task.service.js:223:15)
+    at Module.updateTask (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/services/task.service.js:257:9)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async updateTask (file:///C:/Users/User/Desktop/data_01/gimsoi/gimsoi-project-tracker/apps/backend/controllers/task.controller.js:67:25)
+

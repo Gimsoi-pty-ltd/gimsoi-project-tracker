@@ -1,0 +1,122 @@
+--- Playwright Global Setup: Initializing clean test environment ---
+--- Test environment initialized ---
+
+Running 11 tests using 6 workers
+
+  ok  1 tests\api\rbac.spec.js:12:9 › RBAC & Permission Hardening › Service Structural Integrity › canModifyTask contains no hardcoded role string literals (55ms)
+  x   2 tests\api\rbac.spec.js:33:9 › RBAC & Permission Hardening › Task Permissions › ADMIN can modify any task globally via permission matrix (7.8s)
+  x   3 tests\api\rbac.spec.js:46:9 › RBAC & Permission Hardening › Task Permissions › PM can modify any task globally via permission matrix (7.8s)
+  x   7 tests\api\rbac.spec.js:59:9 › RBAC & Permission Hardening › Task Permissions › INTERN is forbidden from creating tasks (7.9s)
+  x   6 tests\api\rbac.spec.js:68:9 › RBAC & Permission Hardening › Task Permissions › INTERN (Reporter) can update their own reported task (7.9s)
+  x   4 tests\api\rbac.spec.js:101:9 › RBAC & Permission Hardening › Task Permissions › Non-reporter/Non-assignee Intern is blocked from updating task (403) (8.4s)
+  x   5 tests\api\rbac.spec.js:75:9 › RBAC & Permission Hardening › Task Permissions › INTERN (Assignee) can update status but NOT title (14.9s)
+  ok 10 tests\api\rbac.spec.js:138:9 › RBAC & Permission Hardening › Project Permissions › ADMIN role receives full task breakdown for project (18.8s)
+  ok 11 tests\api\rbac.spec.js:148:9 › RBAC & Permission Hardening › Project Permissions › Intern gets 403 when modifying a PM project (Ownership check) (21.7s)
+  ok  8 tests\api\rbac.spec.js:127:9 › RBAC & Permission Hardening › Project Permissions › CLIENT role receives restricted task completion view (24.0s)
+  ok  9 tests\api\rbac.spec.js:115:9 › RBAC & Permission Hardening › Task Permissions › INTERN role is blocked from deleting tasks (26.3s)
+
+
+  1) tests\api\rbac.spec.js:33:9 › RBAC & Permission Hardening › Task Permissions › ADMIN can modify any task globally via permission matrix 
+
+    Error: Promote/Verify failed for pm-1777400953441-226746@gimsoi.test → PM: User not found
+
+       at ..\fixtures\authFixtures.js:64
+
+      62 |     const promoteData = await promoteRes.json();
+      63 |     if (!promoteData.success) {
+    > 64 |         throw new Error(`Promote/Verify failed for ${email} → ${targetRole}: ${promoteData.message}`);
+         |               ^
+      65 |     }
+      66 |
+      67 |     // Re-login — Essential to get a session that reflects the DB state (role + isVerified).
+        at createAuthenticatedApiContext (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\tests\fixtures\authFixtures.js:64:15)
+        at Object.pmApi (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\tests\fixtures\authFixtures.js:113:27)
+
+  2) tests\api\rbac.spec.js:46:9 › RBAC & Permission Hardening › Task Permissions › PM can modify any task globally via permission matrix 
+
+    Error: Promote/Verify failed for admin-1777400953579-431219@gimsoi.test → ADMIN: User not found
+
+       at ..\fixtures\authFixtures.js:64
+
+      62 |     const promoteData = await promoteRes.json();
+      63 |     if (!promoteData.success) {
+    > 64 |         throw new Error(`Promote/Verify failed for ${email} → ${targetRole}: ${promoteData.message}`);
+         |               ^
+      65 |     }
+      66 |
+      67 |     // Re-login — Essential to get a session that reflects the DB state (role + isVerified).
+        at createAuthenticatedApiContext (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\tests\fixtures\authFixtures.js:64:15)
+        at Object.adminApi (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\tests\fixtures\authFixtures.js:118:30)
+
+  3) tests\api\rbac.spec.js:59:9 › RBAC & Permission Hardening › Task Permissions › INTERN is forbidden from creating tasks 
+
+    Error: Promote/Verify failed for pm-1777400954093-212949@gimsoi.test → PM: User not found
+
+       at ..\fixtures\authFixtures.js:64
+
+      62 |     const promoteData = await promoteRes.json();
+      63 |     if (!promoteData.success) {
+    > 64 |         throw new Error(`Promote/Verify failed for ${email} → ${targetRole}: ${promoteData.message}`);
+         |               ^
+      65 |     }
+      66 |
+      67 |     // Re-login — Essential to get a session that reflects the DB state (role + isVerified).
+        at createAuthenticatedApiContext (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\tests\fixtures\authFixtures.js:64:15)
+        at Object.pmApi (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\tests\fixtures\authFixtures.js:113:27)
+
+  4) tests\api\rbac.spec.js:68:9 › RBAC & Permission Hardening › Task Permissions › INTERN (Reporter) can update their own reported task 
+
+    Error: Promote/Verify failed for pm-1777400953727-993815@gimsoi.test → PM: User not found
+
+       at ..\fixtures\authFixtures.js:64
+
+      62 |     const promoteData = await promoteRes.json();
+      63 |     if (!promoteData.success) {
+    > 64 |         throw new Error(`Promote/Verify failed for ${email} → ${targetRole}: ${promoteData.message}`);
+         |               ^
+      65 |     }
+      66 |
+      67 |     // Re-login — Essential to get a session that reflects the DB state (role + isVerified).
+        at createAuthenticatedApiContext (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\tests\fixtures\authFixtures.js:64:15)
+        at Object.pmApi (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\tests\fixtures\authFixtures.js:113:27)
+
+  5) tests\api\rbac.spec.js:75:9 › RBAC & Permission Hardening › Task Permissions › INTERN (Assignee) can update status but NOT title 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m200[39m
+    Received: [31m403[39m
+
+      94 |                 data: { status: 'IN_PROGRESS', version: task.version }
+      95 |             });
+    > 96 |             expect(res2.status()).toBe(200);
+         |                                   ^
+      97 |             const body2 = await res2.json();
+      98 |             expect(body2.data.status).toBe('IN_PROGRESS');
+      99 |         });
+        at C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\tests\api\rbac.spec.js:96:35
+
+  6) tests\api\rbac.spec.js:101:9 › RBAC & Permission Hardening › Task Permissions › Non-reporter/Non-assignee Intern is blocked from updating task (403) 
+
+    Error: Re-login failed for intern-1777400952817-61703@gimsoi.test after promoting/verifying: Invalid credentials
+
+       at ..\fixtures\authFixtures.js:74
+
+      72 |     const loginData = await loginRes.json();
+      73 |     if (!loginData.success) {
+    > 74 |         throw new Error(`Re-login failed for ${email} after promoting/verifying: ${loginData.message}`);
+         |               ^
+      75 |     }
+      76 |     token = loginData.token;
+      77 |
+        at createAuthenticatedApiContext (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\tests\fixtures\authFixtures.js:74:15)
+        at Object.internApi (C:\Users\User\Desktop\data_01\gimsoi\gimsoi-project-tracker\apps\backend\tests\fixtures\authFixtures.js:128:31)
+
+  6 failed
+    tests\api\rbac.spec.js:33:9 › RBAC & Permission Hardening › Task Permissions › ADMIN can modify any task globally via permission matrix 
+    tests\api\rbac.spec.js:46:9 › RBAC & Permission Hardening › Task Permissions › PM can modify any task globally via permission matrix 
+    tests\api\rbac.spec.js:59:9 › RBAC & Permission Hardening › Task Permissions › INTERN is forbidden from creating tasks 
+    tests\api\rbac.spec.js:68:9 › RBAC & Permission Hardening › Task Permissions › INTERN (Reporter) can update their own reported task 
+    tests\api\rbac.spec.js:75:9 › RBAC & Permission Hardening › Task Permissions › INTERN (Assignee) can update status but NOT title 
+    tests\api\rbac.spec.js:101:9 › RBAC & Permission Hardening › Task Permissions › Non-reporter/Non-assignee Intern is blocked from updating task (403) 
+  5 passed (51.9s)
