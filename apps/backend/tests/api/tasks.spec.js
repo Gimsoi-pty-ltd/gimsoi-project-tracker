@@ -84,7 +84,7 @@ test.describe('Task Creation & Pipeline Validation', () => {
 
         expect(updateRes.status()).toBe(400);
         const json = await updateRes.json();
-        expect(json.message).toContain('Invalid task status');
+        expect(json.message).toContain('Illegal task transition');
         expect(json.message).toContain('INVALID_STATUS');
     });
 

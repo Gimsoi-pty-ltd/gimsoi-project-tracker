@@ -11,14 +11,11 @@ export const verifyToken = (req, res, next) => {
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-<<<<<<< HEAD
         if (!decoded)
             return res
                 .status(401)
                 .json({ success: false, message: "Unauthorized - invalid token" });
 
-=======
->>>>>>> staging-deploy
         req.user = {
             id: decoded.userId,
             role: decoded.role,

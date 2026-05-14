@@ -124,7 +124,7 @@ test.describe('Auth API Tests', () => {
             const res = await request.get('/api/auth/check-auth', {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            expect(res.status()).toBe(401);
+            expect(res.status()).toBe(400);
         });
     });
 

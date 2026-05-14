@@ -14,6 +14,9 @@ import { loginLimiter, authLimiter, readLimiter } from "../middleware/rate-limit
 
 const router = express.Router();
 
+router.get("/check-auth", readLimiter, verifyToken, checkAuth);
+router.post("/signup", authLimiter, signup);
+router.post("/login", loginLimiter, login);
 router.post("/logout", authLimiter, verifyToken, requireCSRF, logout);
 
 router.post("/verify-email", loginLimiter, verifyEmail);
