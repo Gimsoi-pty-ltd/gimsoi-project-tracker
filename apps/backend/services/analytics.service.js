@@ -52,8 +52,31 @@ export const getProjectAnalytics = async ({ projectId, taskFilter, ownerIdForRaw
             : 0,
         state_distribution,
         scope_creep_index: { count: scopeCreepRow?.creep_count ?? 0 },
-        bottleneck_labels: null,
+        bottleneck_labels: await getBottleneckLabels({ projectId, taskFilter, ownerIdForRaw }),
     };
+};
+
+const getBottleneckLabels = async ({ projectId, taskFilter, ownerIdForRaw }) => {
+    const queryParts = [Prisma.sql`
+        SELECT   label, COUNT(*)::int as count
+        FROM     "Task" t
+        JOIN     "Project" p ON t."projectId" = p.id
+        CROSS JOIN LATERAL unnest(t.labels) as label
+        WHERE    t.status IN ('BLOCKED'::${Prisma.raw(TASK_STATUS_ENUM)}, 'IN_PROGRESS'::${Prisma.raw(TASK_STATUS_ENUM)})
+    `];
+
+    if (projectId) {
+        queryParts.push(Prisma.sql`AND t."projectId" = ${projectId}`);
+    }
+    if (ownerIdForRaw) {
+        queryParts.push(Prisma.sql`AND p."createdByUserId" = ${ownerIdForRaw}`);
+    }
+
+    queryParts.push(Prisma.sql`GROUP BY label ORDER BY count DESC LIMIT 3`);
+
+    const rows = await prisma.$queryRaw(Prisma.join(queryParts, ' '));
+    return rows;
+    return rows;
 };
 
 export const getTeamAnalytics = async ({ projectId, ownerIdForRaw }) => {
@@ -82,8 +105,34 @@ export const getTeamAnalytics = async ({ projectId, ownerIdForRaw }) => {
             acc[r.role] = r.active_task_count;
             return acc;
         }, {}),
-        velocity_trend: null,
+        velocity_trend: await getVelocityTrend({ projectId, ownerIdForRaw }),
     };
+};
+
+const getVelocityTrend = async ({ projectId, ownerIdForRaw }) => {
+    const queryParts = [Prisma.sql`
+        SELECT   date_trunc('week', t."completedAt") as week,
+                 COUNT(*)::int as completed_count
+        FROM     "Task" t
+        JOIN     "Project" p ON t."projectId" = p.id
+        WHERE    t.status = 'DONE'::${Prisma.raw(TASK_STATUS_ENUM)}
+        AND      t."completedAt" >= NOW() - INTERVAL '4 weeks'
+    `];
+
+    if (projectId) {
+        queryParts.push(Prisma.sql`AND t."projectId" = ${projectId}`);
+    }
+    if (ownerIdForRaw) {
+        queryParts.push(Prisma.sql`AND p."createdByUserId" = ${ownerIdForRaw}`);
+    }
+
+    queryParts.push(Prisma.sql`GROUP BY week ORDER BY week ASC`);
+
+    const rows = await prisma.$queryRaw(Prisma.join(queryParts, ' '));
+    return rows.map(r => ({
+        week: r.week.toISOString().split('T')[0],
+        count: r.completed_count
+    }));
 };
 
 export const getUserAnalyticsList = async ({ projectId, ownerIdForRaw, canViewTeam, cursor, limit }) => {

@@ -12,6 +12,7 @@ export default defineConfig({
         command: 'node server.js',
         port: 5001,
         reuseExistingServer: true,
+        timeout: 120000,
         env: {
             NODE_ENV: 'test',
             CSRF_SECRET: 'mocked_test_secret'

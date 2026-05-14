@@ -29,6 +29,7 @@ enum TaskStatus {
   DONE
   CANCELLED
   BLOCKED
+  REVIEW
 }
 
 enum TaskPriority {
@@ -135,6 +136,7 @@ model Task {
   priority  TaskPriority @default(MEDIUM)
   isBlocked Boolean      @default(false)
   dueDate   DateTime?
+  labels    String[]   @default([])
   @@index([projectId])
   @@index([sprintId])
   @@index([assigneeId])
