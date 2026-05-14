@@ -1,12 +1,18 @@
 import { useSearchParams } from "react-router-dom";
+<<<<<<< HEAD
 import Overduetasks from "./Overduetasks";
 import PieChart from "../TaskProgress/PieChart";
 import TaskCard from "../TaskProgress/TaskCard";
+=======
+import OverdueTasks from "./OverdueTasks";
+import PieChart from "../Task-Progress/PieChart";
+import TaskCard from "../Task-Progress/TaskCard";
+>>>>>>> origin/fix/frontend-functionality-restoration
 
 const TABS = [
   { id: "overdue", label: "Overdue Tasks", count: 8 },
   { id: "blocked", label: "Blocked Tasks", count: 6 },
-  { id: "progress", label: "Task Progress", count: null },
+  { id: "progress", label: "Task-Progress", count: null },
 ];
 
 const BLOCKED_TASKS = [
@@ -76,7 +82,7 @@ export default function TasksPage() {
           </div>
 
           <div className="p-6">
-            {activeTab === "overdue" && <Overduetasks />}
+            {activeTab === "overdue" && <OverdueTasks />}
 
             {activeTab === "blocked" && (
               <table className="w-full text-sm">

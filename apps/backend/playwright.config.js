@@ -4,7 +4,7 @@ export default defineConfig({
     testDir: './tests/api',
     globalSetup: './tests/setup/globalSetup.js',
     fullyParallel: true,
-    workers: 6,
+    workers: 1,
     use: {
         baseURL: 'http://localhost:5001',
     },

@@ -6,7 +6,7 @@ const TaskProgress = () => {
         <Link to="/tasks?tab=progress" className="block h-full no-underline">
         <section className="bg-white rounded-[20px] p-6 shadow-sm border border-gray-100 flex flex-col items-center justify-center h-full hover:shadow-md transition-shadow cursor-pointer">
             <h3 className="text-md text-[#1A75FF] font-bold uppercase tracking-wider mb-4">
-                Task Progress
+                Task-Progress
             </h3>
 
             {/* Circular Progress SVG */}

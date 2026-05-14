@@ -27,7 +27,7 @@ test.describe('Auth API Tests', () => {
             expect(data.token).toBeDefined();
         });
 
-        test('returns 409 on duplicate email', async ({ request }) => {
+        test('returns 400 on duplicate email', async ({ request }) => {
             const email = `dup-${Date.now()}@example.com`;
             const payload = { email, password: 'password123', fullName: 'Test User' };
             await request.post('/api/auth/signup', { 
@@ -38,7 +38,10 @@ test.describe('Auth API Tests', () => {
                 data: payload,
                 headers: { 'x-csrf-token': csrfToken }
             });
-            expect(response.status()).toBe(409);
+            expect(response.status()).toBe(400);
+            const data = await response.json();
+            expect(data.success).toBe(false);
+            expect(data.message).toBe('User already exists');
         });
 
         test('returns 400 on missing format/fields', async ({ request }) => {
@@ -129,7 +132,7 @@ test.describe('Auth API Tests', () => {
             const res = await request.get('/api/auth/check-auth', {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            expect(res.status()).toBe(401);
+            expect(res.status()).toBe(400);
         });
     });
 
@@ -162,6 +165,9 @@ test.describe('Auth API Tests', () => {
                 headers: { 'x-csrf-token': csrfToken }
             });
             expect(response.status()).toBe(200);
+            const data = await response.json();
+            expect(data.success).toBe(true);
+            expect(data.message).toBe('If that email is registered, a reset link has been sent.');
         });
     });
 

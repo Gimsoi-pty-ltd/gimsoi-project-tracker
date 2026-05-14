@@ -1,37 +1,64 @@
-import { doubleCsrf } from "csrf-csrf";
-
-const doubleCsrfResult = doubleCsrf({
-    getSecret: () => process.env.CSRF_SECRET || "mocked_test_secret_for_dev_only",
-    cookieName: "XSRF-TOKEN",
-    cookieOptions: {
-        httpOnly: false, // Must be false so frontend can read it for Double Submit
-        sameSite: "lax",
-        path: "/",
-        secure: process.env.NODE_ENV === "production",
-    },
-    size: 64,
-    ignoredMethods: ["GET", "HEAD", "OPTIONS"],
-    getTokenFromRequest: (req) => req.headers["x-csrf-token"],
-    getSessionIdentifier: (req) => req.ip || "fixed-id",
-});
-
-export const {
-    doubleCsrfProtection: csrfProtection,
-    generateCsrfToken
-} = doubleCsrfResult;
+import { verifyStatelessCsrfToken, generateStatelessCsrfToken } from "../utils/security.utils.js";
 
 /**
- * Dummy middleware to maintain compatibility with routes that were using the stateless requireCSRF.
- * Global CSRF protection is now handled in server.js via doubleCsrfProtection.
+ * Global CSRF protection middleware using a stateless Double Submit Cookie pattern.
+ * Validates the 'x-csrf-token' header against the user ID and timestamp signature.
  */
-export const requireCSRF = (req, res, next) => next();
+export const csrfProtection = (req, res, next) => {
+    // 1. Skip validation for read-only methods
+    if (["GET", "HEAD", "OPTIONS"].includes(req.method)) {
+        return next();
+    }
 
-export const csrfErrorHandler = (error, req, res, next) => {
-    if (error.code === "EBADCSRFTOKEN") {
+    // 2. Extract token from header or body (fallback)
+    const token = req.headers["x-csrf-token"] || req.body?._csrf;
+
+    if (!token) {
+        console.error(`[CSRF Error] Missing token - Method: ${req.method}, URL: ${req.url}`);
+        return res.status(403).json({ success: false, message: "Invalid or missing CSRF token." });
+    }
+
+    // 3. Skip if user is not authenticated (auth routes should handle their own safety)
+    if (!req.user || !req.user.id) {
+        return next();
+    }
+
+    // 4. Verify the token signature against the current user session
+    const isValid = verifyStatelessCsrfToken(req.user.id, token);
+
+    if (!isValid) {
+        console.error(`[CSRF Error] Validation failed - User: ${req.user.id}, Method: ${req.method}, URL: ${req.url}`);
+        return res.status(403).json({ success: false, message: "Invalid or expired CSRF token." });
+    }
+
+    // Sanitize body if it contains the CSRF token
+    if (req.body && req.body._csrf) {
+        delete req.body._csrf;
+    }
+
+    next();
+};
+
+/**
+ * Utility to generate a token and return it.
+ * Used by server.js to provide a public token endpoint.
+ */
+export const generateCsrfToken = (req, res) => {
+    if (!req.user || !req.user.id) {
+        throw new Error("CSRF token can only be generated for authenticated users.");
+    }
+    return generateStatelessCsrfToken(req.user.id);
+};
+
+export const csrfErrorHandler = (err, req, res, next) => {
+    if (err.code === 'EBADCSRFTOKEN' || err.status === 403) {
         return res.status(403).json({
             success: false,
-            message: "Invalid or missing CSRF token.",
+            message: "Invalid CSRF token",
         });
     }
-    next(error);
+    next(err);
 };
+
+// Shims for backward compatibility
+export const requireCSRF = (req, res, next) => next();
