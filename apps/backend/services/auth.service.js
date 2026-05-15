@@ -3,7 +3,7 @@ import crypto from "crypto";
 import prisma from "../lib/prisma.js";
 import ROLES from "../constants/roles.js";
 import { TOKEN_TTL_VERIFICATION_MS, TOKEN_TTL_RESET_MS } from "../constants/auth.js";
-import { NotFoundError, ForbiddenError, ConflictError, ValidationError, UnauthorizedError } from "../utils/errors.js";
+import { ConflictError, ValidationError, UnauthorizedError } from "../utils/errors.js";
 import {
     sendVerificationEmail,
     sendWelcomeEmail,
@@ -72,6 +72,10 @@ export const login = async (email, password) => {
 
     if (!user) {
         throw new ValidationError("Invalid credentials");
+    }
+
+    if (!user.isVerified) {
+        throw new UnauthorizedError("Please verify your email address before logging in.");
     }
 
     const isPasswordValid = await bcryptjs.compare(password, user.password);

@@ -7,7 +7,7 @@ import { getProjectTaskSummary, getProjectTaskSummaryBatch } from "./task.servic
 import { PROJECT_STATUS } from "../constants/statuses.js";
 import ROLES from "../constants/roles.js";
 
-export const createProject = async ({ name, clientId, status, createdByUserId }) => {
+export const createProject = async ({ name, clientId, status, description, createdByUserId }) => {
   if (status && ![PROJECT_STATUS.DRAFT, PROJECT_STATUS.ACTIVE, PROJECT_STATUS.COMPLETED].includes(status)) {
     throw new StateTransitionError(`Invalid project status '${status}'. Allowed: ${PROJECT_STATUS.DRAFT}, ${PROJECT_STATUS.ACTIVE}, ${PROJECT_STATUS.COMPLETED}`);
   }
@@ -16,6 +16,7 @@ export const createProject = async ({ name, clientId, status, createdByUserId })
       name,
       clientId: String(clientId),
       status: status || PROJECT_STATUS.DRAFT,
+      description,
       createdByUserId,
     },
   });
@@ -25,11 +26,18 @@ export const createProject = async ({ name, clientId, status, createdByUserId })
  * @param {{ limit?: number, cursor?: string }} options
  * limit defaults to 50, max 100. cursor is the id of the last record from the previous page.
  */
-export const getProjects = async ({ limit = 50, cursor } = {}) => {
+export const getProjects = async ({ limit = 50, cursor, search } = {}) => {
   const take = Math.min(Number(limit) || 50, 100);
+
+  const where = {};
+  if (search) {
+    where.name = { contains: search, mode: 'insensitive' };
+  }
+
   return prisma.project.findMany({
     take: take + 1,         // fetch one extra to detect whether there's a next page
     ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
+    where,
     orderBy: { createdAt: 'desc' },
     include: { client: true },
   });
@@ -64,8 +72,10 @@ export const updateProject = async (id, data, userId, userRole) => {
   return prisma.project.update({
     where: { id: String(id) },
     data: {
-      ...(data.name !== undefined ? { name: data.name } : {}),
-      ...(data.status !== undefined ? { status: data.status } : {}),
+      ...(data.name && { name: data.name }),
+      ...(data.status && { status: data.status }),
+      ...(data.description !== undefined ? { description: data.description } : {}),
+      ...(data.endDate !== undefined ? { endDate: data.endDate } : {}),
     },
   });
 };
@@ -77,13 +87,10 @@ export const updateProject = async (id, data, userId, userRole) => {
  * @returns {{ TODO: number, IN_PROGRESS: number, DONE: number, total: number, percentComplete: number }}
  */
 export const getProjectProgress = async (projectId, userRole) => {
-  const project = await prisma.project.findUnique({ where: { id: String(projectId) } });
-  if (!project) return null;
-
   const summary = await getProjectTaskSummary(projectId);
 
   // CLIENT role receives percentComplete only. Full task breakdown is restricted to internal roles. See docs/DATA_CONTRACT.md.
-  if (userRole === 'CLIENT') {
+  if (userRole === ROLES.CLIENT) {
     return { percentComplete: summary.percentComplete };
   }
 
@@ -91,56 +98,65 @@ export const getProjectProgress = async (projectId, userRole) => {
 };
 
 export const getBatchProjectProgress = async (projectIds, userRole) => {
-    if (!projectIds || projectIds.length === 0) return {};
+  if (!projectIds || projectIds.length === 0) return {};
 
-    const summaries = await getProjectTaskSummaryBatch(projectIds);
-    const results = {};
+  const summaries = await getProjectTaskSummaryBatch(projectIds);
+  const results = {};
 
-    for (const projectId of projectIds) {
-        const summary = summaries[projectId];
-        if (userRole === ROLES.CLIENT) {
-            results[projectId] = { percentComplete: summary ? summary.percentComplete : 0 };
-        } else {
-            results[projectId] = summary;
-        }
+  for (const projectId of projectIds) {
+    const summary = summaries[projectId];
+    if (userRole === ROLES.CLIENT) {
+      results[projectId] = { percentComplete: summary ? summary.percentComplete : 0 };
+    } else {
+      results[projectId] = summary;
     }
+  }
 
-    return results;
+  return results;
+};
+
+export const deleteProject = async (id, userId, userRole) => {
+  const existing = await prisma.project.findUnique({ where: { id: String(id) } });
+  if (!existing) throw new NotFoundError(`Project ${id} not found`);
+
+  assertOwnership(existing, userId, userRole);
+
+  return prisma.project.delete({ where: { id: String(id) } });
 };
 
 export const syncProjectAnalytics = async (projectId) => {
   const taskSummary = await getProjectTaskSummary(projectId);
-  
+
   const totalSprints = await prisma.sprint.count({ where: { projectId: String(projectId) } });
-  const activeSprints = await prisma.sprint.count({ 
-      where: { 
-          projectId: String(projectId),
-          status: 'ACTIVE'
-      } 
+  const activeSprints = await prisma.sprint.count({
+    where: {
+      projectId: String(projectId),
+      status: 'ACTIVE'
+    }
   });
 
   return prisma.projectAnalytics.upsert({
-      where: { projectId: String(projectId) },
-      create: {
-          projectId: String(projectId),
-          totalTasks: taskSummary.total,
-          completedTasks: taskSummary.DONE,
-          blockedTasks: taskSummary.BLOCKED,
-          cancelledTasks: taskSummary.CANCELLED,
-          totalSprints,
-          activeSprints,
-          syncStatus: 'synced',
-          lastSyncedAt: new Date()
-      },
-      update: {
-          totalTasks: taskSummary.total,
-          completedTasks: taskSummary.DONE,
-          blockedTasks: taskSummary.BLOCKED,
-          cancelledTasks: taskSummary.CANCELLED,
-          totalSprints,
-          activeSprints,
-          syncStatus: 'synced',
-          lastSyncedAt: new Date()
-      }
+    where: { projectId: String(projectId) },
+    create: {
+      projectId: String(projectId),
+      totalTasks: taskSummary.total,
+      completedTasks: taskSummary.DONE,
+      blockedTasks: taskSummary.BLOCKED,
+      cancelledTasks: taskSummary.CANCELLED,
+      totalSprints,
+      activeSprints,
+      syncStatus: 'synced',
+      lastSyncedAt: new Date()
+    },
+    update: {
+      totalTasks: taskSummary.total,
+      completedTasks: taskSummary.DONE,
+      blockedTasks: taskSummary.BLOCKED,
+      cancelledTasks: taskSummary.CANCELLED,
+      totalSprints,
+      activeSprints,
+      syncStatus: 'synced',
+      lastSyncedAt: new Date()
+    }
   });
 };

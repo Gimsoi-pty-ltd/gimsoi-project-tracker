@@ -41,7 +41,7 @@ async function createAuthenticatedApiContext(rolePrefix, emailSuffix, baseURL) {
     const signupRes = await context.post('/api/auth/signup', {
         data: { email, password, fullName: `Test ${rolePrefix.toUpperCase()}` }
     });
-    
+
     if (signupRes.status() >= 400) {
         const body = await signupRes.text();
         throw new Error(`Signup failed (${signupRes.status()}): ${body}`);
@@ -51,26 +51,31 @@ async function createAuthenticatedApiContext(rolePrefix, emailSuffix, baseURL) {
     let csrfToken = getCookie(signupRes, 'XSRF-TOKEN');
     let token = (await signupRes.json()).token;
 
-    // 3. Promote + re-login if we need a role above INTERN
-    if (targetRole !== 'INTERN') {
-        // 3a. Promote DB role via Prisma directly
-        await prisma.user.update({
-            where: { email },
-            data: { role: targetRole }
-        });
+    // Promote + re-login — REQUIRED for all roles to bypass isVerified:false enforcement.
+    // promote-role now sets isVerified:true in the DB.
 
-        // 3b. Re-login — Public route (no CSRF needed)
-        const loginRes = await context.post('/api/auth/login', {
-            data: { email, password }
-        });
-        
-        // Refresh token and CSRF secret
-        const loginData = await loginRes.json();
-        token = loginData.token;
-        csrfToken = getCookie(loginRes, 'XSRF-TOKEN') || csrfToken;
+    // Promote DB role & Verify
+    const promoteRes = await context.post('/api/testing/promote-role', {
+        headers: { 'x-csrf-token': csrfToken },
+        data: { email, role: targetRole }
+    });
+    const promoteData = await promoteRes.json();
+    if (!promoteData.success) {
+        throw new Error(`Promote/Verify failed for ${email} → ${targetRole}: ${promoteData.message}`);
     }
 
-    // 4. Build final context
+    // Re-login — Essential to get a session that reflects the DB state (role + isVerified).
+    const loginRes = await context.post('/api/auth/login', {
+        headers: { 'x-csrf-token': csrfToken },
+        data: { email, password }
+    });
+    const loginData = await loginRes.json();
+    if (!loginData.success) {
+        throw new Error(`Re-login failed for ${email} after promoting/verifying: ${loginData.message}`);
+    }
+    token = loginData.token;
+
+    // Build final context — carry CSRF cookie from original context + fresh auth token
     const storageState = await context.storageState();
     const finalContext = await request.newContext({
         baseURL,
@@ -81,7 +86,6 @@ async function createAuthenticatedApiContext(rolePrefix, emailSuffix, baseURL) {
     });
 
     // Proxy the context to automatically inject _csrf into mutating methods
-    // We bind the target methods to ensure 'this' remains the APIRequestContext
     return new Proxy(finalContext, {
         get(target, prop) {
             const value = target[prop];
@@ -91,7 +95,7 @@ async function createAuthenticatedApiContext(rolePrefix, emailSuffix, baseURL) {
                     // Inject _csrf into the body if it's not already there
                     const newData = { ...data };
                     if (!newData._csrf) newData._csrf = csrfToken;
-                    
+
                     return value.call(target, url, {
                         ...options,
                         data: newData

@@ -46,7 +46,7 @@ router.post("/logout", authLimiter, verifyToken, requireCSRF, logout);
  * POST /api/auth/verify-email
  * Allowed: ALL (Public)
  */
-router.post("/verify-email", loginLimiter, verifyEmail);
+router.post("/verify-email", authLimiter, verifyEmail);
 
 /**
  * POST /api/auth/forgot-password

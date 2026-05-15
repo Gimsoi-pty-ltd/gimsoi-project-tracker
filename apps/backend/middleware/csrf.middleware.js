@@ -7,13 +7,16 @@ export const requireCSRF = async (req, res, next) => {
         return next();
     }
 
+    const tokenFromHeader = req.headers["x-csrf-token"];
     const tokenFromBody = req.body?._csrf;
-    if (!tokenFromBody) {
+    const clientToken = tokenFromHeader || tokenFromBody;
+
+    if (!clientToken) {
         return res.status(403).json({ success: false, message: "Invalid or missing CSRF token." });
     }
 
     // Pass the token and the authenticated user's ID to the stateless verifier
-    const isValid = verifyStatelessCsrfToken(req.user.id, tokenFromBody);
+    const isValid = verifyStatelessCsrfToken(req.user.id, clientToken);
 
     if (!isValid) {
         console.error(`[CSRF Error] Stateless validation failed - Method: ${req.method}, URL: ${req.url}`);
@@ -21,8 +24,10 @@ export const requireCSRF = async (req, res, next) => {
     }
 
     // Sanitize transport fields before controllers see the body
-    delete req.body._csrf;
-    delete req.body._method;
+    if (req.body) {
+        delete req.body._csrf;
+        delete req.body._method;
+    }
 
     return next();
 };
