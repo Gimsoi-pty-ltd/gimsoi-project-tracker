@@ -4,13 +4,13 @@ export const createClient = async (req, res, next) => {
   try {
     const { name, contactEmail } = req.body;
 
-    if (!name || !contactEmail) {
-      return res.status(400).json({ success: false, message: "Client name and contactEmail are required" });
+    if (!name) {
+      return res.status(400).json({ success: false, message: "Client name is required" });
     }
 
     const client = await clientService.createClient({
       name,
-      contactEmail,
+      contactEmail: contactEmail || null,
       createdByUserId: req.user.id,
     });
 
