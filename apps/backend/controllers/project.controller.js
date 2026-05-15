@@ -105,3 +105,15 @@ export const syncProjectAnalytics = async (req, res, next) => {
     next(err);
   }
 };
+
+export const deleteProject = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    await projectService.deleteProject(id, req.user.id, req.user.role);
+
+    return res.status(204).send();
+  } catch (err) {
+    next(err);
+  }
+};
+

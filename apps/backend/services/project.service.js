@@ -129,6 +129,18 @@ export const syncProjectAnalytics = async (projectId) => {
           activeSprints,
           syncStatus: 'synced',
           lastSyncedAt: new Date()
-      }
+    }
   });
 };
+
+export const deleteProject = async (id, userId, userRole) => {
+  const existing = await prisma.project.findUnique({ where: { id: String(id) } });
+  if (!existing) throw new NotFoundError(`Project ${id} not found`);
+
+  assertOwnership(existing, userId, userRole);
+
+  return prisma.project.delete({
+    where: { id: String(id) },
+  });
+};
+
