@@ -20,7 +20,7 @@ test.describe('E2E Backend Flow Verification', () => {
             const csrfRes = await request.get('/api/auth/csrf-token');
             expect(csrfRes.ok()).toBeTruthy();
             const csrfBody = await csrfRes.json();
-            csrfToken = csrfBody.csrfToken;
+            csrfToken = typeof csrfBody.csrfToken === 'string' ? csrfBody.csrfToken : '';
 
             const signupRes = await request.post('/api/auth/signup', {
                 data: { fullName: 'Admin User', email: adminEmail, password },
@@ -109,7 +109,7 @@ test.describe('E2E Backend Flow Verification', () => {
                 headers: { 'x-csrf-token': csrfToken }
             });
             const csrfRes = await request.get('/api/auth/csrf-token');
-            csrfToken = (await csrfRes.json()).csrfToken;
+            csrfToken = (await csrfRes.json()).csrfToken || '';
 
             const internSignupRes = await request.post('/api/auth/signup', {
                 data: { fullName: 'Intern User', email: internEmail, password },
@@ -145,7 +145,7 @@ test.describe('E2E Backend Flow Verification', () => {
                 headers: { 'x-csrf-token': csrfToken }
             });
             const csrfRes = await request.get('/api/auth/csrf-token');
-            csrfToken = (await csrfRes.json()).csrfToken;
+            csrfToken = (await csrfRes.json()).csrfToken || '';
             await request.post('/api/auth/login', {
                 data: { email: adminEmail, password },
                 headers: { 'x-csrf-token': csrfToken }

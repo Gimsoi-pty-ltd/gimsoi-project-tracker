@@ -4,7 +4,7 @@ import prisma from '../../lib/prisma.js';
 async function fetchCsrfToken(request) {
     const res = await request.get('/api/auth/csrf-token');
     const body = await res.json();
-    return body.csrfToken;
+    return typeof body.csrfToken === 'string' ? body.csrfToken : '';
 }
 
 test.describe('Auth API Tests', () => {
