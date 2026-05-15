@@ -25,9 +25,14 @@ async function createAuthenticatedApiContext(rolePrefix, emailSuffix, baseURL) {
     const email = `${rolePrefix}-${Date.now()}-${Math.floor(Math.random() * 1000000)}${emailSuffix}`;
     const password = 'Test123!@#';
 
+    const loginHeaders = {};
+    if (csrfToken && typeof csrfToken === 'string') {
+        loginHeaders['x-csrf-token'] = csrfToken;
+    }
+
     const signupRes = await context.post('/api/auth/signup', {
         data: { email, password, fullName: `Test ${rolePrefix.toUpperCase()}` },
-        headers: { 'x-csrf-token': csrfToken }
+        headers: loginHeaders
     });
     
     if (signupRes.status() >= 400) {
@@ -52,9 +57,14 @@ async function createAuthenticatedApiContext(rolePrefix, emailSuffix, baseURL) {
         // Re-fetch CSRF token just in case
         csrfToken = await fetchCsrfToken(context);
 
+        const loginReqHeaders = {};
+        if (csrfToken && typeof csrfToken === 'string') {
+            loginReqHeaders['x-csrf-token'] = csrfToken;
+        }
+
         const loginRes = await context.post('/api/auth/login', {
             data: { email, password },
-            headers: { 'x-csrf-token': csrfToken }
+            headers: loginReqHeaders
         });
         
         const loginData = await loginRes.json();
@@ -78,7 +88,7 @@ async function createAuthenticatedApiContext(rolePrefix, emailSuffix, baseURL) {
             if (typeof value === 'function' && ['post', 'patch', 'put', 'delete'].includes(prop)) {
                 return async (url, options = {}) => {
                     const headers = { ...options.headers };
-                    if (!headers['x-csrf-token']) {
+                    if (!headers['x-csrf-token'] && typeof csrfToken === 'string') {
                         headers['x-csrf-token'] = csrfToken;
                     }
                     

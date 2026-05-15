@@ -76,7 +76,6 @@ const getBottleneckLabels = async ({ projectId, taskFilter, ownerIdForRaw }) => 
 
     const rows = await prisma.$queryRaw(Prisma.join(queryParts, ' '));
     return rows;
-    return rows;
 };
 
 export const getTeamAnalytics = async ({ projectId, ownerIdForRaw }) => {

@@ -27,7 +27,7 @@ enum TaskStatus {
   IN_PROGRESS
   BLOCKED
   DONE
-  CANCELLED,
+  CANCELLED
   REVIEW
 }
 
