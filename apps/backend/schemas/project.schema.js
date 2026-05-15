@@ -1,18 +1,27 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 export const createProjectSchema = z.object({
-  name: z.string().min(1, 'Project name is required').max(100),
-  clientId: z.string().uuid('clientId must be a valid UUID'),
-  description: z.string().max(2000).optional(),
-  status: z.enum(['DRAFT', 'ACTIVE', 'COMPLETED']).optional(),
+  body: z.object({
+    name: z.string().min(3, "Project name must be at least 3 characters long"),
+    clientId: z.string().uuid("Invalid clientId format"),
+    status: z.enum(["DRAFT", "ACTIVE", "COMPLETED"]).optional().default("DRAFT"),
+  }),
 });
 
 export const updateProjectSchema = z.object({
-  name: z.string().min(1).max(100).optional(),
-  description: z.string().max(2000).optional().nullable(),
-  status: z.enum(['DRAFT', 'ACTIVE', 'COMPLETED']).optional(),
-  endDate: z.coerce.date().optional().nullable(),
-}).refine(
-  (data) => Object.keys(data).length > 0,
-  { message: 'At least one field must be provided for update' }
-);
+  params: z.object({
+    id: z.string().uuid("Invalid project ID format"),
+  }),
+  body: z.object({
+    name: z.string().min(3).optional(),
+    status: z.enum(["DRAFT", "ACTIVE", "COMPLETED"]).optional(),
+  }).refine((data) => data.name !== undefined || data.status !== undefined, {
+    message: "At least one field (name or status) must be provided for update",
+  }),
+});
+
+export const getProjectSchema = z.object({
+  params: z.object({
+    id: z.string().uuid("Invalid project ID format"),
+  }),
+});

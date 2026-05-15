@@ -1,7 +1,6 @@
 import { test as base, request } from '@playwright/test';
 import prisma from '../../lib/prisma.js';
 
-// Maps fixture prefix → DB role value (from constants/roles.js)
 const ROLE_MAP = {
     admin: 'ADMIN',
     pm: 'PM',
@@ -9,73 +8,70 @@ const ROLE_MAP = {
     intern: 'INTERN',
 };
 
-/**
- * Helper to extract a cookie from a Playwright response object.
- * Robust against multiple set-cookie headers.
- */
-function getCookie(res, name) {
-    const setCookie = res.headers()['set-cookie'] || '';
-    // Playwright joins multiple headers with \n or just returns the last one depending on env
-    const cookieLines = setCookie.split('\n');
-    for (const line of cookieLines) {
-        if (line.trim().startsWith(`${name}=`)) {
-            return line.split('=')[1].split(';')[0];
-        }
-    }
-    return null;
+async function fetchCsrfToken(context) {
+    const res = await context.get('/api/auth/csrf-token');
+    const body = await res.json();
+    return body.csrfToken;
 }
 
-/**
- * Creates a pre-authenticated API context for a given role.
- */
 async function createAuthenticatedApiContext(rolePrefix, emailSuffix, baseURL) {
     const targetRole = ROLE_MAP[rolePrefix] ?? 'INTERN';
     const context = await request.newContext({ baseURL });
 
-    // 1. Generate unique email
-    const cryptoHash = Math.floor(Math.random() * 1000000);
-    const email = `${rolePrefix}-${Date.now()}-${cryptoHash}${emailSuffix}`;
+    // 1. Get initial CSRF token
+    let csrfToken = await fetchCsrfToken(context);
+
+    // 2. Signup
+    const email = `${rolePrefix}-${Date.now()}-${Math.floor(Math.random() * 1000000)}${emailSuffix}`;
     const password = 'Test123!@#';
 
-    // 2. Signup — Public route (no CSRF needed)
-    const signupRes = await context.post('/api/auth/signup', {
-        data: { email, password, fullName: `Test ${rolePrefix.toUpperCase()}` }
-    });
+    const loginHeaders = {};
+    if (csrfToken && typeof csrfToken === 'string') {
+        loginHeaders['x-csrf-token'] = csrfToken;
+    }
 
+    const signupRes = await context.post('/api/auth/signup', {
+        data: { email, password, fullName: `Test ${rolePrefix.toUpperCase()}` },
+        headers: loginHeaders
+    });
+    
     if (signupRes.status() >= 400) {
         const body = await signupRes.text();
         throw new Error(`Signup failed (${signupRes.status()}): ${body}`);
     }
 
-    // Extract XSRF-TOKEN cookie
-    let csrfToken = getCookie(signupRes, 'XSRF-TOKEN');
     let token = (await signupRes.json()).token;
 
-    // Promote + re-login — REQUIRED for all roles to bypass isVerified:false enforcement.
-    // promote-role now sets isVerified:true in the DB.
-
-    // Promote DB role & Verify
-    const promoteRes = await context.post('/api/testing/promote-role', {
-        headers: { 'x-csrf-token': csrfToken },
-        data: { email, role: targetRole }
+    // 3. Verify user and promote + re-login if needed
+    await prisma.user.update({
+        where: { email },
+        data: { isVerified: true }
     });
-    const promoteData = await promoteRes.json();
-    if (!promoteData.success) {
-        throw new Error(`Promote/Verify failed for ${email} → ${targetRole}: ${promoteData.message}`);
+
+    if (targetRole !== 'INTERN') {
+        await prisma.user.update({
+            where: { email },
+            data: { role: targetRole }
+        });
+
+        // Re-fetch CSRF token just in case
+        csrfToken = await fetchCsrfToken(context);
+
+        const loginReqHeaders = {};
+        if (csrfToken && typeof csrfToken === 'string') {
+            loginReqHeaders['x-csrf-token'] = csrfToken;
+        }
+
+        const loginRes = await context.post('/api/auth/login', {
+            data: { email, password },
+            headers: loginReqHeaders
+        });
+        
+        const loginData = await loginRes.json();
+        token = loginData.token;
     }
 
-    // Re-login — Essential to get a session that reflects the DB state (role + isVerified).
-    const loginRes = await context.post('/api/auth/login', {
-        headers: { 'x-csrf-token': csrfToken },
-        data: { email, password }
-    });
-    const loginData = await loginRes.json();
-    if (!loginData.success) {
-        throw new Error(`Re-login failed for ${email} after promoting/verifying: ${loginData.message}`);
-    }
-    token = loginData.token;
-
-    // Build final context — carry CSRF cookie from original context + fresh auth token
+    // 4. Build final context with automatic CSRF injection
     const storageState = await context.storageState();
     const finalContext = await request.newContext({
         baseURL,
@@ -85,20 +81,20 @@ async function createAuthenticatedApiContext(rolePrefix, emailSuffix, baseURL) {
         }
     });
 
-    // Proxy the context to automatically inject _csrf into mutating methods
+    // Proxy to inject CSRF header into all mutating requests
     return new Proxy(finalContext, {
         get(target, prop) {
             const value = target[prop];
             if (typeof value === 'function' && ['post', 'patch', 'put', 'delete'].includes(prop)) {
                 return async (url, options = {}) => {
-                    const data = options.data || {};
-                    // Inject _csrf into the body if it's not already there
-                    const newData = { ...data };
-                    if (!newData._csrf) newData._csrf = csrfToken;
-
+                    const headers = { ...options.headers };
+                    if (!headers['x-csrf-token'] && typeof csrfToken === 'string') {
+                        headers['x-csrf-token'] = csrfToken;
+                    }
+                    
                     return value.call(target, url, {
                         ...options,
-                        data: newData
+                        headers
                     });
                 };
             }
@@ -107,7 +103,6 @@ async function createAuthenticatedApiContext(rolePrefix, emailSuffix, baseURL) {
     });
 }
 
-// Extend base test by providing our custom fixtures
 export const test = base.extend({
     pmApi: async ({ baseURL }, use) => {
         const pmContext = await createAuthenticatedApiContext('pm', '@gimsoi.test', baseURL);
@@ -129,7 +124,6 @@ export const test = base.extend({
         await use(internContext);
         await internContext.dispose();
     },
-    // Entity Generators
     testClient: async ({ adminApi }, use) => {
         const res = await adminApi.post('/api/clients', {
             data: { name: `Test Client ${Date.now()}`, contactEmail: `client-${Date.now()}@test.com` }

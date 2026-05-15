@@ -31,3 +31,7 @@ dist-ssr
 catalyst.json
 app-config.json
 app-config.staging.json
+
+# Test Results
+test-results/
+playwright-report/
