@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 
 const Clients = () => {
   const [showModal, setShowModal] = useState(false);
@@ -200,10 +201,9 @@ const Clients = () => {
       </div>
 
       {/* Modal */}
-
       {showModal && (
 
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center">
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
 
           <div className="bg-white w-[650px] rounded-xl shadow-lg p-6">
 
@@ -296,9 +296,10 @@ const Clients = () => {
         </div>
 
       )}
-
     </div>
   );
 };
+
+export default Clients;
 
 export default Clients;
