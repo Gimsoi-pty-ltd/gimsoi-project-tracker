@@ -93,6 +93,10 @@ task_lifecycle_output.txt
 .env.*
 !.env.example
 
+# Local Docker Data
+postgres_data/
+docker-compose.yml
+
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache
