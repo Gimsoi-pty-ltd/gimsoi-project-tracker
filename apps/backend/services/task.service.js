@@ -76,10 +76,6 @@ export const createTask = async ({ taskData, context, requestingUser }) => {
     const { projectId, sprintId, reporterId, assigneeId } = context;
     const { role: userRole } = requestingUser;
 
-    if (dueDate !== undefined && dueDate !== null && isNaN(Date.parse(dueDate))) {
-        throw new StateTransitionError('Invalid dueDate format.');
-    }
-
     // Project-level authorization: Only roles with 'CREATE_TASK' permission can create tasks.
     if (userRole && !hasPermission(userRole, 'CREATE_TASK')) {
         throw new ForbiddenError(`Role '${userRole}' is not authorized to create tasks.`);
@@ -122,7 +118,8 @@ export const createTask = async ({ taskData, context, requestingUser }) => {
         return validateTaskShape(task);
     } catch (err) { 
         console.error("Prisma create error: ", err);
-        return handlePrismaError(err);
+        handlePrismaError(err); 
+        throw err;
     }
 };
 
@@ -130,18 +127,8 @@ export const createTask = async ({ taskData, context, requestingUser }) => {
  * @param {string} projectId
  * @param {{ limit?: number, cursor?: string, status?: string, isBlocked?: boolean, isOverdue?: boolean }} options
  */
-export const getTasksByProject = async (projectId, requestingUser, { limit = 50, cursor, status, isBlocked, isOverdue } = {}) => {
-    if (!projectId && (!requestingUser || ![ROLES.ADMIN, ROLES.PROJECT_MANAGER].includes(requestingUser.role))) {
-        throw new ForbiddenError('projectId is required for non-ADMIN/PM roles.');
-    }
-
-    const where = projectId ? { projectId } : {};
-
-    // Row-level security: non-admins on global fetch see only their assigned tasks
-    if (!projectId && requestingUser && ![ROLES.ADMIN, ROLES.PROJECT_MANAGER].includes(requestingUser.role)) {
-        where.assigneeId = requestingUser.id;
-    }
-
+export const getTasksByProject = async (projectId, { limit = 50, cursor, status, isBlocked, isOverdue } = {}) => {
+    const where = { projectId };
     if (status) where.status = status;
     if (isBlocked !== undefined) where.isBlocked = isBlocked;
     if (isOverdue === true) {
@@ -165,9 +152,7 @@ export const getTasksByProject = async (projectId, requestingUser, { limit = 50,
 export const getTaskCountBySprintId = async (sprintId, { excludeStatus } = {}, db = prisma) => {
     const where = { sprintId: String(sprintId) };
     if (excludeStatus) {
-        where.status = Array.isArray(excludeStatus)
-            ? { notIn: excludeStatus }
-            : { not: excludeStatus };
+        where.status = { not: excludeStatus };
     }
     return db.task.count({ where });
 };
@@ -178,7 +163,6 @@ export const getTaskById = async (id) => {
         include: {
             assignee: { select: { id: true, fullName: true, email: true } },
             reporter: { select: { id: true, fullName: true, email: true } },
-            sprint: { select: { id: true, name: true, status: true } },
         }
     });
     if (!task) {
@@ -236,10 +220,6 @@ export const updateTask = async (id, data, userId, userRole) => {
     assertCompletedAtNotInPayload(data);
     if (data.priority !== undefined) validatePriority(data.priority);
 
-    if (data.dueDate !== undefined && data.dueDate !== null && isNaN(Date.parse(data.dueDate))) {
-        throw new StateTransitionError('Invalid dueDate format.');
-    }
-
     const existing = await prisma.task.findUnique({ 
         where: { id },
         include: { project: true, sprint: true }
@@ -269,9 +249,7 @@ export const updateTask = async (id, data, userId, userRole) => {
             assigneeId:  finalData.assigneeId  !== undefined ? finalData.assigneeId        : existing.assigneeId,
             priority:    finalData.priority    !== undefined ? finalData.priority          : existing.priority,
             isBlocked:   finalData.isBlocked   !== undefined ? finalData.isBlocked         : existing.isBlocked,
-            dueDate:     finalData.dueDate     !== undefined
-                ? (finalData.dueDate === null ? null : new Date(finalData.dueDate))
-                : existing.dueDate,
+            dueDate:     finalData.dueDate     !== undefined ? new Date(finalData.dueDate) : existing.dueDate,
             completedAt: finalData.completedAt !== undefined ? finalData.completedAt       : existing.completedAt,
         }
     });
@@ -335,8 +313,6 @@ const aggregateTasksByStatus = async (projectId) => {
 };
 
 export const getProjectTaskSummary = async (projectId) => {
-    const project = await prisma.project.findUnique({ where: { id: String(projectId) } });
-    if (!project) throw new NotFoundError(`Project ${projectId} not found`);
     const summary = await aggregateTasksByStatus(projectId);
     return validateProjectSummaryShape(summary);
 };

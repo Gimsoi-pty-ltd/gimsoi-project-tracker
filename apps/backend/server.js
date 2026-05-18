@@ -11,10 +11,8 @@ import sprintRoutes from "./routes/sprint.route.js";
 import { validateEnv } from "./utils/validateEnv.js";
 import registerTestingRoutes from "./utils/registerTestingRoutes.js";
 import healthRoute from "./routes/health.route.js";
-import userRoutes from "./routes/user.route.js";
 import swaggerUi from "swagger-ui-express";
 import { swaggerSpec } from "./lib/swagger.js";
-import { healthLimiter } from "./middleware/rate-limiter.middleware.js";
 
 dotenv.config();
 
@@ -65,6 +63,8 @@ app.use(methodOverride(function (req, res) {
 app.options(/.*/, cors(corsOptions));
 app.use(cors(corsOptions));
 
+import { healthLimiter } from "./middleware/rate-limiter.middleware.js";
+
 // Health endpoint — registered before CSRF so probes require no session token
 app.use("/api/health", healthLimiter, healthRoute);
 
@@ -80,7 +80,6 @@ if (isNonProd) {
 
 // Routes
 app.use("/api/auth", authRoutes);
-app.use("/api/users", userRoutes);
 app.use("/api/tasks", taskRoute);
 app.use("/api/clients", clientRoutes);
 app.use("/api/projects", projectRoutes);
@@ -94,6 +93,9 @@ app.use((err, req, res, next) => {
   }
   return res.status(statusCode).json({ success: false, message: err.message || "Internal Server Error" });
 });
+
+// Test-only routes
+await registerTestingRoutes(app);
 
 // Initialize DB and Start Server
 const PORT = process.env.X_ZOHO_CATALYST_LISTEN_PORT || process.env.PORT || 5000;
@@ -126,8 +128,7 @@ process.on("SIGINT", () => gracefulShutdown("SIGINT"));
     await prisma.$queryRaw`SELECT 1`;
     console.log('[db] Connected.');
 
-    // Test-only routes — registered after DB confirms so test resets have a live connection
-    await registerTestingRoutes(app);
+
 
     server = app.listen(PORT, "0.0.0.0", () => {
       console.log(`[server] Running on port ${PORT}`);

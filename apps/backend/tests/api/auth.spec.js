@@ -57,18 +57,9 @@ test.describe('Auth API Tests', () => {
 
         test.beforeAll(async ({ request }) => {
             testUserEmail = `login-${Date.now()}-${Math.random().toString(36).substring(7)}@example.com`;
-            const signupRes = await request.post('/api/auth/signup', {
+            await request.post('/api/auth/signup', {
                 data: { email: testUserEmail, password: testPassword, fullName: 'Login Test User' }
             });
-            
-            const setupCsrfToken = getCsrfToken(signupRes) || '';
-
-            // Verify user via testing endpoint
-            const promoteRes = await request.post('/api/testing/promote-role', {
-                headers: { 'x-csrf-token': setupCsrfToken },
-                data: { email: testUserEmail }
-            });
-            expect(promoteRes.status()).toBe(200);
         });
 
         test('returns 200 + token on valid credentials', async ({ request }) => {
@@ -96,15 +87,6 @@ test.describe('Auth API Tests', () => {
             const signupRes = await request.post('/api/auth/signup', {
                 data: { email, password: 'password123', fullName: 'Check Auth User' }
             });
-            
-            const setupCsrfToken = getCsrfToken(signupRes) || '';
-            
-            // Verify user via testing endpoint
-            await request.post('/api/testing/promote-role', {
-                headers: { 'x-csrf-token': setupCsrfToken },
-                data: { email }
-            });
-            
             localAuthToken = (await signupRes.json()).token;
         });
 
@@ -147,17 +129,8 @@ test.describe('Auth API Tests', () => {
             const password = 'Password123!';
 
             // 1. Signup fresh user
-            const signupRes = await request.post('/api/auth/signup', {
+            await request.post('/api/auth/signup', {
                 data: { email, password, fullName: 'Logout User' }
-            });
-            
-            // Get CSRF token for the promote-role request
-            const setupCsrfToken = getCsrfToken(signupRes) || '';
-
-            // Verify user via testing endpoint
-            await request.post('/api/testing/promote-role', {
-                headers: { 'x-csrf-token': setupCsrfToken },
-                data: { email }
             });
 
             // 2. Login to get token and CSRF token
@@ -177,7 +150,6 @@ test.describe('Auth API Tests', () => {
     });
 
     test.describe('POST /api/auth/forgot-password', () => {
-
         test('returns 200 for known email', async ({ request }) => {
             const email = `forgot-${Date.now()}@example.com`;
             await request.post('/api/auth/signup', {

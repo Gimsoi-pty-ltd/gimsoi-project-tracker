@@ -141,6 +141,3 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 apps/backend/cookies.txt
-
-# Gemini files
-.gemini

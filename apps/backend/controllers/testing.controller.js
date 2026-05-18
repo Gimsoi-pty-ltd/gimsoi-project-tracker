@@ -31,27 +31,18 @@ export const promoteUserRole = async (req, res, next) => {
     }
     try {
         const { email, role } = req.body;
-        const user = await prisma.user.findUnique({ where: { email } });
-        if (!user) {
-            return res.status(404).json({ success: false, message: "User not found" });
-        }
-
-        const targetRole = role || user.role;
         const allowed = Object.values(ROLES);
-        if (!allowed.includes(targetRole)) {
+        if (!allowed.includes(role)) {
             return res.status(400).json({
                 success: false,
                 message: `Invalid role. Allowed: ${allowed.join(', ')}`
             });
         }
-        
-        const updated = await prisma.user.update({ 
-            where: { email }, 
-            data: { 
-                role: targetRole,
-                isVerified: true 
-            } 
-        });
+        const user = await prisma.user.findUnique({ where: { email } });
+        if (!user) {
+            return res.status(404).json({ success: false, message: "User not found" });
+        }
+        const updated = await prisma.user.update({ where: { email }, data: { role } });
         const { password: _, ...safe } = updated;
         return res.status(200).json({ success: true, data: safe });
     } catch (error) {

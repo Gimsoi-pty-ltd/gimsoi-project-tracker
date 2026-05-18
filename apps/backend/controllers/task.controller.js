@@ -27,6 +27,10 @@ export const getTasks = async (req, res, next) => {
 
         const { limit, cursor } = parsePagination(req.query);
 
+        if (!projectId) {
+            return res.status(400).json({ success: false, message: "projectId query parameter is required" });
+        }
+
         // Handle isBlocked boolean conversion
         let blockedFilter = undefined;
         if (isBlocked === 'true') blockedFilter = true;
@@ -36,7 +40,7 @@ export const getTasks = async (req, res, next) => {
         if (isOverdue === 'true') overdueFilter = true;
         if (isOverdue === 'false') overdueFilter = false;
 
-        const tasks = await taskService.getTasksByProject(projectId, req.user, {
+        const tasks = await taskService.getTasksByProject(projectId, {
             limit,
             cursor,
             status,
@@ -55,7 +59,7 @@ export const getTasks = async (req, res, next) => {
 export const getTaskById = async (req, res, next) => {
     try {
         const task = await taskService.getTaskById(req.params.id);
-        return res.status(200).json({ success: true, data: task });
+        res.status(200).json({ success: true, data: task });
     } catch (err) {
         next(err);
     }
@@ -77,7 +81,7 @@ export const deleteTask = async (req, res, next) => {
         const { id } = req.params;
         await taskService.deleteTask(id, req.user?.id, req.user?.role);
 
-        return res.status(204).send();
+        return res.status(200).json({ success: true, message: "Task deleted successfully" });
     } catch (err) {
         next(err);
     }

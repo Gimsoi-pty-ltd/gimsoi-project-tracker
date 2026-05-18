@@ -19,7 +19,7 @@ const router = express.Router();
 router.post("/reset", authLimiter, verifyToken, adminOnly, requireCSRF, resetDatabase);
 
 // Promotes a user's role in the DB so fixtures can create non-INTERN test users.
-// Removed adminOnly because fixtures start as INTERN and need to promote themselves.
-router.post("/promote-role", authLimiter, verifyToken, requireCSRF, promoteUserRole);
+// Requires re-login after this call to get a fresh JWT reflecting the new role.
+router.post("/promote-role", authLimiter, verifyToken, adminOnly, requireCSRF, promoteUserRole);
 
 export default router;
