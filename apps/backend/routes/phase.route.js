@@ -1,7 +1,7 @@
 import express from 'express';
 import { z } from 'zod';
 import { verifyToken } from '../middleware/verify-token.middleware.js';
-import authorize from '../middleware/authorize.middleware.js';
+import authorize from '../middleware/auth.middleware.js';
 import { readLimiter, writeLimiter } from '../middleware/rate-limiter.middleware.js';
 import { requireCSRF } from '../middleware/csrf.middleware.js';
 import { validate } from '../middleware/validate.middleware.js';

@@ -1,6 +1,7 @@
 import prisma from "../lib/prisma.js";
 import { StateTransitionError, NotFoundError } from '../utils/errors.js';
 import { assertOwnership } from "../utils/ownership.js";
+import { TASK_STATUS } from "../constants/statuses.js";
 
 export const createSprint = async ({ name, projectId, status, startDate, endDate, createdByUserId }) => {
     // Guard: prevent creating sprints inside a COMPLETED project

@@ -44,7 +44,7 @@ model User {
   fullName                   String
   password                   String
   role                       String    @default("INTERN")
-  profilePic                 String    @default("")
+  avatarUrl                  String?   @default("")
   bio                        String?
   lastLogin                  DateTime  @default(now())
   isVerified                 Boolean   @default(false)
@@ -58,7 +58,6 @@ model User {
   assignedTasks Task[] @relation("TaskAssignee")
   reportedTasks Task[] @relation("TaskReporter")
   comments      Comment[]
-  efforts       Effort[]
 }
 
 model Client {
@@ -134,9 +133,9 @@ model Task {
   isBlocked   Boolean      @default(false)
   dueDate     DateTime?
   completedAt DateTime?
-  priority  TaskPriority @default(MEDIUM)
-  isBlocked Boolean      @default(false)
-  dueDate   DateTime?
+  labels      String[]   @default([])
+  comments    Comment[]
+
 
   @@index([projectId])
   @@index([sprintId])
