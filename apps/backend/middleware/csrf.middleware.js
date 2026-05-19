@@ -64,4 +64,4 @@ export const csrfErrorHandler = (err, req, res, next) => {
 };
 
 // Shims for backward compatibility
-export const requireCSRF = (req, res, next) => next();
+export const requireCSRF = csrfProtection;

@@ -69,6 +69,9 @@ async function createAuthenticatedApiContext(rolePrefix, emailSuffix, baseURL) {
         
         const loginData = await loginRes.json();
         token = loginData.token;
+    } else {
+        // Re-fetch CSRF token for INTERN after successful verification/session establishment
+        csrfToken = await fetchCsrfToken(context);
     }
 
     // 4. Build final context with automatic CSRF injection

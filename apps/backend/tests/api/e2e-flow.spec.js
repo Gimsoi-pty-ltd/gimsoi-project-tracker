@@ -40,6 +40,11 @@ test.describe('E2E Backend Flow Verification', () => {
                 headers: { 'x-csrf-token': csrfToken }
             });
             expect(loginRes.ok()).toBeTruthy();
+
+            // Re-fetch CSRF token after login to get the session-bound token
+            const csrfResAfterLogin = await request.get('/api/auth/csrf-token');
+            expect(csrfResAfterLogin.ok()).toBeTruthy();
+            csrfToken = (await csrfResAfterLogin.json()).csrfToken || '';
             
             const checkAuthRes = await request.get('/api/auth/check-auth');
             expect(checkAuthRes.ok()).toBeTruthy();
@@ -126,6 +131,11 @@ test.describe('E2E Backend Flow Verification', () => {
             });
             expect(internLoginRes.ok()).toBeTruthy();
 
+            // Re-fetch CSRF token after intern login
+            const csrfResAfterInternLogin = await request.get('/api/auth/csrf-token');
+            expect(csrfResAfterInternLogin.ok()).toBeTruthy();
+            csrfToken = (await csrfResAfterInternLogin.json()).csrfToken || '';
+
             const failProjRes = await request.post('/api/projects', {
                 data: { name: 'Illegal Project', clientId },
                 headers: { 'x-csrf-token': csrfToken }
@@ -150,6 +160,11 @@ test.describe('E2E Backend Flow Verification', () => {
                 data: { email: adminEmail, password },
                 headers: { 'x-csrf-token': csrfToken }
             });
+
+            // Re-fetch CSRF token after admin re-login
+            const csrfResAfterAdminLogin = await request.get('/api/auth/csrf-token');
+            expect(csrfResAfterAdminLogin.ok()).toBeTruthy();
+            csrfToken = (await csrfResAfterAdminLogin.json()).csrfToken || '';
 
             const summaryRes = await request.get(`/api/tasks/projects/${projectId}/summary`);
             expect(summaryRes.ok()).toBeTruthy();
