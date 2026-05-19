@@ -36,7 +36,7 @@ const ResetPassword = () => {
           Reset Password
         </h1>
         <p className="text-gray-600 mb-8 text-center leading-relaxed">
-          Enter your new password below.
+          Enter your new password below
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-6">
