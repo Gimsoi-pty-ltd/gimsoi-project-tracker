@@ -134,6 +134,17 @@ test.describe('Auth API Tests', () => {
             });
             expect(res.status()).toBe(400);
         });
+
+        test('user payload contains avatarUrl field', async ({ request }) => {
+            const email = `checkavatar-${Date.now()}@example.com`;
+            const signupRes = await request.post('/api/auth/signup', {
+                data: { email, password: 'password123', fullName: 'Check Avatar User' },
+                headers: { 'x-csrf-token': csrfToken }
+            });
+            const body = await signupRes.json();
+            expect(body.user.avatarUrl).toBeDefined();
+            expect(body.user.profilePic).toBeUndefined();
+        });
     });
 
     test.describe('POST /api/auth/logout', () => {
