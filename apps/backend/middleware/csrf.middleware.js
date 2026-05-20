@@ -7,7 +7,7 @@ export const requireCSRF = async (req, res, next) => {
         return next();
     }
 
-    const tokenFromBody = req.body?._csrf;
+    const tokenFromBody = req.body?._csrf || req.headers["x-csrf-token"];
     if (!tokenFromBody) {
         return res.status(403).json({ success: false, message: "Invalid or missing CSRF token." });
     }
@@ -25,4 +25,19 @@ export const requireCSRF = async (req, res, next) => {
     delete req.body._method;
 
     return next();
+};
+
+export const csrfProtection = (req, res, next) => {
+    // For now, this is a placeholder if using requireCSRF explicitly on routes
+    next();
+};
+
+export const csrfErrorHandler = (err, req, res, next) => {
+    if (err.code === 'EBADCSRFTOKEN') {
+        return res.status(403).json({
+            success: false,
+            message: "Invalid CSRF token",
+        });
+    }
+    next(err);
 };

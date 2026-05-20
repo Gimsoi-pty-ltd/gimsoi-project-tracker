@@ -5,7 +5,7 @@ const TaskCard = () => {
     <div className="bg-gray-100 rounded-2xl shadow-sm w-[260px] overflow-hidden border border-gray-200">
       {/* Header */}
       <div className="bg-[#f97316] px-6 py-4">
-        <h2 className="text-sm font-bold text-white tracking-wide uppercase">Task Progress</h2>
+        <h2 className="text-sm font-bold text-white tracking-wide uppercase">Task-Progress</h2>
       </div>
 
       <div className="p-6 space-y-5">

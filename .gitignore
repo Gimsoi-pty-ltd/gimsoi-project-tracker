@@ -65,13 +65,29 @@ web_modules/
 # Yarn Integrity file
 .yarn-integrity
 
+# Zoho Catalyst — deployment config & credentials (never commit these)
+.catalystrc
+catalyst.json
+app-config.json
+app-config.staging.json
+
+# AI and Developer Artifacts
+.gemini/
+**/scratch/
+**/test-results/
+**/coverage/
+*.pdf
+*.log
+error_log.txt
+server_log.txt
+rbac_output_final.txt
+task_lifecycle_output.txt
+
+
 # dotenv environment variable files
 .env
 .env.*
 !.env.example
-app-config.json
-app-config.staging.json
-.catalystrc
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache
@@ -141,3 +157,9 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 apps/backend/cookies.txt
+
+# Zoho Catalyst — deployment config & credentials (never commit these)
+.catalystrc
+catalyst.json
+app-config.json
+app-config.staging.json
