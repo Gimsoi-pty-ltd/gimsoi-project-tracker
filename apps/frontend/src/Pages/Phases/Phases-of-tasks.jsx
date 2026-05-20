@@ -22,7 +22,7 @@ const ProjectPhasesGantt = () =>
             client: 'Gimsoi AI',
             assignee: 'Mike Will',
             status: 'Blocked',
-            progress: 20,
+            progress: '19',
             color: 'bg-red-500',
             start: 'Jan 05',
             end: 'Jan 15'
@@ -38,7 +38,7 @@ const ProjectPhasesGantt = () =>
                     <p className="text-gray-500 text-sm">Track project progress and timelines</p>
                 </div>
 <NavyButton onClick={() => console.log("Creating new phase...")}>
-  + New Phase
+ + New Phase
 </NavyButton>
             </div>
 
