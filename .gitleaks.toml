@@ -48,3 +48,12 @@ regex = '''(?i)(secret|token|key|password|passwd|pwd|auth|api_key|apikey|client_
 entropy = 3.5
 secretGroup = 2
 tags = ["entropy", "generic"]
+
+[[rules]]
+description = "Isolated High Entropy Strings"
+id = "isolated-high-entropy"
+# Scans for isolated long strings enclosed in quotes (e.g., bare tokens).
+regex = '''["']([0-9a-zA-Z\-_=+/\.]{35,})["']'''
+entropy = 3.8
+secretGroup = 1
+tags = ["entropy", "isolated"]
