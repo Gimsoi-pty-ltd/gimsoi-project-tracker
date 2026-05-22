@@ -9,6 +9,7 @@ import {
   updateProject,
   getProjectProgress,
   syncProjectAnalytics,
+  deleteProject,
 } from "../controllers/project.controller.js";
 import { requireCSRF } from "../middleware/csrf.middleware.js";
 
@@ -24,6 +25,5 @@ router.get("/:id", readLimiter, verifyToken, authorize("VIEW_PROGRESS"), getProj
 // Only Admin/PM can create/update
 router.post("/", writeLimiter, verifyToken, authorize("MANAGE_PROJECTS"), requireCSRF, createProject);
 router.patch("/:id", writeLimiter, verifyToken, authorize("MANAGE_PROJECTS"), requireCSRF, updateProject);
-router.post("/:id/analytics", writeLimiter, verifyToken, authorize("MANAGE_PROJECTS"), requireCSRF, syncProjectAnalytics);
-
+router.delete("/:id", writeLimiter, verifyToken, authorize("MANAGE_PROJECTS"), requireCSRF, deleteProject);
 export default router;

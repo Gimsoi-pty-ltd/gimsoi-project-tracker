@@ -486,6 +486,21 @@ test.describe('Task Creation & Pipeline Validation', () => {
             const body2 = await res2.json();
             expect(body2.data.status).toBe('IN_PROGRESS');
         });
+
+        test('Happy path: querying GET /api/tasks without projectId works and returns global task list', async ({ pmApi, testProject }) => {
+            // Seed a task with projectId to ensure at least one task exists
+            await pmApi.post('/api/tasks', {
+                data: { title: 'Global Query Task', projectId: testProject.id }
+            });
+
+            // Call GET /api/tasks without projectId
+            const res = await pmApi.get('/api/tasks');
+            expect(res.status()).toBe(200);
+            const body = await res.json();
+            expect(body.success).toBe(true);
+            expect(Array.isArray(body.data)).toBe(true);
+            expect(body.data.length).toBeGreaterThan(0);
+        });
     });
 
 });
