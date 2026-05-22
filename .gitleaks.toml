@@ -44,7 +44,7 @@ tags = ["env", "config"]
 description = "Generic High Entropy Secrets"
 id = "generic-high-entropy"
 # Scans for common secret keywords followed by a high entropy hash string.
-regex = '''(?i)(secret|token|key|password|passwd|pwd|auth|api_key|apikey|client_secret|access_token|refresh_token)[a-z0-9_ .\-,]{0,25}[:=?>\]\s]{1,5}['"]?([0-9a-zA-Z\-_=+/\.]{20,})['"]?'''
+regex = '''(?i)(secret|token|key|password|passwd|pwd|auth|api_key|apikey|client_secret|access_token|refresh_token)["']?\s*[:=]\s*["']?([0-9a-zA-Z\-_=+/\.]{20,})["']?'''
 entropy = 3.5
 secretGroup = 2
 tags = ["entropy", "generic"]
