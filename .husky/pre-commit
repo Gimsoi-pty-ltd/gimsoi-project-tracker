@@ -1,0 +1,7 @@
+echo "🔒 Scanning staged files for secrets using Gitleaks..."
+npx @nogoo9/gitleaks protect -v --staged
+if [ $? -eq 1 ]; then
+  echo "❌ GitLeaks found secrets! Commit aborted. Please remove the secrets to proceed."
+  exit 1
+fi
+echo "✅ No secrets detected. Proceeding with commit."

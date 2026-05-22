@@ -71,7 +71,6 @@ web_modules/
 
 # Zoho Catalyst — deployment config & credentials (never commit these)
 .catalystrc
-catalyst.json
 app-config.json
 app-config.staging.json
 
@@ -169,6 +168,5 @@ apps/backend/cookies.txt
 
 # Zoho Catalyst — deployment config & credentials (never commit these)
 .catalystrc
-catalyst.json
 app-config.json
 app-config.staging.json

@@ -1,0 +1,9 @@
+{
+  "devDependencies": {
+    "@nogoo9/gitleaks": "^8.30.1-post.2",
+    "husky": "^9.1.7"
+  },
+  "scripts": {
+    "prepare": "husky"
+  }
+}
