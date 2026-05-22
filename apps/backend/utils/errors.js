@@ -21,3 +21,27 @@ export class ForbiddenError extends Error {
         this.statusCode = 403;
     }
 }
+
+export class ContractViolationError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = 'ContractViolationError';
+        this.statusCode = 500;
+    }
+}
+
+export class ValidationError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = 'ValidationError';
+        this.statusCode = 400;
+    }
+}
+
+export class ConflictError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = 'ConflictError';
+        this.statusCode = 409;
+    }
+}

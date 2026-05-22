@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 
 const Users = () => {
   const [showModal, setShowModal] = useState(false);
@@ -201,15 +202,12 @@ const Users = () => {
           <button className="px-3 py-1 border rounded">2</button>
           <button className="px-3 py-1 border rounded">3</button>
         </div>
-
       </div>
 
-
       {/* Add User Modal */}
-
       {showModal && (
 
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center">
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
 
           <div className="bg-white w-[600px] rounded-xl p-6 shadow-lg">
 

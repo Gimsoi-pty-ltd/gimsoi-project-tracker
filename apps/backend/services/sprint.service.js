@@ -1,6 +1,7 @@
 import prisma from "../lib/prisma.js";
 import { StateTransitionError, NotFoundError } from '../utils/errors.js';
 import { assertOwnership } from "../utils/ownership.js";
+import { TASK_STATUS } from "../constants/statuses.js";
 
 export const createSprint = async ({ name, projectId, status, startDate, endDate, createdByUserId }) => {
     // Guard: prevent creating sprints inside a COMPLETED project
@@ -119,4 +120,25 @@ export const updateSprint = async (id, data, userId, userRole) => {
             endDate: data.endDate !== undefined ? new Date(data.endDate) : sprint.endDate,
         }
     });
+};
+
+/**
+ * Calculates velocity for a specific sprint.
+ * Velocity = total tasks with status 'DONE' in the sprint.
+ */
+export const getSprintVelocity = async (id) => {
+    const sprint = await prisma.sprint.findUnique({ where: { id: String(id) } });
+    if (!sprint) throw new NotFoundError(`Sprint ${id} not found`);
+
+    const velocity = await prisma.task.count({
+        where: {
+            sprintId: String(id),
+            status: TASK_STATUS.DONE
+        }
+    });
+
+    return {
+        sprintId: id,
+        velocity
+    };
 };

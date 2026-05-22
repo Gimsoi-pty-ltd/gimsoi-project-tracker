@@ -2,30 +2,41 @@ import prisma from "../lib/prisma.js";
 import { StateTransitionError, NotFoundError } from "../utils/errors.js";
 import { assertOwnership } from "../utils/ownership.js";
 
-export const createProject = async ({ name, clientId, status, createdByUserId }) => {
+export const createProject = async ({ name, clientId, status, createdByUserId, description, endDate }) => {
   return prisma.project.create({
     data: {
       name,
       clientId: String(clientId),
       status: status || "DRAFT",
       createdByUserId,
+      description,
+      endDate: endDate ? new Date(endDate) : null,
     },
   });
 };
 
 /**
- * @param {{ limit?: number, cursor?: string }} options
+ * @param {{ limit?: number, cursor?: string, search?: string }} options
  * limit defaults to 50, max 100. cursor is the id of the last record from the previous page.
  */
-export const getProjects = async ({ limit = 50, cursor } = {}) => {
+export const getProjects = async ({ limit = 50, cursor, search } = {}) => {
   const take = Math.min(Number(limit) || 50, 100);
+  const where = search ? {
+    OR: [
+      { name: { contains: search, mode: 'insensitive' } },
+      { description: { contains: search, mode: 'insensitive' } }
+    ]
+  } : {};
+
   return prisma.project.findMany({
+    where,
     take: take + 1,         // fetch one extra to detect whether there's a next page
     ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
     orderBy: { createdAt: 'desc' },
     include: { client: true },
   });
 };
+
 
 export const getProjectById = async (id) => {
   return prisma.project.findUnique({
@@ -62,6 +73,8 @@ export const updateProject = async (id, data, userId, userRole) => {
     data: {
       ...(data.name !== undefined ? { name: data.name } : {}),
       ...(data.status !== undefined ? { status: data.status } : {}),
+      ...(data.description !== undefined ? { description: data.description } : {}),
+      ...(data.endDate !== undefined ? { endDate: data.endDate ? new Date(data.endDate) : null } : {}),
     },
   });
 };
@@ -95,3 +108,52 @@ export const getProjectProgress = async (projectId) => {
     percentComplete: total ? Math.round((totals.DONE / total) * 100) : 0,
   };
 };
+
+export const syncProjectAnalytics = async (projectId) => {
+  const taskSummary = await getProjectTaskSummary(projectId);
+  
+  const totalSprints = await prisma.sprint.count({ where: { projectId: String(projectId) } });
+  const activeSprints = await prisma.sprint.count({ 
+      where: { 
+          projectId: String(projectId),
+          status: 'ACTIVE'
+      } 
+  });
+
+  return prisma.projectAnalytics.upsert({
+      where: { projectId: String(projectId) },
+      create: {
+          projectId: String(projectId),
+          totalTasks: taskSummary.total,
+          completedTasks: taskSummary.DONE,
+          blockedTasks: taskSummary.BLOCKED,
+          cancelledTasks: taskSummary.CANCELLED,
+          totalSprints,
+          activeSprints,
+          syncStatus: 'synced',
+          lastSyncedAt: new Date()
+      },
+      update: {
+          totalTasks: taskSummary.total,
+          completedTasks: taskSummary.DONE,
+          blockedTasks: taskSummary.BLOCKED,
+          cancelledTasks: taskSummary.CANCELLED,
+          totalSprints,
+          activeSprints,
+          syncStatus: 'synced',
+          lastSyncedAt: new Date()
+    }
+  });
+};
+
+export const deleteProject = async (id, userId, userRole) => {
+  const existing = await prisma.project.findUnique({ where: { id: String(id) } });
+  if (!existing) throw new NotFoundError(`Project ${id} not found`);
+
+  assertOwnership(existing, userId, userRole);
+
+  return prisma.project.delete({
+    where: { id: String(id) },
+  });
+};
+

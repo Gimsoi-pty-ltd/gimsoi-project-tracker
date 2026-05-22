@@ -79,3 +79,13 @@ export const updateSprint = async (req, res) => {
         return res.status(statusCode).json({ success: false, message: err.message || "Failed to update sprint" });
     }
 };
+
+export const getSprintVelocity = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const velocity = await sprintService.getSprintVelocity(id);
+        return res.status(200).json({ success: true, data: velocity });
+    } catch (err) {
+        next(err);
+    }
+};
