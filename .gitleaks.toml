@@ -14,7 +14,9 @@ paths = [
     '''apps/frontend/firebase\.js'''
 ]
 regexes = [
-    '''AIza[0-9A-Za-z-_]{35}'''
+    '''AIza[0-9A-Za-z-_]{35}''',
+    # Allowlist standard UUIDs to prevent false positives in test mock data
+    '''(?i)[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'''
 ]
 
 [[rules]]
@@ -37,3 +39,12 @@ id = "env-file"
 # Catches hardcoded secrets often found in backend configs
 regex = '''(DB_PASSWORD|AWS_SECRET_ACCESS_KEY|FIREBASE_ADMIN_KEY)\s*=\s*['"][a-zA-Z0-9]+['"]'''
 tags = ["env", "config"]
+
+[[rules]]
+description = "Generic High Entropy Secrets"
+id = "generic-high-entropy"
+# Scans for common secret keywords followed by a high entropy hash string.
+regex = '''(?i)(secret|token|key|password|passwd|pwd|auth|api_key|apikey|client_secret|access_token|refresh_token)[a-z0-9_ .\-,]{0,25}[:=?>\]\s]{1,5}['"]?([0-9a-zA-Z\-_=+/\.]{20,})['"]?'''
+entropy = 3.5
+secretGroup = 2
+tags = ["entropy", "generic"]
