@@ -1,6 +1,5 @@
 import express from "express";
 import dotenv from "dotenv";
-import cors from "cors";
 import cookieParser from "cookie-parser";
 import methodOverride from "method-override";
 import authRoutes from "./routes/auth.route.js";
@@ -25,28 +24,6 @@ if (process.env.NODE_ENV === "production" && !process.env.CLIENT_URL) {
 const app = express();
 app.set("trust proxy", 1);
 
-// CORS — origin callback for explicit multi-origin matching
-const corsOptions = {
-  origin: (origin, callback) => {
-    const allowed = [
-      process.env.CLIENT_URL,
-      process.env.X_ZOHO_CATALYST_LISTEN_PORT,
-      "http://localhost:5173",
-      "http://localhost:5001",
-    ].filter(Boolean);
-    // Allow requests with no origin (e.g. curl, mobile, health probes)
-    if (!origin || allowed.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error(`CORS: origin '${origin}' not allowed`));
-    }
-  },
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "x-csrf-token"],
-  optionsSuccessStatus: 204,
-};
-
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true, limit: "100kb", parameterLimit: 1000 })); 
@@ -58,11 +35,6 @@ app.use(methodOverride(function (req, res) {
     return method;
   }
 }));
-
-// Explicit OPTIONS handler — required for AppSail proxy to pass preflight
-app.options(/.*/, cors(corsOptions));
-app.use(cors(corsOptions));
-
 
 import { healthLimiter } from "./middleware/rate-limiter.middleware.js";
 
@@ -107,7 +79,10 @@ app.use((err, req, res, next) => {
 });
 
 // Start
-const PORT = process.env.PORT || 5001;
+const PORT = 
+  process.env.X_ZOHO_CATALYST_LISTEN_PORT ||
+  process.env.PORT ||
+  5001;
 
 // Graceful Shutdown
 let server;

@@ -1,0 +1,12 @@
+{
+  "appsail": [
+    {
+      "source": "apps\\backend",
+      "name": "backend-appsail"
+    }
+  ],
+  "client": {
+    "source": "frontend-client",
+    "plugin": "zcatalyst-cli-plugin-react"
+  }
+}
