@@ -1,52 +1,98 @@
 ---
-name: Deployment Pipeline
+name: Deploy to Catalyst
 
-"on":
+on:
   workflow_dispatch:
   push:
     branches:
+      - staging-deploy
       - main
 
 permissions:
   contents: read
 
 jobs:
-  prepare-deploy:
-    name: Prepare Deployment
+  deploy:
+    name: Deploy App
     runs-on: ubuntu-latest
+
+    env:
+      CATALYST_DC: in
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Confirm deployment workflow
-        run: |
-          echo "Deployment workflow is set up."
-          echo "This workflow is ready for future"
-          echo "Zoho Catalyst deployment steps."
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
 
-      - name: Confirm backend path
+      - name: Install Catalyst CLI
+        run: npm install -g zcatalyst-cli
+
+      - name: Install backend dependencies
+        working-directory: apps/backend
+        run: npm ci
+
+      - name: Generate Prisma client
+        working-directory: apps/backend
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: npx prisma generate
+
+      - name: Install frontend dependencies
+        working-directory: apps/frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: apps/frontend
+        run: npm run build
+
+      - name: Select staging project
+        if: github.ref == 'refs/heads/staging-deploy'
         run: |
-          if [ -d "apps/backend" ]; then
-            echo "Backend folder found."
-          else
-            echo "::error::apps/backend not found"
+          catalyst project:use ${{ secrets.CATALYST_PROJECT_ID_STAGING }} \
+            --token ${{ secrets.CATALYST_TOKEN }} \
+            --dc $CATALYST_DC
+
+      - name: Select production project
+        if: github.ref == 'refs/heads/main'
+        run: |
+          catalyst project:use ${{ secrets.CATALYST_PROJECT_ID_PROD }} \
+            --token ${{ secrets.CATALYST_TOKEN }} \
+            --dc $CATALYST_DC
+
+      - name: Deploy to Catalyst
+        run: |
+          catalyst deploy \
+            --token ${{ secrets.CATALYST_TOKEN }} \
+            --dc $CATALYST_DC
+
+      - name: Verify staging frontend
+        if: github.ref == 'refs/heads/staging-deploy'
+        env:
+          VERIFY_URL: ${{ secrets.CATALYST_STAGING_FRONTEND_URL }}
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$VERIFY_URL")
+
+          if [ "$STATUS" -lt 200 ] || [ "$STATUS" -ge 400 ]; then
+            echo "::error::Staging frontend is not reachable"
             exit 1
           fi
 
-      - name: Confirm frontend path
+          echo "Staging frontend is reachable."
+
+      - name: Verify staging backend
+        if: github.ref == 'refs/heads/staging-deploy'
+        env:
+          VERIFY_URL: ${{ secrets.CATALYST_STAGING_BACKEND_URL }}
         run: |
-          if [ -d "apps/frontend" ]; then
-            echo "Frontend folder found."
-          else
-            echo "::error::apps/frontend not found"
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$VERIFY_URL/api/health")
+
+          if [ "$STATUS" -lt 200 ] || [ "$STATUS" -ge 400 ]; then
+            echo "::error::Staging backend is not reachable"
             exit 1
           fi
 
-      - name: Deployment notes
-        run: |
-          echo "Deployment trigger is configured."
-          echo "Environment variables will be"
-          echo "stored in GitHub Secrets."
-          echo "Zoho Catalyst deployment will be"
-          echo "added once platform setup is stable."
+          echo "Staging backend is reachable."
