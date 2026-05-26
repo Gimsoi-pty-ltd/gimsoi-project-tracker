@@ -127,6 +127,7 @@ test.describe('Task Creation & Pipeline Validation', () => {
         expect(toDone.status()).toBe(200);
         const doneData = (await toDone.json()).data;
         expect(doneData.status).toBe('DONE');
+        expect(doneData.completedAt).not.toBeNull();
     });
 
     // --- Step 1 tests ---
@@ -500,6 +501,35 @@ test.describe('Task Creation & Pipeline Validation', () => {
             expect(body.success).toBe(true);
             expect(Array.isArray(body.data)).toBe(true);
             expect(body.data.length).toBeGreaterThan(0);
+        });
+
+        test('CLIENT is completely blocked from creating or editing tasks', async ({ clientApi, pmApi, testProject }) => {
+            // Client attempts to create
+            const createRes = await clientApi.post('/api/tasks', {
+                data: { title: 'Client Task', projectId: testProject.id }
+            });
+            expect(createRes.status()).toBe(403);
+
+            // PM creates a task
+            const taskRes = await pmApi.post('/api/tasks', {
+                data: { title: 'PM Task', projectId: testProject.id }
+            });
+            const task = (await taskRes.json()).data;
+
+            // Client attempts to update
+            const updateRes = await clientApi.patch(`/api/tasks/${task.id}`, {
+                data: { status: 'IN_PROGRESS' }
+            });
+            expect(updateRes.status()).toBe(403);
+        });
+
+        test('Task creation with invalid status is rejected by schema (400)', async ({ pmApi, testProject }) => {
+            const createRes = await pmApi.post('/api/tasks', {
+                data: { title: 'Invalid Status Task', projectId: testProject.id, status: 'INVALID' }
+            });
+            expect(createRes.status()).toBe(400);
+            const body = await createRes.json();
+            expect(body.message).toContain('Task status cannot be set on creation');
         });
     });
 

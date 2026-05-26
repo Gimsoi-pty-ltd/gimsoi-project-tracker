@@ -18,21 +18,12 @@ async function createAuthenticatedApiContext(rolePrefix, emailSuffix, baseURL) {
     const targetRole = ROLE_MAP[rolePrefix] ?? 'INTERN';
     const context = await request.newContext({ baseURL });
 
-    // 1. Get initial CSRF token
-    let csrfToken = await fetchCsrfToken(context);
-
-    // 2. Signup
+    // 1. Signup (No CSRF needed)
     const email = `${rolePrefix}-${Date.now()}-${Math.floor(Math.random() * 1000000)}${emailSuffix}`;
     const password = 'Test123!@#';
 
-    const loginHeaders = {};
-    if (csrfToken && typeof csrfToken === 'string') {
-        loginHeaders['x-csrf-token'] = csrfToken;
-    }
-
     const signupRes = await context.post('/api/auth/signup', {
-        data: { email, password, fullName: `Test ${rolePrefix.toUpperCase()}` },
-        headers: loginHeaders
+        data: { email, password, fullName: `Test ${rolePrefix.toUpperCase()}` }
     });
     
     if (signupRes.status() >= 400) {
@@ -42,7 +33,7 @@ async function createAuthenticatedApiContext(rolePrefix, emailSuffix, baseURL) {
 
     let token = (await signupRes.json()).token;
 
-    // 3. Verify user and promote + re-login if needed
+    // 2. Verify user and promote + re-login if needed
     await prisma.user.update({
         where: { email },
         data: { isVerified: true }
@@ -54,28 +45,18 @@ async function createAuthenticatedApiContext(rolePrefix, emailSuffix, baseURL) {
             data: { role: targetRole }
         });
 
-        // Re-fetch CSRF token just in case
-        csrfToken = await fetchCsrfToken(context);
-
-        const loginReqHeaders = {};
-        if (csrfToken && typeof csrfToken === 'string') {
-            loginReqHeaders['x-csrf-token'] = csrfToken;
-        }
-
         const loginRes = await context.post('/api/auth/login', {
-            data: { email, password },
-            headers: loginReqHeaders
+            data: { email, password }
         });
         
         const loginData = await loginRes.json();
         token = loginData.token;
-    } else {
-        // Re-fetch CSRF token for INTERN after successful verification/session establishment
-        csrfToken = await fetchCsrfToken(context);
     }
 
-    // 4. Build final context with automatic CSRF injection
+    // 3. Extract storageState to retain session cookies
     const storageState = await context.storageState();
+
+    // 4. Build final context with automatic CSRF injection
     const finalContext = await request.newContext({
         baseURL,
         storageState,
@@ -83,6 +64,9 @@ async function createAuthenticatedApiContext(rolePrefix, emailSuffix, baseURL) {
             'Authorization': `Bearer ${token}`
         }
     });
+
+    // 5. Fetch clean CSRF token using the dedicated endpoint with the Authorization header
+    const csrfToken = await fetchCsrfToken(finalContext);
 
     // Proxy to inject CSRF header into all mutating requests
     return new Proxy(finalContext, {
