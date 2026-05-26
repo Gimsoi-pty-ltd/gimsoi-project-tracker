@@ -47,6 +47,11 @@ test.describe('Analytics API Tests', () => {
         expect(body.data.team_analytics).toBeNull();
     });
 
+    test('CLIENT is completely blocked from accessing analytics', async ({ clientApi }) => {
+        const response = await clientApi.get('/api/analytics/ai-context');
+        expect(response.status()).toBe(403);
+    });
+
     test('Date filtering restricts data counts', async ({ adminApi }) => {
         const futureDate = new Date();
         futureDate.setFullYear(futureDate.getFullYear() + 1);
