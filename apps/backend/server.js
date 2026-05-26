@@ -15,6 +15,7 @@ import { csrfProtection, csrfErrorHandler, generateCsrfToken } from "./middlewar
 import swaggerUi from "swagger-ui-express";
 import { swaggerSpec } from "./lib/swagger.js";
 import { healthLimiter } from "./middleware/rate-limiter.middleware.js";
+import { verifyToken } from "./middleware/verify-token.middleware.js";
 import registerTestingRoutes from "./utils/registerTestingRoutes.js";
 
 dotenv.config();
@@ -77,7 +78,7 @@ if (isNonProd) {
 }
 
 // Register the public CSRF token endpoint before the global CSRF protection
-app.get("/api/auth/csrf-token", (req, res) => {
+app.get("/api/auth/csrf-token", verifyToken, (req, res) => {
     try {
         if (!req.user || !req.user.id) {
             return res.json({ success: true, csrfToken: null, message: "No active session; CSRF not required." });

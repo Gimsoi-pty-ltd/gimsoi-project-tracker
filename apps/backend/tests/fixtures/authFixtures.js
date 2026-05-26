@@ -18,21 +18,12 @@ async function createAuthenticatedApiContext(rolePrefix, emailSuffix, baseURL) {
     const targetRole = ROLE_MAP[rolePrefix] ?? 'INTERN';
     const context = await request.newContext({ baseURL });
 
-    // 1. Get initial CSRF token
-    let csrfToken = await fetchCsrfToken(context);
-
-    // 2. Signup
+    // 1. Signup (No CSRF needed)
     const email = `${rolePrefix}-${Date.now()}-${Math.floor(Math.random() * 1000000)}${emailSuffix}`;
     const password = 'Test123!@#';
 
-    const loginHeaders = {};
-    if (csrfToken && typeof csrfToken === 'string') {
-        loginHeaders['x-csrf-token'] = csrfToken;
-    }
-
     const signupRes = await context.post('/api/auth/signup', {
-        data: { email, password, fullName: `Test ${rolePrefix.toUpperCase()}` },
-        headers: loginHeaders
+        data: { email, password, fullName: `Test ${rolePrefix.toUpperCase()}` }
     });
     
     if (signupRes.status() >= 400) {
@@ -42,7 +33,7 @@ async function createAuthenticatedApiContext(rolePrefix, emailSuffix, baseURL) {
 
     let token = (await signupRes.json()).token;
 
-    // 3. Verify user and promote + re-login if needed
+    // 2. Verify user and promote + re-login if needed
     await prisma.user.update({
         where: { email },
         data: { isVerified: true }
@@ -54,25 +45,20 @@ async function createAuthenticatedApiContext(rolePrefix, emailSuffix, baseURL) {
             data: { role: targetRole }
         });
 
-        // Re-fetch CSRF token just in case
-        csrfToken = await fetchCsrfToken(context);
-
-        const loginReqHeaders = {};
-        if (csrfToken && typeof csrfToken === 'string') {
-            loginReqHeaders['x-csrf-token'] = csrfToken;
-        }
-
         const loginRes = await context.post('/api/auth/login', {
-            data: { email, password },
-            headers: loginReqHeaders
+            data: { email, password }
         });
         
         const loginData = await loginRes.json();
         token = loginData.token;
     }
 
-    // 4. Build final context with automatic CSRF injection
+    // 3. Extract CSRF token directly from cookies
     const storageState = await context.storageState();
+    const xsrfCookie = storageState.cookies.find(c => c.name === 'XSRF-TOKEN');
+    const csrfToken = xsrfCookie ? decodeURIComponent(xsrfCookie.value) : null;
+
+    // 4. Build final context with automatic CSRF injection
     const finalContext = await request.newContext({
         baseURL,
         storageState,

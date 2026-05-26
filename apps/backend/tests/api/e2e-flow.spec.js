@@ -17,14 +17,8 @@ test.describe('E2E Backend Flow Verification', () => {
     test('Full Journey: From Signup to Analytics', async ({ request }) => {
         
         await test.step('Phase 1: Setup & Authentication Flow', async () => {
-            const csrfRes = await request.get('/api/auth/csrf-token');
-            expect(csrfRes.ok()).toBeTruthy();
-            const csrfBody = await csrfRes.json();
-            csrfToken = typeof csrfBody.csrfToken === 'string' ? csrfBody.csrfToken : '';
-
             const signupRes = await request.post('/api/auth/signup', {
-                data: { fullName: 'Admin User', email: adminEmail, password },
-                headers: { 'x-csrf-token': csrfToken }
+                data: { fullName: 'Admin User', email: adminEmail, password }
             });
             expect(signupRes.ok()).toBeTruthy();
             const signupBody = await signupRes.json();
@@ -36,10 +30,13 @@ test.describe('E2E Backend Flow Verification', () => {
             });
 
             const loginRes = await request.post('/api/auth/login', {
-                data: { email: adminEmail, password },
-                headers: { 'x-csrf-token': csrfToken }
+                data: { email: adminEmail, password }
             });
             expect(loginRes.ok()).toBeTruthy();
+            
+            const state = await request.storageState();
+            const xsrfCookie = state.cookies.find(c => c.name === 'XSRF-TOKEN');
+            csrfToken = xsrfCookie ? decodeURIComponent(xsrfCookie.value) : '';
             
             const checkAuthRes = await request.get('/api/auth/check-auth');
             expect(checkAuthRes.ok()).toBeTruthy();
@@ -105,15 +102,10 @@ test.describe('E2E Backend Flow Verification', () => {
         });
 
         await test.step('Phase 4: RBAC & Negative Scenarios', async () => {
-            await request.post('/api/auth/logout', {
-                headers: { 'x-csrf-token': csrfToken }
-            });
-            const csrfRes = await request.get('/api/auth/csrf-token');
-            csrfToken = (await csrfRes.json()).csrfToken || '';
+            await request.post('/api/auth/logout');
 
             const internSignupRes = await request.post('/api/auth/signup', {
-                data: { fullName: 'Intern User', email: internEmail, password },
-                headers: { 'x-csrf-token': csrfToken }
+                data: { fullName: 'Intern User', email: internEmail, password }
             });
             expect(internSignupRes.ok()).toBeTruthy();
             internId = (await internSignupRes.json()).user.id;
@@ -121,10 +113,13 @@ test.describe('E2E Backend Flow Verification', () => {
             await prisma.user.update({ where: { id: internId }, data: { isVerified: true } });
 
             const internLoginRes = await request.post('/api/auth/login', {
-                data: { email: internEmail, password },
-                headers: { 'x-csrf-token': csrfToken }
+                data: { email: internEmail, password }
             });
             expect(internLoginRes.ok()).toBeTruthy();
+
+            const state2 = await request.storageState();
+            const xsrfCookie2 = state2.cookies.find(c => c.name === 'XSRF-TOKEN');
+            csrfToken = xsrfCookie2 ? decodeURIComponent(xsrfCookie2.value) : '';
 
             const failProjRes = await request.post('/api/projects', {
                 data: { name: 'Illegal Project', clientId },
@@ -141,15 +136,15 @@ test.describe('E2E Backend Flow Verification', () => {
         });
 
         await test.step('Phase 5: Analytics Validation', async () => {
-            await request.post('/api/auth/logout', {
-                headers: { 'x-csrf-token': csrfToken }
-            });
-            const csrfRes = await request.get('/api/auth/csrf-token');
-            csrfToken = (await csrfRes.json()).csrfToken || '';
+            await request.post('/api/auth/logout');
+            
             await request.post('/api/auth/login', {
-                data: { email: adminEmail, password },
-                headers: { 'x-csrf-token': csrfToken }
+                data: { email: adminEmail, password }
             });
+
+            const state3 = await request.storageState();
+            const xsrfCookie3 = state3.cookies.find(c => c.name === 'XSRF-TOKEN');
+            csrfToken = xsrfCookie3 ? decodeURIComponent(xsrfCookie3.value) : '';
 
             const summaryRes = await request.get(`/api/tasks/projects/${projectId}/summary`);
             expect(summaryRes.ok()).toBeTruthy();
