@@ -50,8 +50,8 @@ export const signup = async (req, res) => {
         const csrfToken = generateStatelessCsrfToken(user.id);
         res.cookie("XSRF-TOKEN", csrfToken, {
             httpOnly: false,
-            secure: true,
-            sameSite: "none",
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
             maxAge: 7 * 24 * 60 * 60 * 1000,
         });
 
@@ -142,8 +142,8 @@ export const login = async (req, res) => {
         const csrfToken = generateStatelessCsrfToken(user.id);
         res.cookie("XSRF-TOKEN", csrfToken, {
             httpOnly: false,
-            secure: true,
-            sameSite: "none",
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
             maxAge: 7 * 24 * 60 * 60 * 1000,
         });
 
@@ -273,4 +273,3 @@ export const checkAuth = async (req, res) => {
         res.status(400).json({ success: false, message: error.message });
     }
 };
-

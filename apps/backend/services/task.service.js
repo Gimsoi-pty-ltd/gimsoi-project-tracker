@@ -2,15 +2,18 @@ import prisma from "../lib/prisma.js";
 import { StateTransitionError, NotFoundError, ForbiddenError } from "../utils/errors.js";
 import { handlePrismaError } from "../utils/prismaErrors.js";
 import { TASK_STATUS, SPRINT_STATUS, PROJECT_STATUS } from "../constants/statuses.js";
+import { injectTimestamps } from './task-state-machine.service.js';
 
 // State machine for task status transitions.
 export const ALLOWED_TRANSITIONS = {
-    [TASK_STATUS.TODO]: [TASK_STATUS.IN_PROGRESS, TASK_STATUS.CANCELLED],
-    [TASK_STATUS.IN_PROGRESS]: [TASK_STATUS.DONE, TASK_STATUS.CANCELLED, TASK_STATUS.BLOCKED],
-    [TASK_STATUS.BLOCKED]: [TASK_STATUS.IN_PROGRESS, TASK_STATUS.CANCELLED],
-    [TASK_STATUS.DONE]: [], 
-    [TASK_STATUS.CANCELLED]: [], 
+    [TASK_STATUS.TODO]:        [TASK_STATUS.IN_PROGRESS, TASK_STATUS.CANCELLED],
+    [TASK_STATUS.IN_PROGRESS]: [TASK_STATUS.REVIEW, TASK_STATUS.DONE, TASK_STATUS.CANCELLED, TASK_STATUS.BLOCKED],
+    [TASK_STATUS.REVIEW]:      [TASK_STATUS.DONE, TASK_STATUS.IN_PROGRESS, TASK_STATUS.CANCELLED],
+    [TASK_STATUS.BLOCKED]:     [TASK_STATUS.IN_PROGRESS, TASK_STATUS.CANCELLED],
+    [TASK_STATUS.DONE]:        [], 
+    [TASK_STATUS.CANCELLED]:   [], 
 };
+
 
 const ALL_STATUSES = Object.keys(ALLOWED_TRANSITIONS);
 
@@ -130,17 +133,23 @@ export const updateTask = async (id, data, userId, userRole) => {
         }
     }
 
+    let resolvedData = { ...data };
+    if (data.status !== undefined && data.status !== existing.status) {
+        resolvedData = injectTimestamps(resolvedData, data.status, existing);
+    }
+
     return prisma.task.update({
         where: { id },
         data: {
-            title: data.title !== undefined ? data.title : existing.title,
-            description: data.description !== undefined ? data.description : existing.description,
-            status: data.status !== undefined ? data.status : existing.status,
-            sprintId: data.sprintId !== undefined ? data.sprintId : existing.sprintId,
-            assigneeId: data.assigneeId !== undefined ? data.assigneeId : existing.assigneeId,
-            priority: data.priority !== undefined ? data.priority : existing.priority,
-            isBlocked: data.isBlocked !== undefined ? data.isBlocked : existing.isBlocked,
-            dueDate: data.dueDate !== undefined ? new Date(data.dueDate) : existing.dueDate,
+            title: resolvedData.title !== undefined ? resolvedData.title : existing.title,
+            description: resolvedData.description !== undefined ? resolvedData.description : existing.description,
+            status: resolvedData.status !== undefined ? resolvedData.status : existing.status,
+            sprintId: resolvedData.sprintId !== undefined ? resolvedData.sprintId : existing.sprintId,
+            assigneeId: resolvedData.assigneeId !== undefined ? resolvedData.assigneeId : existing.assigneeId,
+            priority: resolvedData.priority !== undefined ? resolvedData.priority : existing.priority,
+            isBlocked: resolvedData.isBlocked !== undefined ? resolvedData.isBlocked : existing.isBlocked,
+            dueDate: resolvedData.dueDate !== undefined ? new Date(resolvedData.dueDate) : existing.dueDate,
+            completedAt: resolvedData.completedAt !== undefined ? resolvedData.completedAt : existing.completedAt,
         }
     });
 };
@@ -166,11 +175,9 @@ export const getProjectTaskSummary = async (projectId) => {
         _count: { _all: true }
     });
 
-    const summary = {
-        TODO: 0,
-        IN_PROGRESS: 0,
-        DONE: 0
-    };
+    const summary = Object.fromEntries(
+        Object.values(TASK_STATUS).map(s => [s, 0])
+    );
 
     counts.forEach((c) => {
         if (summary[c.status] !== undefined) {

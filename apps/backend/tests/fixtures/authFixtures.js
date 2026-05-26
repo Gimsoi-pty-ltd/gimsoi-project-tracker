@@ -1,7 +1,6 @@
 import { test as base, request } from '@playwright/test';
 import prisma from '../../lib/prisma.js';
 
-// Maps fixture prefix → DB role value (from constants/roles.js)
 const ROLE_MAP = {
     admin: 'ADMIN',
     pm: 'PM',
@@ -9,35 +8,20 @@ const ROLE_MAP = {
     intern: 'INTERN',
 };
 
-/**
- * Helper to extract a cookie from a Playwright response object.
- * Robust against multiple set-cookie headers.
- */
-function getCookie(res, name) {
-    const setCookie = res.headers()['set-cookie'] || '';
-    // Playwright joins multiple headers with \n or just returns the last one depending on env
-    const cookieLines = setCookie.split('\n');
-    for (const line of cookieLines) {
-        if (line.trim().startsWith(`${name}=`)) {
-            return line.split('=')[1].split(';')[0];
-        }
-    }
-    return null;
+async function fetchCsrfToken(context) {
+    const res = await context.get('/api/auth/csrf-token');
+    const body = await res.json();
+    return body.csrfToken;
 }
 
-/**
- * Creates a pre-authenticated API context for a given role.
- */
 async function createAuthenticatedApiContext(rolePrefix, emailSuffix, baseURL) {
     const targetRole = ROLE_MAP[rolePrefix] ?? 'INTERN';
     const context = await request.newContext({ baseURL });
 
-    // 1. Generate unique email
-    const cryptoHash = Math.floor(Math.random() * 1000000);
-    const email = `${rolePrefix}-${Date.now()}-${cryptoHash}${emailSuffix}`;
+    // 1. Signup (No CSRF needed)
+    const email = `${rolePrefix}-${Date.now()}-${Math.floor(Math.random() * 1000000)}${emailSuffix}`;
     const password = 'Test123!@#';
 
-    // 2. Signup — Public route (no CSRF needed)
     const signupRes = await context.post('/api/auth/signup', {
         data: { email, password, fullName: `Test ${rolePrefix.toUpperCase()}` }
     });
@@ -47,31 +31,34 @@ async function createAuthenticatedApiContext(rolePrefix, emailSuffix, baseURL) {
         throw new Error(`Signup failed (${signupRes.status()}): ${body}`);
     }
 
-    // Extract XSRF-TOKEN cookie
-    let csrfToken = getCookie(signupRes, 'XSRF-TOKEN');
     let token = (await signupRes.json()).token;
 
-    // 3. Promote + re-login if we need a role above INTERN
+    // 2. Verify user and promote + re-login if needed
+    await prisma.user.update({
+        where: { email },
+        data: { isVerified: true }
+    });
+
     if (targetRole !== 'INTERN') {
-        // 3a. Promote DB role via Prisma directly
         await prisma.user.update({
             where: { email },
             data: { role: targetRole }
         });
 
-        // 3b. Re-login — Public route (no CSRF needed)
         const loginRes = await context.post('/api/auth/login', {
             data: { email, password }
         });
         
-        // Refresh token and CSRF secret
         const loginData = await loginRes.json();
         token = loginData.token;
-        csrfToken = getCookie(loginRes, 'XSRF-TOKEN') || csrfToken;
     }
 
-    // 4. Build final context
+    // 3. Extract CSRF token directly from cookies
     const storageState = await context.storageState();
+    const xsrfCookie = storageState.cookies.find(c => c.name === 'XSRF-TOKEN');
+    const csrfToken = xsrfCookie ? decodeURIComponent(xsrfCookie.value) : null;
+
+    // 4. Build final context with automatic CSRF injection
     const finalContext = await request.newContext({
         baseURL,
         storageState,
@@ -80,21 +67,20 @@ async function createAuthenticatedApiContext(rolePrefix, emailSuffix, baseURL) {
         }
     });
 
-    // Proxy the context to automatically inject _csrf into mutating methods
-    // We bind the target methods to ensure 'this' remains the APIRequestContext
+    // Proxy to inject CSRF header into all mutating requests
     return new Proxy(finalContext, {
         get(target, prop) {
             const value = target[prop];
             if (typeof value === 'function' && ['post', 'patch', 'put', 'delete'].includes(prop)) {
                 return async (url, options = {}) => {
-                    const data = options.data || {};
-                    // Inject _csrf into the body if it's not already there
-                    const newData = { ...data };
-                    if (!newData._csrf) newData._csrf = csrfToken;
+                    const headers = { ...options.headers };
+                    if (!headers['x-csrf-token'] && typeof csrfToken === 'string') {
+                        headers['x-csrf-token'] = csrfToken;
+                    }
                     
                     return value.call(target, url, {
                         ...options,
-                        data: newData
+                        headers
                     });
                 };
             }
@@ -103,7 +89,6 @@ async function createAuthenticatedApiContext(rolePrefix, emailSuffix, baseURL) {
     });
 }
 
-// Extend base test by providing our custom fixtures
 export const test = base.extend({
     pmApi: async ({ baseURL }, use) => {
         const pmContext = await createAuthenticatedApiContext('pm', '@gimsoi.test', baseURL);
@@ -125,7 +110,6 @@ export const test = base.extend({
         await use(internContext);
         await internContext.dispose();
     },
-    // Entity Generators
     testClient: async ({ adminApi }, use) => {
         const res = await adminApi.post('/api/clients', {
             data: { name: `Test Client ${Date.now()}`, contactEmail: `client-${Date.now()}@test.com` }
