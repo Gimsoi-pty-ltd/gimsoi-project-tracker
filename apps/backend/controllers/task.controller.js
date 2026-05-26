@@ -8,6 +8,10 @@ export const createTask = async (req, res) => {
             return res.status(400).json({ success: false, message: "Task title and projectId are required" });
         }
 
+        if (req.body.status) {
+            return res.status(400).json({ success: false, message: "Task status cannot be set on creation." });
+        }
+
         const task = await taskService.createTask({
             title,
             description,
