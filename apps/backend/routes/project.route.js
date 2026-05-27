@@ -43,6 +43,9 @@ router.get("/:id/members", readLimiter, verifyToken, authorize("VIEW_PROJECTS"),
 router.patch("/:id/members/:userId", writeLimiter, verifyToken, authorize("MANAGE_PROJECTS"), requireCSRF, validate(updateMemberRoleSchema), projectMemberController.updateMemberRole);
 router.delete("/:id/members/:userId", writeLimiter, verifyToken, authorize("MANAGE_PROJECTS"), requireCSRF, projectMemberController.removeMember);
 
+// Label Management
+router.get("/:projectId/labels", readLimiter, verifyToken, authorize("VIEW_PROJECTS"), labelController.getLabels);
+
 // Bulk Task Management
 router.patch("/:projectId/tasks/bulk", writeLimiter, verifyToken, authorize("UPDATE_ANY_TASK"), requireCSRF, validate(bulkUpdateTasksSchema), taskController.bulkUpdateTasks);
 router.delete("/:projectId/tasks/bulk", writeLimiter, verifyToken, authorize("DELETE_TASK"), requireCSRF, validate(bulkDeleteTasksSchema), taskController.bulkDeleteTasks);
