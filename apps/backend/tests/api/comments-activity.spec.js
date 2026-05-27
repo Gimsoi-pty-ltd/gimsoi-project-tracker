@@ -69,7 +69,7 @@ test.describe('Task Comments & Activity API', () => {
         });
         const { data: comment } = await commentRes.json();
 
-        const delRes = await pmApi.delete(`/api/tasks/comments/${comment.id}`);
+        const delRes = await pmApi.delete(`/api/comments/${comment.id}`);
         expect(delRes.status()).toBe(204);
 
         const listRes = await pmApi.get(`/api/tasks/${task.id}/comments`);

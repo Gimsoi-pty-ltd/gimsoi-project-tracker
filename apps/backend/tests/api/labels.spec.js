@@ -3,16 +3,16 @@ import { test, expect } from '../fixtures/authFixtures.js';
 test.describe('Labels API', () => {
     test('PM can manage labels and attach them to tasks', async ({ pmApi, testProject }) => {
         // 1. Create a label
-        const labelRes = await pmApi.post(`/api/projects/${testProject.id}/labels`, {
-            data: { name: 'Bug', color: '#FF0000' }
+        const labelRes = await pmApi.post(`/api/labels`, {
+            data: { projectId: testProject.id, name: 'Bug', color: '#FF0000' }
         });
         expect(labelRes.status()).toBe(201);
         const { data: label } = await labelRes.json();
         expect(label.name).toBe('Bug');
 
         // 2. Create another label
-        await pmApi.post(`/api/projects/${testProject.id}/labels`, {
-            data: { name: 'Feature', color: '#00FF00' }
+        await pmApi.post(`/api/labels`, {
+            data: { projectId: testProject.id, name: 'Feature', color: '#00FF00' }
         });
 
         // 3. List labels
@@ -37,7 +37,7 @@ test.describe('Labels API', () => {
         expect(updatedTask.labels[0].name).toBe('Bug');
 
         // 6. Delete label
-        const delRes = await pmApi.delete(`/api/projects/labels/${label.id}`);
+        const delRes = await pmApi.delete(`/api/labels/${label.id}`);
         expect(delRes.status()).toBe(204);
 
         // 7. Verify label is gone from task
