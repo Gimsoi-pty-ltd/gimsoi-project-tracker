@@ -8,6 +8,7 @@ export const createTaskSchema = z.object({
     description: z.string().optional(),
     projectId: z.string().uuid("Invalid projectId format"),
     sprintId: z.string().uuid("Invalid sprintId format").optional(),
+    phaseId: z.string().uuid("Invalid phaseId format").optional().nullable(),
     assigneeId: z.string().uuid("Invalid assigneeId format").optional(),
     priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]).optional().default("MEDIUM"),
     isBlocked: z.boolean().optional().default(false),
@@ -27,6 +28,7 @@ export const updateTaskSchema = z.object({
     isBlocked: z.boolean().optional(),
     dueDate: z.string().datetime().optional().nullable(),
     sprintId: z.string().uuid().optional().nullable(),
+    phaseId: z.string().uuid().optional().nullable(),
     assigneeId: z.string().uuid().optional().nullable(),
   }).refine((data) => Object.keys(data).length > 0, {
     message: "At least one field must be provided for update",

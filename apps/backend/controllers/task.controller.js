@@ -2,7 +2,7 @@ import * as taskService from "../services/task.service.js";
 
 export const createTask = async (req, res) => {
     try {
-        const { title, description, projectId, sprintId, assigneeId, priority, isBlocked, dueDate } = req.body;
+        const { title, description, projectId, sprintId, phaseId, assigneeId, priority, isBlocked, dueDate } = req.body;
 
         if (!title || !projectId) {
             return res.status(400).json({ success: false, message: "Task title and projectId are required" });
@@ -17,6 +17,7 @@ export const createTask = async (req, res) => {
             description,
             projectId,
             sprintId,
+            phaseId,
             assigneeId,
             priority,
             isBlocked,

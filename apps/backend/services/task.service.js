@@ -44,7 +44,7 @@ const assertTaskIsModifiable = (task) => {
     }
 };
 
-export const createTask = async ({ title, description, projectId, sprintId, reporterId, assigneeId, priority, isBlocked, dueDate, userRole }) => {
+export const createTask = async ({ title, description, projectId, sprintId, phaseId, reporterId, assigneeId, priority, isBlocked, dueDate, userRole }) => {
     if (userRole && userRole !== 'ADMIN' && userRole !== 'PM') {
         throw new ForbiddenError(`Role '${userRole}' is not authorized to create tasks.`);
     }
@@ -53,6 +53,12 @@ export const createTask = async ({ title, description, projectId, sprintId, repo
         const sprint = await prisma.sprint.findUnique({ where: { id: sprintId } });
         if (!sprint) throw new NotFoundError(`Sprint ${sprintId} not found.`);
         if (sprint.projectId !== projectId) throw new StateTransitionError("Sprint does not belong to the specified project.");
+    }
+
+    if (phaseId) {
+        const phase = await prisma.phase.findUnique({ where: { id: phaseId } });
+        if (!phase) throw new NotFoundError(`Phase ${phaseId} not found.`);
+        if (phase.projectId !== projectId) throw new StateTransitionError("Phase does not belong to the specified project.");
     }
 
     const project = await prisma.project.findUnique({ where: { id: projectId } });
@@ -66,6 +72,7 @@ export const createTask = async ({ title, description, projectId, sprintId, repo
                 description,
                 projectId,
                 sprintId,
+                phaseId,
                 reporterId,
                 assigneeId,
                 status: TASK_STATUS.TODO,
