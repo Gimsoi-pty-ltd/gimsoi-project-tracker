@@ -18,7 +18,8 @@ import { validateEnv } from "./utils/validateEnv.js";
 import { csrfProtection, csrfErrorHandler, generateCsrfToken } from "./middleware/csrf.middleware.js";
 import swaggerUi from "swagger-ui-express";
 import { swaggerSpec } from "./lib/swagger.js";
-import { healthLimiter } from "./middleware/rate-limiter.middleware.js";
+import { healthLimiter, authLimiter } from "./middleware/rate-limiter.middleware.js";
+import { verifyToken } from "./middleware/verify-token.middleware.js";
 import registerTestingRoutes from "./utils/registerTestingRoutes.js";
 
 dotenv.config();
@@ -80,6 +81,18 @@ if (isNonProd) {
   app.get("/api/docs.json", (req, res) => res.json(swaggerSpec));
 }
 
+// Register the public CSRF token endpoint before the global CSRF protection
+app.get("/api/auth/csrf-token", authLimiter, verifyToken, (req, res) => {
+    try {
+        if (!req.user || !req.user.id) {
+            return res.json({ success: true, csrfToken: null, message: "No active session; CSRF not required." });
+        }
+        const token = generateCsrfToken(req, res);
+        res.json({ success: true, csrfToken: token });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
 
 // Global CSRF protection skipped here; applied at route level for session-aware validation
 

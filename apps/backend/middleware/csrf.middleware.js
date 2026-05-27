@@ -11,7 +11,7 @@ export const csrfProtection = (req, res, next) => {
     }
 
     // 2. Skip if user is not authenticated (auth routes should handle their own safety)
-    console.log(`[CSRF Debug] Method: ${req.method}, URL: ${req.url}, User: ${req.user ? req.user.id : 'none'}`);
+    // 2. Skip if user is not authenticated (auth routes should handle their own safety)
     if (!req.user || !req.user.id) {
         return next();
     }
