@@ -1,7 +1,7 @@
 ---
 name: Deploy to Zoho Catalyst
 
-on:
+"on":
   # ------------------------------------------------------------
   # Trigger deployment ONLY after CI succeeds
   # ------------------------------------------------------------
@@ -131,7 +131,11 @@ jobs:
       - name: Configure Catalyst Authentication
         run: |
           mkdir -p ~/.catalyst
-          echo '{"token":"${{ secrets.CATALYST_TOKEN }}"}' > ~/.catalyst/token.json
+
+          TOKEN='${{ secrets.CATALYST_TOKEN }}'
+
+          echo "{\"token\":\"$TOKEN\"}" \
+             > ~/.catalyst/token.json
 
       # ------------------------------------------------------------
       # STEP 10: DEPLOY TO CATALYST
