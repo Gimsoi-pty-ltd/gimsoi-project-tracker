@@ -41,9 +41,10 @@ export const validateEnv = () => {
             .map((k) => `  ❌ ${k}\n     → ${VAR_GUIDANCE[k]}`)
             .join('\n\n');
         console.error(
-            `\n[env] Startup diagnostics — ` +
+            `\n[env] Startup aborted — ` +
             `${missing.length} missing variable(s):\n\n` +
-            `${details}\n\n`
+            `${details}\n\n` +
+            `  Copy .env.example → .env and fill in the values.\n`
         );
         process.exit(1);
     }

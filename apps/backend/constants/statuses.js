@@ -10,7 +10,8 @@ export const TASK_STATUS = {
     IN_PROGRESS: 'IN_PROGRESS',
     BLOCKED:     'BLOCKED',
     DONE:        'DONE',
-    CANCELLED:   'CANCELLED'
+    CANCELLED:   'CANCELLED',
+    REVIEW:      'REVIEW'
 };
 
 export const SPRINT_STATUS = {

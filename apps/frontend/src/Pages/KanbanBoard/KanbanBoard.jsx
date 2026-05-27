@@ -255,7 +255,7 @@ const Kanban = () => {
 
         {/* HEADER */}
         <div className="pb-6 border-b border-gray-200 mb-6">
-          <h1 className="text-2xl font-bold">Sprint Task Progress</h1>
+          <h1 className="text-2xl font-bold">Sprint Task-Progress</h1>
 
           <div className="flex items-center justify-between mt-4">
             <div>
