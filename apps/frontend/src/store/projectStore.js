@@ -8,19 +8,27 @@ export const useProjectStore = create((set) => ({
     isLoading: false,
     error: null,
 
-    getProjects: async (filters = {}) => {
+    fetchProjects: async (filters = {}) => {
         set({ isLoading: true, error: null });
-        setTimeout(() => {
-            set({ 
-                projects: [
-                    { id: 1, name: "Website Redesign", status: "active", progress: 45 },
-                    { id: 2, name: "Mobile App MVP", status: "active", progress: 80 },
-                    { id: 3, name: "Database Migration", status: "planning", progress: 10 },
-                    { id: 4, name: "Marketing Campaign", status: "completed", progress: 100 }
-                ], 
-                isLoading: false 
-            });
-        }, 500);
+        try {
+            const params = new URLSearchParams();
+            if (filters.page) params.append("page", filters.page);
+            if (filters.limit) params.append("limit", filters.limit);
+            if (filters.status) params.append("status", filters.status);
+            
+            const response = await resourceAPI.get(`/projects${params.toString() ? `?${params.toString()}` : ""}`);
+            const projectsData = response.data.projects || response.data.data || [];
+            set({ projects: projectsData, isLoading: false });
+            return response.data;
+        } catch (error) {
+            set({ error: error.response?.data?.message || "Error fetching projects", isLoading: false });
+            throw error;
+        }
+    },
+
+    getProjects: async (filters = {}) => {
+        // Alias for fetchProjects for backward compatibility
+        return useProjectStore.getState().fetchProjects(filters);
     },
 
     getProjectById: async (id) => {
@@ -77,6 +85,24 @@ export const useProjectStore = create((set) => ({
             throw error;
         }
     },
+
+    deleteProject: async (id) => {
+        set({ isLoading: true, error: null });
+        try {
+            const response = await resourceAPI.delete(`/projects/${id}`);
+            set((state) => ({
+                projects: state.projects.filter((project) => project.id !== id),
+                currentProject: state.currentProject?.id === id ? null : state.currentProject,
+                isLoading: false,
+            }));
+            return response.data;
+        } catch (error) {
+            set({ error: error.response?.data?.message || "Error deleting project", isLoading: false });
+            throw error;
+        }
+    },
+
+    setCurrentProject: (project) => set({ currentProject: project }),
 
     clearCurrentProject: () => set({ currentProject: null }),
     clearError: () => set({ error: null }),

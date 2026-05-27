@@ -6,6 +6,9 @@ import { PERMISSIONS } from '../constants/permissions.js';
  */
 export const hasPermission = (role, permission) => {
     if (!PERMISSIONS[role]) return false;
+    if (Array.isArray(permission)) {
+        return permission.some(p => PERMISSIONS[role].includes(p));
+    }
     return PERMISSIONS[role].includes(permission);
 };
 

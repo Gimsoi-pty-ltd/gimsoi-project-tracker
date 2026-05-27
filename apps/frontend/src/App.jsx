@@ -2,17 +2,17 @@ import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 
 // ─── AUTH PAGES ─────────────────────────────
-import LoginPage from './Pages/LogInOut flow/LoginPage';
-import SignUpPage from './Pages/LogInOut flow/SignUpPage';
-import ResetPassword from './Pages/LogInOut flow/ResetPassword';
-import EmailVerification from './Pages/LogInOut flow/EmailVerification';
-import ForgotEmailPage from './Pages/LogInOut flow/ForgotEmailPage';
+import LoginPage from './Pages/LogInOut-flow/LoginPage';
+import SignUpPage from './Pages/LogInOut-flow/SignUpPage';
+import ResetPassword from './Pages/LogInOut-flow/ResetPassword';
+import EmailVerification from './Pages/LogInOut-flow/EmailVerification';
+import ForgotEmailPage from './Pages/LogInOut-flow/ForgotEmailPage';
 
 // ─── DASHBOARD LAYOUT & PAGES  ─────────────────────────────
 import DashboardLayout from "./Layouts/DashboardLayout";
 
 // Dashboard & Overview
-import Dashboard from './Pages/LoginOut Flow/Dashboard';
+import Dashboard from './Pages/LogInOut-flow/Dashboard';
 import DashboardCards from "./Components/Dashboard/DashboardCards";
 import DaysRemainingPage from "./Components/Dashboard/DaysRemainingPage";
 import SprintOverview from './Pages/Sprints/SprintOverview';
@@ -20,23 +20,23 @@ import SprintVelocityPage from './Pages/Sprints/SprintVelocity';
 
 // Tasks
 import TasksPage from './Pages/Tasks/TasksPage';
-import BlockedTasks from './Pages/Tasks/blockedTasks';
-import OverdueTasks from './Pages/Tasks/Overduetasks';
+import BlockedTasks from './Pages/Tasks/BlockedTasks';
+import OverdueTasks from './Pages/Tasks/OverdueTasks';
 import ActiveProjects from './Pages/Tasks/ActiveProjects';
 
 // Projects & Phases
-import Projects from './Pages/Project Management/projects';
-import ProjectOverview from './Pages/Project Management/projectOverview';
+import Projects from './Pages/Project-Management/projects';
+import ProjectOverview from './Pages/Project-Management/projectOverview';
 import ProjectPhasesGantt from "./Pages/Phases/Phases-of-tasks.jsx";
 
 // Reports
-import ReportsHub from './Pages/Reports and Exporting/reports';
-import SprintReports from './Pages/Reports and Exporting/sprintReports';
-import ProjectReport from './Pages/Reports and Exporting/projectReports';
-import TeamPerformance from './Pages/Reports and Exporting/teamPerformance';
+import ReportsHub from './Pages/Reports-and-Exporting/reports';
+import SprintReports from './Pages/Reports-and-Exporting/sprintReports';
+import ProjectReport from './Pages/Reports-and-Exporting/projectReports';
+import TeamPerformance from './Pages/Reports-and-Exporting/teamPerformance';
 
 // Team & Insights
-import TeamInsights from './Pages/Team Insights/teamInsights';
+import TeamInsights from './Pages/Team-Insights/TeamInsights';
 
 // Calendar & Documents
 import Calendar from './Pages/Calendar/Calendar';
@@ -48,11 +48,11 @@ import SearchPage from './Pages/Profile/Search';
 
 // Settings
 import Settings from './Pages/Settings';
-import ProfileSection from './Pages/Settings Page/ProfileSection';
-import PreferencesSection from './Pages/Settings Page/PreferencesSection';
-import ActivitySection from './Pages/Settings Page/ActivitySection';
-import StorageSection from './Pages/Settings Page/StorageSection';
-import SecuritySection from './Pages/Settings Page/SecuritySection';
+import ProfileSection from './Pages/Settings-Page/ProfileSection';
+import PreferencesSection from './Pages/Settings-Page/PreferencesSection';
+import ActivitySection from './Pages/Settings-Page/ActivitySection';
+import StorageSection from './Pages/Settings-Page/StorageSection';
+import SecuritySection from './Pages/Settings-Page/SecuritySection';
 
 // Help
 import HelpSupport from './Pages/Help/HelpSupport';
@@ -112,21 +112,21 @@ function App() {
             <LoginPage />
           </RedirectAuthenticatedUser>
         } />
-        
+
         <Route path="/signup" element={
           <RedirectAuthenticatedUser>
             <SignUpPage />
           </RedirectAuthenticatedUser>
         } />
-        
+
         <Route path="/verify-email" element={<EmailVerification />} />
-        
+
         <Route path="/forgot-password" element={
           <RedirectAuthenticatedUser>
             <ForgotEmailPage />
           </RedirectAuthenticatedUser>
         } />
-        
+
         <Route path="/reset-password/:token" element={
           <RedirectAuthenticatedUser>
             <ResetPassword />
@@ -137,7 +137,7 @@ function App() {
         <Route path="/" element={<Navigate to="/login" replace />} />
 
         {/* === DASHBOARD ROUTES  === */}
-        
+
         {/* Dashboard & Overview */}
         <Route path="/dashboard" element={
           <ProtectedRoute>
@@ -193,6 +193,11 @@ function App() {
             <DashboardLayout><Projects /></DashboardLayout>
           </ProtectedRoute>
         } />
+        <Route path="/projects/:id" element={
+          <ProtectedRoute>
+            <DashboardLayout><ProjectOverview /></DashboardLayout>
+          </ProtectedRoute>
+        } />
         <Route path="/project-overview" element={
           <ProtectedRoute>
             <DashboardLayout><ProjectOverview /></DashboardLayout>
@@ -227,7 +232,7 @@ function App() {
           </ProtectedRoute>
         } />
 
-        {/* Team Insights */}
+        {/* Team-Insights */}
         <Route path="/teamInsights" element={
           <ProtectedRoute>
             <DashboardLayout><TeamInsights /></DashboardLayout>
@@ -298,22 +303,22 @@ function App() {
         } />
 
         {/* User Management */}
-        <Route path="/users" element= {
+        <Route path="/users" element={
           <ProtectedRoute>
             <DashboardLayout><Usermanagement /></DashboardLayout>
           </ProtectedRoute>
         } />
-        <Route path="/clients" element= {
+        <Route path="/clients" element={
           <ProtectedRoute>
             <DashboardLayout><Clients /></DashboardLayout>
           </ProtectedRoute>
         } />
-        <Route path="/teams" element= {
+        <Route path="/teams" element={
           <ProtectedRoute>
             <DashboardLayout><Teams /></DashboardLayout>
           </ProtectedRoute>
         } />
-        <Route path="/users-list" element= {
+        <Route path="/users-list" element={
           <ProtectedRoute>
             <DashboardLayout><Users /></DashboardLayout>
           </ProtectedRoute>
