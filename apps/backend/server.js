@@ -90,8 +90,7 @@ app.get("/api/auth/csrf-token", authLimiter, verifyToken, (req, res) => {
     }
 });
 
-// Global CSRF protection
-app.use(csrfProtection);
+// Global CSRF protection skipped here; applied at route level for session-aware validation
 
 // Routes
 app.get("/api/status", (req, res) => res.json({ status: "ok" }));

@@ -44,7 +44,7 @@ model User {
   fullName                   String
   password                   String
   role                       String    @default("INTERN")
-  profilePic                 String    @default("")
+  avatarUrl                  String    @default("")
   bio                        String?
   lastLogin                  DateTime  @default(now())
   isVerified                 Boolean   @default(false)
@@ -80,6 +80,8 @@ model Project {
   createdByUserId String?
   sprints         Sprint[]
   tasks           Task[]
+  description     String?
+  endDate         DateTime?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
   analytics       ProjectAnalytics?

@@ -33,6 +33,11 @@ test.describe('E2E Backend Flow Verification', () => {
                 data: { email: adminEmail, password }
             });
             expect(loginRes.ok()).toBeTruthy();
+
+            // Re-fetch CSRF token after login to get the session-bound token
+            const csrfResAfterLogin = await request.get('/api/auth/csrf-token');
+            expect(csrfResAfterLogin.ok()).toBeTruthy();
+            csrfToken = (await csrfResAfterLogin.json()).csrfToken || '';
             
             const state = await request.storageState();
             const xsrfCookie = state.cookies.find(c => c.name === 'XSRF-TOKEN');
@@ -117,9 +122,10 @@ test.describe('E2E Backend Flow Verification', () => {
             });
             expect(internLoginRes.ok()).toBeTruthy();
 
-            const state2 = await request.storageState();
-            const xsrfCookie2 = state2.cookies.find(c => c.name === 'XSRF-TOKEN');
-            csrfToken = xsrfCookie2 ? decodeURIComponent(xsrfCookie2.value) : '';
+            // Re-fetch CSRF token after intern login
+            const csrfResAfterInternLogin = await request.get('/api/auth/csrf-token');
+            expect(csrfResAfterInternLogin.ok()).toBeTruthy();
+            csrfToken = (await csrfResAfterInternLogin.json()).csrfToken || '';
 
             const failProjRes = await request.post('/api/projects', {
                 data: { name: 'Illegal Project', clientId },
@@ -142,9 +148,10 @@ test.describe('E2E Backend Flow Verification', () => {
                 data: { email: adminEmail, password }
             });
 
-            const state3 = await request.storageState();
-            const xsrfCookie3 = state3.cookies.find(c => c.name === 'XSRF-TOKEN');
-            csrfToken = xsrfCookie3 ? decodeURIComponent(xsrfCookie3.value) : '';
+            // Re-fetch CSRF token after admin re-login
+            const csrfResAfterAdminLogin = await request.get('/api/auth/csrf-token');
+            expect(csrfResAfterAdminLogin.ok()).toBeTruthy();
+            csrfToken = (await csrfResAfterAdminLogin.json()).csrfToken || '';
 
             const summaryRes = await request.get(`/api/tasks/projects/${projectId}/summary`);
             expect(summaryRes.ok()).toBeTruthy();

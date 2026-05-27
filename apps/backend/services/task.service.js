@@ -101,6 +101,29 @@ export const getTasksByProject = async (projectId, { limit = 50, cursor, status,
     });
 };
 
+// Fetch all tasks when no projectId is provided
+export const getAllTasks = async ({ limit = 50, cursor, status, isBlocked, isOverdue } = {}) => {
+    const where = {};
+    if (status) where.status = status;
+    if (isBlocked !== undefined) where.isBlocked = isBlocked;
+    if (isOverdue === true) {
+        where.dueDate = { lt: new Date() };
+        if (!status) where.status = { not: TASK_STATUS.DONE };
+    }
+
+    return prisma.task.findMany({
+        where,
+        take: limit + 1,
+        ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
+        include: {
+            assignee: { select: { id: true, fullName: true, email: true } },
+            reporter: { select: { id: true, fullName: true, email: true } },
+            sprint: { select: { id: true, name: true, status: true } }
+        },
+        orderBy: { createdAt: 'desc' }
+    });
+};
+
 export const getTaskById = async (id) => {
     const task = await prisma.task.findUnique({
         where: { id },

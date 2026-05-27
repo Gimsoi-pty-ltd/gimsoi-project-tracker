@@ -39,9 +39,7 @@ export const getTasks = async (req, res) => {
         const limit = Math.min(parseInt(req.query.limit) || 50, 100);
         const cursor = req.query.cursor || undefined;
 
-        if (!projectId) {
-            return res.status(400).json({ success: false, message: "projectId query parameter is required" });
-        }
+        // projectId is optional; fetch all tasks if omitted
 
         // Handle isBlocked boolean conversion
         let blockedFilter = undefined;
@@ -50,14 +48,27 @@ export const getTasks = async (req, res) => {
 
         let overdueFilter = undefined;
         if (isOverdue === 'true') overdueFilter = true;
-
-        const records = await taskService.getTasksByProject(projectId, {
-            limit,
-            cursor,
-            status,
-            isBlocked: blockedFilter,
-            isOverdue: overdueFilter
-        });
+        if (isOverdue === 'false') overdueFilter = false;
+        // Determine which service method to call based on presence of projectId
+        const serviceFn = projectId ? taskService.getTasksByProject : taskService.getAllTasks;
+        let records;
+        if (projectId) {
+            records = await serviceFn(projectId, {
+                limit,
+                cursor,
+                status,
+                isBlocked: blockedFilter,
+                isOverdue: overdueFilter
+            });
+        } else {
+            records = await serviceFn({
+                limit,
+                cursor,
+                status,
+                isBlocked: blockedFilter,
+                isOverdue: overdueFilter
+            });
+        }
 
         const hasMore = records.length > limit;
         const data = hasMore ? records.slice(0, limit) : records;

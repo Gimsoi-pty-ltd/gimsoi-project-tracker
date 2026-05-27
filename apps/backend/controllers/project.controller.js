@@ -2,7 +2,7 @@ import * as projectService from "../services/project.service.js";
 
 export const createProject = async (req, res) => {
   try {
-    const { name, clientId, status } = req.body;
+    const { name, clientId, status, description, endDate } = req.body;
 
     if (!name || !clientId) {
       return res.status(400).json({ message: "Project name and clientId are required" });
@@ -13,6 +13,8 @@ export const createProject = async (req, res) => {
       clientId,
       status: status ? status.toUpperCase() : "DRAFT",
       createdByUserId: req.user?.id || null,
+      description,
+      endDate,
     });
 
     return res.status(201).json({ success: true, message: "Project created", data: project });
@@ -26,8 +28,9 @@ export const getProjects = async (req, res) => {
   try {
     const limit = Math.min(parseInt(req.query.limit) || 50, 100);
     const cursor = req.query.cursor || undefined;
+    const search = req.query.search || undefined;
 
-    const records = await projectService.getProjects({ limit, cursor });
+    const records = await projectService.getProjects({ limit, cursor, search });
 
     const dataWithProgress = await Promise.all(records.map(async (proj) => {
       const prog = await projectService.getProjectProgress(proj.id);
@@ -62,9 +65,9 @@ export const getProjectById = async (req, res) => {
 export const updateProject = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, status } = req.body;
+    const { name, status, description, endDate } = req.body;
 
-    const updated = await projectService.updateProject(id, { name, status }, req.user.id, req.user.role);
+    const updated = await projectService.updateProject(id, { name, status, description, endDate }, req.user.id, req.user.role);
     return res.status(200).json({ success: true, message: "Project updated", data: updated });
   } catch (err) {
     const statusCode = err.statusCode || 500;
@@ -105,3 +108,15 @@ export const syncProjectAnalytics = async (req, res, next) => {
     next(err);
   }
 };
+
+export const deleteProject = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    await projectService.deleteProject(id, req.user.id, req.user.role);
+
+    return res.status(204).send();
+  } catch (err) {
+    next(err);
+  }
+};
+
