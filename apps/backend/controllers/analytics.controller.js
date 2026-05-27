@@ -1,5 +1,25 @@
+import { z } from 'zod';
 import * as analyticsService from "../services/analytics.service.js";
 import { asyncHandler } from "../middleware/async-handler.middleware.js";
+import { buildPage } from '../utils/pagination.js';
+
+export const teamAnalyticsSchema = z.object({
+    limit: z.string().optional().transform(val => val ? parseInt(val, 10) : 20),
+    cursor: z.string().optional(),
+});
+
+export const getTeamPerformanceHandler = async (req, res, next) => {
+    try {
+        const { limit, cursor } = req.query;
+        const records = await analyticsService.getTeamPerformance({ limit, cursor });
+        
+        const { data, nextCursor } = buildPage(records, limit);
+        
+        return res.status(200).json({ success: true, data, nextCursor });
+    } catch (err) {
+        next(err);
+    }
+};
 
 export const getAIContext = asyncHandler(async (req, res) => {
     const { canViewProject, canViewTeam, taskFilter, ownerIdForRaw } = req.analyticsScope;
@@ -56,5 +76,3 @@ export const getAIContext = asyncHandler(async (req, res) => {
 
     return res.status(200).json({ success: true, ...payload });
 });
-
-

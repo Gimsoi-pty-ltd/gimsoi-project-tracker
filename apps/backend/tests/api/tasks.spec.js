@@ -17,6 +17,58 @@ test.describe('Task Creation & Pipeline Validation', () => {
         expect(json.data.status).toBe('TODO');
     });
 
+    test.describe('Phase-Aware Task Linkage', () => {
+        test('Task creation successfully links to a valid phaseId', async ({ pmApi, testProject }) => {
+            // 1. Create a phase
+            const phaseRes = await pmApi.post('/api/phases', {
+                data: { name: 'Backend Phase', projectId: testProject.id }
+            });
+            const phaseId = (await phaseRes.json()).data.id;
+
+            // 2. Create task with phaseId
+            const response = await pmApi.post('/api/tasks', {
+                data: {
+                    title: "Phase Task",
+                    projectId: testProject.id,
+                    phaseId: phaseId
+                }
+            });
+
+            expect(response.status()).toBe(201);
+            const json = await response.json();
+            expect(json.data.phaseId).toBe(phaseId);
+        });
+
+        test('Task creation blocks cross-project phase linking', async ({ adminApi, pmApi, testProject }) => {
+            // 1. Create a completely different project and phase
+            const newClientRes = await adminApi.post('/api/clients', {
+                data: { name: `Cross Client`, contactEmail: `cross@test.com` }
+            });
+            const otherProjectId = (await pmApi.post('/api/projects', {
+                data: { name: `Other Project`, clientId: (await newClientRes.json()).data.id }
+            }).then(r => r.json())).data.id;
+
+            const otherPhaseRes = await pmApi.post('/api/phases', {
+                data: { name: 'Other Phase', projectId: otherProjectId }
+            });
+            const otherPhaseId = (await otherPhaseRes.json()).data.id;
+
+            // 2. Attempt to create task in testProject using otherPhaseId
+            const response = await pmApi.post('/api/tasks', {
+                data: {
+                    title: "Invalid Phase Task",
+                    projectId: testProject.id,
+                    phaseId: otherPhaseId
+                }
+            });
+
+            expect(response.status()).toBe(400); // StateTransitionError mapping
+            const json = await response.json();
+            expect(json.success).toBe(false);
+            expect(json.message).toMatch(/Phase does not belong to the specified project/);
+        });
+    });
+
     test('PM Completes Task', async ({ pmApi, testProject, testSprint }) => {
         // Create the task — defaults to TODO
         const taskRes = await pmApi.post('/api/tasks', {

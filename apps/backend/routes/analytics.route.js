@@ -1,11 +1,23 @@
-import express from "express";
-import { verifyToken } from "../middleware/verify-token.middleware.js";
+import express from 'express';
+import { verifyToken } from '../middleware/verify-token.middleware.js';
+import authorize from '../middleware/auth.middleware.js';
 import { requireAnyRole } from "../middleware/rbac.middleware.js";
-import { readLimiter } from "../middleware/rate-limiter.middleware.js";
+import { readLimiter } from '../middleware/rate-limiter.middleware.js';
 import { injectAnalyticsScope } from "../middleware/analyticsScope.middleware.js";
-import { getAIContext } from "../controllers/analytics.controller.js";
+import { validate } from '../middleware/validate.middleware.js';
+import {
+    getTeamPerformanceHandler,
+    teamAnalyticsSchema,
+    getAIContext
+} from '../controllers/analytics.controller.js';
 
 const router = express.Router();
+
+/**
+ * GET /api/analytics/team — VIEW_ANALYTICS
+ * Allowed: ADMIN, PM
+ */
+router.get('/team', readLimiter, verifyToken, authorize('VIEW_ANALYTICS'), validate(teamAnalyticsSchema, 'query'), getTeamPerformanceHandler);
 
 /**
  * GET /api/analytics/ai-context

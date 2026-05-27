@@ -44,7 +44,7 @@ model User {
   fullName                   String
   password                   String
   role                       String    @default("INTERN")
-  avatarUrl                  String    @default("")
+  avatarUrl                  String?   @default("")
   bio                        String?
   lastLogin                  DateTime  @default(now())
   isVerified                 Boolean   @default(false)
@@ -58,7 +58,6 @@ model User {
   assignedTasks Task[] @relation("TaskAssignee")
   reportedTasks Task[] @relation("TaskReporter")
   comments      Comment[]
-  efforts       Effort[]
 }
 
 model Client {
@@ -80,6 +79,8 @@ model Project {
   createdByUserId String?
   sprints         Sprint[]
   tasks           Task[]
+  phases          Phase[]
+  reports         Report[]
   description     String?
   endDate         DateTime?
   createdAt       DateTime      @default(now())
@@ -117,6 +118,9 @@ model Task {
   projectId String
   project   Project @relation(fields: [projectId], references: [id])
 
+  phaseId String?
+  phase   Phase?  @relation(fields: [phaseId], references: [id], onDelete: SetNull)
+
   assigneeId String?
   assignee   User?   @relation("TaskAssignee", fields: [assigneeId], references: [id])
 
@@ -129,12 +133,14 @@ model Task {
   isBlocked   Boolean      @default(false)
   dueDate     DateTime?
   completedAt DateTime?
-  labels    String[]   @default([])
-  comments  Comment[]
-  efforts   Effort[]
+  labels      String[]   @default([])
+  comments    Comment[]
+
+
   @@index([projectId])
   @@index([sprintId])
   @@index([assigneeId])
+  @@index([phaseId])
 }
 
 model Comment {
@@ -170,17 +176,34 @@ model ProjectAnalytics {
   @@index([projectId])
 }
 
-model Effort {
-  id          String   @id @default(uuid())
-  hoursLogged Float
-  date        DateTime @default(now())
-  
-  taskId      String
-  task        Task     @relation(fields: [taskId], references: [id])
-  
-  userId      String
-  user        User     @relation(fields: [userId], references: [id])
+model Phase {
+  id              String    @id @default(uuid())
+  name            String
+  description     String?
+  startDate       DateTime?
+  endDate         DateTime?
+  order           Int       @default(0)
+  projectId       String
+  project         Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks           Task[]
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
-  @@index([taskId])
-  @@index([userId])
+  @@index([projectId])
+}
+
+model Report {
+  id              String    @id @default(uuid())
+  name            String
+  type            String    // e.g. "PROJECT_PROGRESS", "TEAM_VELOCITY"
+  format          String    @default("PDF")
+  fileUrl         String?
+  projectId       String?
+  project         Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  createdByUserId String
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([projectId])
+  @@index([createdByUserId])
 }
