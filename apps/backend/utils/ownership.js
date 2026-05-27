@@ -1,4 +1,3 @@
-import ROLES from "../constants/roles.js";
 import { ForbiddenError } from "./errors.js";
 
 /**
@@ -12,7 +11,7 @@ import { ForbiddenError } from "./errors.js";
 export const assertOwnership = (resource, userId, userRole) => {
     if (!resource) return; // NotFound handles this downstream
 
-    if (userRole === ROLES.ADMIN || userRole === ROLES.PROJECT_MANAGER) {
+    if (userRole === 'ADMIN') {
         return true;
     }
 

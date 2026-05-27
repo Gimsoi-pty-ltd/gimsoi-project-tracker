@@ -6,6 +6,15 @@ export const createComment = async (req, res, next) => {
         const { taskId } = req.params;
         const validated = createCommentSchema.parse(req.body);
         
+        // Fix Cross-Project Leakage edge case: if projectId is provided, it must match
+        if (req.body.projectId) {
+            const { default: prisma } = await import("../lib/prisma.js");
+            const task = await prisma.task.findUnique({ where: { id: taskId } });
+            if (task && task.projectId !== req.body.projectId) {
+                return res.status(400).json({ success: false, message: "Mismatched projectId provided." });
+            }
+        }
+        
         const comment = await commentService.createComment({
             taskId,
             userId: req.user.id,

@@ -1,6 +1,6 @@
 import express from "express";
 import { verifyToken } from "../middleware/verify-token.middleware.js";
-import authorize from "../middleware/authorize.middleware.js";
+import authorize from "../middleware/auth.middleware.js";
 import { readLimiter, writeLimiter } from "../middleware/rate-limiter.middleware.js";
 import {
   createProject,
@@ -42,12 +42,6 @@ router.post("/:id/members", writeLimiter, verifyToken, authorize("MANAGE_PROJECT
 router.get("/:id/members", readLimiter, verifyToken, authorize("VIEW_PROJECTS"), projectMemberController.getMembers);
 router.patch("/:id/members/:userId", writeLimiter, verifyToken, authorize("MANAGE_PROJECTS"), requireCSRF, validate(updateMemberRoleSchema), projectMemberController.updateMemberRole);
 router.delete("/:id/members/:userId", writeLimiter, verifyToken, authorize("MANAGE_PROJECTS"), requireCSRF, projectMemberController.removeMember);
-
-// Label Management
-router.post("/:projectId/labels", writeLimiter, verifyToken, authorize("MANAGE_PROJECTS"), requireCSRF, labelController.createLabel);
-router.get("/:projectId/labels", readLimiter, verifyToken, authorize("VIEW_PROJECTS"), labelController.getLabels);
-router.patch("/labels/:id", writeLimiter, verifyToken, authorize("MANAGE_PROJECTS"), requireCSRF, labelController.updateLabel);
-router.delete("/labels/:id", writeLimiter, verifyToken, authorize("MANAGE_PROJECTS"), requireCSRF, labelController.deleteLabel);
 
 // Bulk Task Management
 router.patch("/:projectId/tasks/bulk", writeLimiter, verifyToken, authorize("UPDATE_ANY_TASK"), requireCSRF, validate(bulkUpdateTasksSchema), taskController.bulkUpdateTasks);

@@ -3,11 +3,9 @@ import { createLabelSchema, attachLabelsSchema } from "../schemas/label.schema.j
 
 export const createLabel = async (req, res, next) => {
     try {
-        const { projectId } = req.params;
         const validated = createLabelSchema.parse(req.body);
         
         const label = await labelService.createLabel({
-            projectId,
             userId: req.user.id,
             userRole: req.user.role,
             ...validated

@@ -46,7 +46,10 @@ export const getProjects = async ({ limit = 50, cursor, search, status, createdB
 
   const where = {};
   if (search) {
-    where.name = { contains: search, mode: 'insensitive' };
+    where.OR = [
+      { name: { contains: search, mode: 'insensitive' } },
+      { description: { contains: search, mode: 'insensitive' } }
+    ];
   }
   if (status) {
     where.status = status;

@@ -1,7 +1,6 @@
 import { test, expect } from '@playwright/test';
 import prisma from '../../lib/prisma.js';
 
-let authToken = '';
 
 /**
  * Helper to extract XSRF-TOKEN from response headers.
@@ -71,7 +70,7 @@ test.describe('Auth API Tests', () => {
                     'x-csrf-token': setupCsrfToken,
                     'Authorization': `Bearer ${setupToken}`
                 },
-                data: { email: testUserEmail }
+                data: { email: testUserEmail, role: 'ADMIN' }
             });
             expect(promoteRes.status()).toBe(200);
         });
@@ -82,7 +81,7 @@ test.describe('Auth API Tests', () => {
             });
             expect(response.status()).toBe(200);
             const data = await response.json();
-            authToken = data.token;
+            const authToken = data.token;
         });
 
         test('returns 400 on wrong password', async ({ request }) => {
@@ -112,7 +111,7 @@ test.describe('Auth API Tests', () => {
                     'x-csrf-token': setupCsrfToken,
                     'Authorization': `Bearer ${setupToken}`
                 },
-                data: { email }
+                data: { email, role: 'ADMIN' }
             });
             
             localAuthToken = signupData.token;
@@ -172,7 +171,7 @@ test.describe('Auth API Tests', () => {
                     'x-csrf-token': setupCsrfToken,
                     'Authorization': `Bearer ${setupToken}`
                 },
-                data: { email }
+                data: { email, role: 'ADMIN' }
             });
 
             // 2. Login to get token and CSRF token
@@ -201,6 +200,15 @@ test.describe('Auth API Tests', () => {
             const response = await request.post('/api/auth/forgot-password', {
                 data: { email }
             });
+            expect(response.status()).toBe(200);
+        });
+
+        test('returns 200 for unknown email (prevents user enumeration)', async ({ request }) => {
+            const response = await request.post('/api/auth/forgot-password', {
+                data: { email: `nonexistent-${Date.now()}@nowhere.com` }
+            });
+            // IMPORTANT: Must return 200 regardless of whether email exists.
+            // A 404 here leaks that the email is not registered (user enumeration).
             expect(response.status()).toBe(200);
         });
     });

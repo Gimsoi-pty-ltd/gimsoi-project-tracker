@@ -2,12 +2,13 @@ import { test, expect } from '@playwright/test';
 import prisma from '../../lib/prisma.js';
 
 /**
- * Helper to extract XSRF-TOKEN from response headers.
+ * Helper to fetch XSRF-TOKEN explicitly.
  */
-function getCsrfToken(res) {
-    const cookies = res.headers()['set-cookie'] || '';
-    const match = cookies.match(/XSRF-TOKEN=([^;]+)/);
-    return match ? match[1] : null;
+async function fetchCsrfToken(request, token = null) {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const res = await request.get('/api/auth/csrf-token', { headers });
+    const body = await res.json();
+    return body.csrfToken || '';
 }
 
 test.describe('Users API Tests', () => {
@@ -23,18 +24,19 @@ test.describe('Users API Tests', () => {
         const id = Math.random().toString(36).substring(2, 15);
         adminEmail = `admin-${id}-${Date.now()}@test.com`;
         userEmail = `user-${id}-${Date.now()}@test.com`;
+        
         // 1. Setup Admin
         const adminSignupRes = await request.post('/api/auth/signup', {
             data: { email: adminEmail, password, fullName: 'Admin User' }
         });
         expect(adminSignupRes.status(), `Admin signup failed: ${await adminSignupRes.text()}`).toBe(201);
-        
         const adminSignupData = await adminSignupRes.json();
-        const adminSignupCsrf = getCsrfToken(adminSignupRes) || '';
+
+        let adminTempCsrf = await fetchCsrfToken(request, adminSignupData.token);
 
         const promoteAdminRes = await request.post('/api/testing/promote-role', {
             headers: { 
-                'x-csrf-token': adminSignupCsrf,
+                'x-csrf-token': adminTempCsrf,
                 'Authorization': `Bearer ${adminSignupData.token}`
             },
             data: { email: adminEmail, role: 'ADMIN' }
@@ -46,20 +48,20 @@ test.describe('Users API Tests', () => {
         });
         const adminLoginData = await adminLoginRes.json();
         adminToken = adminLoginData.token;
-        adminCsrf = getCsrfToken(adminLoginRes);
+        adminCsrf = await fetchCsrfToken(request, adminToken);
 
         // 2. Setup Regular User
         const userSignupRes = await request.post('/api/auth/signup', {
             data: { email: userEmail, password, fullName: 'Regular User' }
         });
         expect(userSignupRes.status(), `User signup failed: ${await userSignupRes.text()}`).toBe(201);
-
         const userSignupData = await userSignupRes.json();
-        const userSignupCsrf = getCsrfToken(userSignupRes) || '';
+
+        let userTempCsrf = await fetchCsrfToken(request, userSignupData.token);
 
         await request.post('/api/testing/promote-role', {
             headers: { 
-                'x-csrf-token': userSignupCsrf,
+                'x-csrf-token': userTempCsrf,
                 'Authorization': `Bearer ${userSignupData.token}`
             },
             data: { email: userEmail, role: 'INTERN' }
@@ -70,7 +72,7 @@ test.describe('Users API Tests', () => {
         });
         const userLoginData = await userLoginRes.json();
         userToken = userLoginData.token;
-        userCsrf = getCsrfToken(userLoginRes);
+        userCsrf = await fetchCsrfToken(request, userToken);
     });
 
     test.describe('GET /api/users (Admin Only)', () => {

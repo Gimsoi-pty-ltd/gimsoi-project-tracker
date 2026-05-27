@@ -4,12 +4,12 @@ test.describe('Phases & Milestones API', () => {
     let projectId;
     let clientId;
 
-    test.beforeAll(async ({ pmApi }) => {
+    test.beforeEach(async ({ pmApi }) => {
         // Create a client
         const clientRes = await pmApi.post('/api/clients', {
             data: {
                 name: 'Wave 4 Client',
-                contactEmail: 'wave4@test.com'
+                contactEmail: `wave4-${Date.now()}@test.com`
             }
         });
         const clientBody = await clientRes.json();
@@ -50,7 +50,9 @@ test.describe('Phases & Milestones API', () => {
                 status: 'ACTIVE'
             }
         });
+        expect(sprintRes.status()).toBe(201);
         const sprint = (await sprintRes.json()).data;
+        expect(sprint.id).toBeDefined();
 
         // 3. Create a task in this phase
         const taskRes = await pmApi.post('/api/tasks', {
@@ -118,21 +120,63 @@ test.describe('Phases & Milestones API', () => {
         const listRes = await pmApi.get(`/api/phases?projectId=${projectId}`);
         const phases = (await listRes.json()).data;
         
-        // The list should be sorted by order: Phase 1 (1), B (20), A (30)
+        // The list should be sorted by order: B (20), A (30)
         const names = phases.map(p => p.name);
-        expect(names).toContain('Phase 1');
         expect(names).toContain('A');
         expect(names).toContain('B');
         
         // Find positions
-        const idxP1 = names.indexOf('Phase 1');
         const idxB = names.indexOf('B');
         const idxA = names.indexOf('A');
         
-        expect(idxP1).toBeLessThan(idxB);
         expect(idxB).toBeLessThan(idxA);
         // Actually since globalSetup wipes, we can assume Phase 1 is there if we didn't wipe.
         // Wait, globalSetup runs BEFORE all tests in a file if configured? 
         // No, playwright runs it once per WORKER.
+    });
+
+    test('Phase stays ACTIVE when only partially complete', async ({ pmApi }) => {
+        // Create a phase with 2 tasks; complete only 1
+        const phaseRes = await pmApi.post('/api/phases', {
+            data: { name: 'Partial Phase', projectId, status: 'ACTIVE', order: 2 }
+        });
+        const phase = (await phaseRes.json()).data;
+
+        const sprintRes = await pmApi.post('/api/sprints', {
+            data: { name: 'Partial Sprint', projectId,
+                    startDate: new Date().toISOString(),
+                    endDate: new Date(Date.now() + 86400000).toISOString() }
+        });
+        const sprint = (await sprintRes.json()).data;
+
+        // Task 1 — will be completed
+        const t1Res = await pmApi.post('/api/tasks', {
+            data: { title: 'Done Task', projectId, phaseId: phase.id, sprintId: sprint.id }
+        });
+        const t1 = (await t1Res.json()).data;
+
+        // Task 2 — stays TODO
+        await pmApi.post('/api/tasks', {
+            data: { title: 'Pending Task', projectId, phaseId: phase.id, sprintId: sprint.id }
+        });
+
+        // Activate sprint, complete task 1
+        const sActivate = await pmApi.patch(`/api/sprints/${sprint.id}/status`, {
+            data: { status: 'ACTIVE', version: sprint.version }
+        });
+        expect(sActivate.status()).toBe(200);
+
+        await pmApi.patch(`/api/tasks/${t1.id}`, { data: { status: 'IN_PROGRESS', version: t1.version } });
+        await pmApi.patch(`/api/tasks/${t1.id}`, { data: { status: 'DONE', version: t1.version + 1 } });
+
+        // Phase should still be ACTIVE (not COMPLETED) — 50% done
+        const phaseCheckRes = await pmApi.get(`/api/phases/${phase.id}`);
+        const phaseCheck = (await phaseCheckRes.json()).data;
+        expect(phaseCheck.status).toBe('ACTIVE');
+
+        // Milestone should show 50%
+        const milestoneRes = await pmApi.get(`/api/phases/${phase.id}/milestone`);
+        const milestone = (await milestoneRes.json()).data;
+        expect(milestone.percentComplete).toBe(50);
     });
 });

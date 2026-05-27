@@ -30,10 +30,14 @@ test.describe('Task Management - Core CRUD & Pipeline', () => {
         const p1 = await pmApi.patch(`/api/tasks/${taskId}`, { data: { status: "IN_PROGRESS", version: task.version } });
         task = (await p1.json()).data;
 
-        if (sprint.status !== 'ACTIVE') {
-            const sprintUpdate = await pmApi.patch(`/api/sprints/${testSprint.id}/status`, { data: { status: 'ACTIVE', version: sprint.version } });
-            if (sprintUpdate.status() !== 200) throw new Error(await sprintUpdate.text());
-        }
+        // Always attempt activation; accept 200 (new) or 409/400 (already active) as valid states.
+        const activationAttempt = await pmApi.patch(`/api/sprints/${testSprint.id}/status`, {
+            data: { status: 'ACTIVE', version: sprint.version }
+        });
+        // We need the sprint ACTIVE regardless — fetch its fresh state to confirm.
+        const freshSprintRes = await pmApi.get(`/api/sprints?projectId=${testProject.id}`);
+        const freshSprint = (await freshSprintRes.json()).data.find(s => s.id === testSprint.id);
+        expect(freshSprint.status).toBe('ACTIVE');
 
         const finishRes = await pmApi.patch(`/api/tasks/${taskId}`, { data: { status: "DONE", version: task.version } });
         if (finishRes.status() !== 200) throw new Error(await finishRes.text());
@@ -131,10 +135,13 @@ test.describe('Task Management - Core CRUD & Pipeline', () => {
             const sprintRes = await pmApi.get(`/api/sprints?projectId=${testProject.id}`);
             const sprint = (await sprintRes.json()).data[0];
 
-            if (sprint.status !== 'ACTIVE') {
-                const sprintUpdate = await pmApi.patch(`/api/sprints/${testSprint.id}/status`, { data: { status: 'ACTIVE', version: sprint.version } });
-                if (sprintUpdate.status() !== 200) throw new Error(await sprintUpdate.text());
-            }
+            // Always attempt activation; accept 200 (new) or 409/400 (already active) as valid states.
+            const activationAttempt = await pmApi.patch(`/api/sprints/${testSprint.id}/status`, {
+                data: { status: 'ACTIVE', version: sprint.version }
+            });
+            const freshSprintRes = await pmApi.get(`/api/sprints?projectId=${testProject.id}`);
+            const freshSprint = (await freshSprintRes.json()).data.find(s => s.id === testSprint.id);
+            expect(freshSprint.status).toBe('ACTIVE');
             const p1 = await pmApi.patch(`/api/tasks/${taskId}`, { data: { status: 'IN_PROGRESS', version: task.version } });
             task = (await p1.json()).data;
             const res2 = await pmApi.patch(`/api/tasks/${taskId}`, { data: { status: 'DONE', version: task.version } });

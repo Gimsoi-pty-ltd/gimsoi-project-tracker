@@ -51,4 +51,3 @@ export const healthLimiter = isTestEnv ? passThrough : rateLimit({
     max: 10000,
     message: { status: "rate_limited", message: "Too many health check requests" },
 });
-

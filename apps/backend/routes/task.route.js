@@ -1,6 +1,6 @@
 import express from "express";
 import { verifyToken } from "../middleware/verify-token.middleware.js";
-import authorize from "../middleware/authorize.middleware.js";
+import authorize from "../middleware/auth.middleware.js";
 import { readLimiter, writeLimiter } from "../middleware/rate-limiter.middleware.js";
 import { createTask, getTasks, getTaskById, updateTask, deleteTask, getTaskSummary } from "../controllers/task.controller.js";
 import * as commentController from "../controllers/comment.controller.js";
@@ -52,7 +52,6 @@ router.delete("/:id", writeLimiter, verifyToken, authorize(["DELETE_TASK", "DELE
  */
 router.post("/:taskId/comments", writeLimiter, verifyToken, authorize("UPDATE_TASK"), requireCSRF, commentController.createComment);
 router.get("/:taskId/comments", readLimiter, verifyToken, authorize("VIEW_TASKS"), commentController.getComments);
-router.delete("/comments/:id", writeLimiter, verifyToken, authorize("UPDATE_TASK"), requireCSRF, commentController.deleteComment);
 
 /**
  * Activity Log

@@ -3,15 +3,16 @@ import prisma from '../../lib/prisma.js';
 import { TASK_STATUS, PROJECT_STATUS } from '../../constants/statuses.js';
 
 test.describe('Bulk Operations & Archiving API', () => {
-    let adminApi;
+
     let pmApi;
     let clientApi; // For testing read access
     let testProject;
     let testSprint;
     let testTasks = [];
     
-    test.beforeAll(async ({ adminApi, pmApi: pm }) => {
+    test.beforeEach(async ({ adminApi, pmApi: pm }) => {
         pmApi = pm;
+        testTasks = [];
 
         // 1. Create a client
         const clientRes = await adminApi.post('/api/clients', {
@@ -108,10 +109,14 @@ test.describe('Bulk Operations & Archiving API', () => {
     });
 
     test('Archive project', async ({ adminApi }) => {
+        // Fetch fresh project to get current version (other tests may have mutated it)
+        const freshRes = await adminApi.get(`/api/projects/${testProject.id}`);
+        const freshProject = (await freshRes.json()).data;
+
         const updateRes = await adminApi.patch(`/api/projects/${testProject.id}`, {
             data: {
                 status: PROJECT_STATUS.ARCHIVED,
-                version: testProject.version
+                version: freshProject.version
             }
         });
         expect(updateRes.status()).toBe(200);

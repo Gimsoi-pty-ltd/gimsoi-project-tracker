@@ -36,6 +36,8 @@ export default async function globalSetup() {
             '"_LabelToTask"',
             '"Task"',
             '"Sprint"',
+            '"Phase"',
+            '"Report"',
             '"ProjectMember"',
             '"Project"',
             '"Client"',

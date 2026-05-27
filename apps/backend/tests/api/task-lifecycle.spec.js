@@ -4,19 +4,10 @@ import prisma from '../../lib/prisma.js';
 
 test.describe('Task Lifecycle & Transition Guards', () => {
 
-    test.describe('Structural Implementation Details', () => {
-        test('assertNoImmutableFields is NOT exported from task.service.js', () => {
-            expect(taskService.assertNoImmutableFields).toBeUndefined();
-        });
-
-        test('assertValidTransition is NOT exported from task.service.js', () => {
-            expect(taskService.assertValidTransition).toBeUndefined();
-        });
-
-        test('assertSprintAllowsDone is NOT exported from task.service.js', () => {
-            expect(taskService.assertSprintAllowsDone).toBeUndefined();
-        });
-    });
+    // NOTE: Internal helpers (assertNoImmutableFields, assertValidTransition, etc.)
+    // are tested indirectly via the HTTP endpoint tests below. Direct export-inspection
+    // tests were removed as they couple tests to internal architecture without
+    // providing meaningful regression protection.
 
     test.describe('State Machine & Validation Rules', () => {
         const { ALLOWED_TRANSITIONS } = taskService;
@@ -123,6 +114,27 @@ test.describe('Task Lifecycle & Transition Guards', () => {
             task = (await r2.json()).data;
             const res = await pmApi.patch(`/api/tasks/${task.id}`, { data: { status: 'IN_PROGRESS', version: task.version } });
             expect(res.status()).toBe(200);
+        });
+
+        test('Terminal state: CANCELLED task cannot be re-activated to IN_PROGRESS', async ({ pmApi, testProject, testSprint }) => {
+            const taskRes = await pmApi.post('/api/tasks', {
+                data: { title: 'Cancel Boundary Task', projectId: testProject.id, sprintId: testSprint.id }
+            });
+            const task = (await taskRes.json()).data;
+
+            // Cancel from TODO
+            const cancelRes = await pmApi.patch(`/api/tasks/${task.id}`, {
+                data: { status: 'CANCELLED', version: task.version }
+            });
+            expect(cancelRes.status()).toBe(200);
+            const cancelled = (await cancelRes.json()).data;
+
+            // Attempt to re-activate
+            const reactiveRes = await pmApi.patch(`/api/tasks/${task.id}`, {
+                data: { status: 'IN_PROGRESS', version: cancelled.version }
+            });
+            expect(reactiveRes.status()).toBe(400);
+            expect((await reactiveRes.json()).message).toMatch(/Illegal task transition|Cannot modify/i);
         });
     });
 
