@@ -22,19 +22,11 @@ export class ForbiddenError extends Error {
     }
 }
 
-export class ConflictError extends Error {
-    constructor(message) {
-        super(message);
-        this.name = 'ConflictError';
-        this.statusCode = 409;
-    }
-}
-
 export class ContractViolationError extends Error {
     constructor(message) {
         super(message);
         this.name = 'ContractViolationError';
-        this.statusCode = 500; // Internal error: the backend is returning invalid data
+        this.statusCode = 500;
     }
 }
 
@@ -46,10 +38,10 @@ export class ValidationError extends Error {
     }
 }
 
-export class UnauthorizedError extends Error {
+export class ConflictError extends Error {
     constructor(message) {
         super(message);
-        this.name = 'UnauthorizedError';
-        this.statusCode = 401;
+        this.name = 'ConflictError';
+        this.statusCode = 409;
     }
 }

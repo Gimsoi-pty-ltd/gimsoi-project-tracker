@@ -1,6 +1,10 @@
 # Logs
 logs
 *.log
+*_log.txt
+*_output.txt
+*_final.txt
+scratch/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -65,13 +69,33 @@ web_modules/
 # Yarn Integrity file
 .yarn-integrity
 
+# Zoho Catalyst — deployment config & credentials (never commit these)
+.catalystrc
+app-config.json
+app-config.staging.json
+
+# AI and Developer Artifacts
+.gemini/
+**/scratch/
+**/test-results/
+**/coverage/
+*.pdf
+*.log
+error_log.txt
+server_log.txt
+rbac_output_final.txt
+task_lifecycle_output.txt
+
+
 # dotenv environment variable files
 .env
 .env.*
 !.env.example
-app-config.json
-app-config.staging.json
-.catalystrc
+
+# Local Docker Data
+postgres_data/
+docker-compose.yml
+
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache
@@ -141,3 +165,8 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 apps/backend/cookies.txt
+
+# Zoho Catalyst — deployment config & credentials (never commit these)
+.catalystrc
+app-config.json
+app-config.staging.json
