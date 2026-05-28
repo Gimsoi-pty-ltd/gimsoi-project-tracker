@@ -1,5 +1,6 @@
 import React from 'react';
 import { Inbox } from 'lucide-react';
+import NavyButton from "./Buttons";
 
 /**
  * Reusable empty state component
@@ -22,15 +23,15 @@ const EmptyState = ({ title = 'No Data', message, onAction, actionLabel = 'Creat
       )}
 
       {onAction && actionLabel && (
-        <button
+        <NavyButton
           onClick={onAction}
-          className="mt-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+          className="mt-2 px-4 py-2 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
         >
           {actionLabel}
-        </button>
+        </NavyButton>
       )}
-    </div>
+    </div>  
   );
 };
 
-export default EmptyState;
+export default EmptyState;  

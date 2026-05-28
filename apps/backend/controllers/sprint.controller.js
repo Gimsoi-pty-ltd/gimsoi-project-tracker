@@ -1,7 +1,6 @@
 import * as sprintService from "../services/sprint.service.js";
-import { parsePagination, buildPage } from "../utils/pagination.js";
 
-export const createSprint = async (req, res, next) => {
+export const createSprint = async (req, res) => {
     try {
         const { name, projectId, status, startDate, endDate } = req.body;
 
@@ -20,11 +19,12 @@ export const createSprint = async (req, res, next) => {
 
         return res.status(201).json({ success: true, message: "Sprint created", data: sprint });
     } catch (err) {
-        next(err);
+        const statusCode = err.statusCode || 500;
+        return res.status(statusCode).json({ success: false, message: err.message || "Failed to create sprint" });
     }
 };
 
-export const getSprints = async (req, res, next) => {
+export const getSprints = async (req, res) => {
     try {
         const { projectId } = req.query;
 
@@ -32,19 +32,23 @@ export const getSprints = async (req, res, next) => {
             return res.status(400).json({ success: false, message: "projectId query parameter is required" });
         }
 
-        const { limit, cursor } = parsePagination(req.query);
+        const limit = Math.min(parseInt(req.query.limit) || 50, 100);
+        const cursor = req.query.cursor || undefined;
 
         const records = await sprintService.getSprintsByProject(projectId, { limit, cursor });
 
-        const { data, nextCursor } = buildPage(records, limit);
+        const hasMore = records.length > limit;
+        const data = hasMore ? records.slice(0, limit) : records;
+        const nextCursor = hasMore ? data[data.length - 1].id : null;
 
         return res.status(200).json({ success: true, data, nextCursor });
     } catch (err) {
-        next(err);
+        const statusCode = err.statusCode || 500;
+        return res.status(statusCode).json({ success: false, message: err.message || "Failed to fetch sprints" });
     }
 };
 
-export const updateSprintStatus = async (req, res, next) => {
+export const updateSprintStatus = async (req, res) => {
     try {
         const { id } = req.params;
         const { status } = req.body;
@@ -57,11 +61,12 @@ export const updateSprintStatus = async (req, res, next) => {
 
         return res.status(200).json({ success: true, message: "Sprint state updated successfully", data: updated });
     } catch (err) {
-        next(err);
+        const statusCode = err.statusCode || 500;
+        return res.status(statusCode).json({ success: false, message: err.message || "Failed to update sprint state" });
     }
 };
 
-export const updateSprint = async (req, res, next) => {
+export const updateSprint = async (req, res) => {
     try {
         const { id } = req.params;
         const { name, startDate, endDate } = req.body;
@@ -69,6 +74,17 @@ export const updateSprint = async (req, res, next) => {
         const updated = await sprintService.updateSprint(id, { name, startDate, endDate }, req.user.id, req.user.role);
 
         return res.status(200).json({ success: true, message: "Sprint updated successfully", data: updated });
+    } catch (err) {
+        const statusCode = err.statusCode || 500;
+        return res.status(statusCode).json({ success: false, message: err.message || "Failed to update sprint" });
+    }
+};
+
+export const getSprintVelocity = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const velocity = await sprintService.getSprintVelocity(id);
+        return res.status(200).json({ success: true, data: velocity });
     } catch (err) {
         next(err);
     }

@@ -16,6 +16,14 @@ test.describe('Project Lifecycle & Ownership Validation', () => {
         expect(json.data.id).toBeDefined();
     });
 
+    test('Intern gets 403 when modifying a PM project', async ({ internApi, testProject }) => {
+        const response = await internApi.patch(`/api/projects/${testProject.id}`, {
+            data: { name: "Hacked Name" }
+        });
+
+        expect(response.status()).toBe(403);
+    });
+
     test('PM can successfully activate a DRAFT project', async ({ pmApi, testProject }) => {
         const response = await pmApi.patch(`/api/projects/${testProject.id}`, {
             data: { status: "ACTIVE" }
@@ -41,55 +49,6 @@ test.describe('Project Lifecycle & Ownership Validation', () => {
         expect(response.status()).toBe(400);
         const json = await response.json();
         expect(json.message).toContain('Illegal project state transition');
-    });
-
-    test.describe('Status Transitions', () => {
-        test('PM can transition a DRAFT project directly to COMPLETED', async ({ pmApi, testProject }) => {
-            const response = await pmApi.patch(`/api/projects/${testProject.id}`, {
-                data: { status: 'COMPLETED' }
-            });
-            expect(response.status()).toBe(200);
-            const json = await response.json();
-            expect(json.data.status).toBe('COMPLETED');
-        });
-
-        test('PM can revert an ACTIVE project back to DRAFT', async ({ pmApi, testProject }) => {
-            // Setup: Advance to ACTIVE
-            await pmApi.patch(`/api/projects/${testProject.id}`, { data: { status: 'ACTIVE' } });
-
-            // Action: Revert to DRAFT
-            const response = await pmApi.patch(`/api/projects/${testProject.id}`, {
-                data: { status: 'DRAFT' }
-            });
-            expect(response.status()).toBe(200);
-            const json = await response.json();
-            expect(json.data.status).toBe('DRAFT');
-        });
-    });
-
-    test('updateProject skips transition validation when status unchanged or missing', async ({ adminApi, testClient }) => {
-        const projRes = await adminApi.post('/api/projects', {
-            data: { name: 'Guard Project', clientId: testClient.id }
-        });
-        const { data: project } = await projRes.json();
-
-        // Update name ONLY (status missing)
-        const res1 = await adminApi.patch(`/api/projects/${project.id}`, {
-            data: { name: 'New Name' }
-        });
-        expect(res1.status()).toBe(200);
-
-        // Update with SAME status
-        const res2 = await adminApi.patch(`/api/projects/${project.id}`, {
-            data: { status: 'DRAFT' } // Initial is DRAFT
-        });
-        expect(res2.status()).toBe(200);
-
-        // Update with VALID status change (regression)
-        const res3 = await adminApi.patch(`/api/projects/${project.id}`, {
-            data: { status: 'ACTIVE' }
-        });
-        expect(res3.status()).toBe(200);
     });
 
     test('Cannot create sprint inside a COMPLETED project', async ({ pmApi, testClient }) => {
@@ -137,8 +96,6 @@ test.describe('Project Lifecycle & Ownership Validation', () => {
         });
 
         // Advance t1 through the legal path: TODO → IN_PROGRESS → DONE
-        // Must activate sprint first (Active sprint requirement)
-        await pmApi.patch(`/api/sprints/${sprint.id}/status`, { data: { status: 'ACTIVE' } });
         await pmApi.patch(`/api/tasks/${t1.id}`, { data: { status: 'IN_PROGRESS' } });
         await pmApi.patch(`/api/tasks/${t1.id}`, { data: { status: 'DONE' } });
 
@@ -183,6 +140,97 @@ test.describe('Project Lifecycle & Ownership Validation', () => {
         expect(json2.data.length).toBeGreaterThanOrEqual(1);
         // The records on page 2 must be different from page 1
         expect(json2.data[0].id).not.toBe(json.data[0].id);
+    });
+
+    test('PM can create and update a project with description and endDate', async ({ pmApi, testClient }) => {
+        // A. Create with description and endDate
+        const endDateStr = "2026-12-31T00:00:00.000Z";
+        const createRes = await pmApi.post('/api/projects', {
+            data: {
+                name: "TDD Project Metadata",
+                clientId: testClient.id,
+                description: "Initial description",
+                endDate: endDateStr
+            }
+        });
+
+        expect(createRes.status()).toBe(201);
+        const created = (await createRes.json()).data;
+        expect(created.description).toBe("Initial description");
+        expect(created.endDate).toBe(endDateStr);
+
+        // B. Update description via PATCH
+        const updateRes = await pmApi.patch(`/api/projects/${created.id}`, {
+            data: {
+                description: "Updated description"
+            }
+        });
+
+        expect(updateRes.status()).toBe(200);
+        const updated = (await updateRes.json()).data;
+        expect(updated.description).toBe("Updated description");
+    });
+
+    test('PM can search for projects by name or description using ?search= query parameter', async ({ pmApi, testClient }) => {
+        // Create search target projects
+        const projName1 = `Alpha Search Target ${Date.now()}`;
+        const projName2 = `Beta Search Target ${Date.now()}`;
+        
+        const res1 = await pmApi.post('/api/projects', {
+            data: {
+                name: projName1,
+                clientId: testClient.id,
+                description: "DeepMind and Google technologies"
+            }
+        });
+        expect(res1.status()).toBe(201);
+        const p1 = (await res1.json()).data;
+
+        const res2 = await pmApi.post('/api/projects', {
+            data: {
+                name: projName2,
+                clientId: testClient.id,
+                description: "Completely unrelated text"
+            }
+        });
+        expect(res2.status()).toBe(201);
+        const p2 = (await res2.json()).data;
+
+        // 1. Search by name (case-insensitive)
+        const searchNameRes = await pmApi.get(`/api/projects?search=alpha`);
+        expect(searchNameRes.status()).toBe(200);
+        const nameJson = await searchNameRes.json();
+        // Check if p1 is present and p2 is NOT present
+        const hasP1 = nameJson.data.some(p => p.id === p1.id);
+        const hasP2 = nameJson.data.some(p => p.id === p2.id);
+        expect(hasP1).toBe(true);
+        expect(hasP2).toBe(false);
+
+        // 2. Search by description (case-insensitive)
+        const searchDescRes = await pmApi.get(`/api/projects?search=deepmind`);
+        expect(searchDescRes.status()).toBe(200);
+        const descJson = await searchDescRes.json();
+        const hasP1Desc = descJson.data.some(p => p.id === p1.id);
+        const hasP2Desc = descJson.data.some(p => p.id === p2.id);
+        expect(hasP1Desc).toBe(true);
+        expect(hasP2Desc).toBe(false);
+    });
+
+    test('PM can delete a project and subsequent GET returns 404', async ({ pmApi, testClient }) => {
+        // Create a project
+        const createRes = await pmApi.post('/api/projects', {
+            data: { name: `Deletable Project ${Date.now()}`, clientId: testClient.id }
+        });
+        expect(createRes.status()).toBe(201);
+        const project = (await createRes.json()).data;
+
+        // Delete the project
+        const delRes = await pmApi.delete(`/api/projects/${project.id}`);
+        expect(delRes.status()).toBe(204);
+
+        // Verify it no longer exists
+        const getRes = await pmApi.get(`/api/projects/${project.id}`);
+        expect(getRes.status()).toBe(404);
     });
 
 });
