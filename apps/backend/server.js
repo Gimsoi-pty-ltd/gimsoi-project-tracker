@@ -16,6 +16,7 @@ import reportRoutes from "./routes/report.route.js";
 import searchRoutes from "./routes/search.route.js";
 import { validateEnv } from "./utils/validateEnv.js";
 import { csrfProtection, csrfErrorHandler, generateCsrfToken } from "./middleware/csrf.middleware.js";
+import { populateUser } from "./middleware/populate-user.middleware.js";
 import swaggerUi from "swagger-ui-express";
 import { swaggerSpec } from "./lib/swagger.js";
 import { healthLimiter, authLimiter } from "./middleware/rate-limiter.middleware.js";
@@ -82,7 +83,7 @@ if (isNonProd) {
 }
 
 // Register the public CSRF token endpoint before the global CSRF protection
-app.get("/api/auth/csrf-token", authLimiter, verifyToken, (req, res) => {
+app.get("/api/auth/csrf-token", authLimiter, populateUser, (req, res) => {
     try {
         if (!req.user || !req.user.id) {
             return res.json({ success: true, csrfToken: null, message: "No active session; CSRF not required." });

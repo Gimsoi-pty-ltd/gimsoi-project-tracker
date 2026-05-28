@@ -1,4 +1,3 @@
-import React from 'react';
 
 /**
  * Reusable loading spinner component

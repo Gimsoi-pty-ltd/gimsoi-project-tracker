@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { User, Lock, Mail, Github, Facebook, Linkedin, Loader } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import NavyButton from '../../Components/Buttons';
-import logo from '../../assets/Gimsoi-AI.jpg';
+import logo from '../../assets/Gimsoi-AI.png';
 import { useAuthStore } from '../../store/authStore';
 
 function LoginPage() {

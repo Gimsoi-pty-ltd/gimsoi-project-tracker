@@ -1,4 +1,3 @@
-import React from 'react';
 
 const NavyButton = ({ onClick, children, type = "button", className = "", disabled = false }) => {
   return (

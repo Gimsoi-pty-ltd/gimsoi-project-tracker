@@ -1,305 +1,209 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
+// src/Pages/Users/Clients.jsx
+import { useState, useEffect } from "react";
+import { useClientStore } from "../../store/clientStore";
+import { Plus, Search, MoreVertical, Mail, Phone, MapPin } from "lucide-react";
 
-const Clients = () => {
+export default function ClientsPage() {
+  const { clients, getClients, createClient, isLoading } = useClientStore();
+
+  const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "", email: "", phone: "", location: "", status: "Active", industry: "",
+  });
+  const [saving, setSaving] = useState(false);
 
-  const clients = [
-    {
-      id: 1,
-      name: "Client A",
-      status: "Active",
-      location: "New York",
-      contact: "Contact 1",
-      email: "email1@clienta.co",
-    },
-    {
-      id: 2,
-      name: "Client B",
-      status: "Inactive",
-      location: "New York",
-      contact: "Contact 2",
-      email: "email1@clientb.co",
-    },
-    {
-      id: 3,
-      name: "Client C",
-      status: "Onboarding",
-      location: "San Francisco",
-      contact: "Contact 3",
-      email: "email2@clientc.co",
-    },
-    {
-      id: 4,
-      name: "Client D",
-      status: "Active",
-      location: "New York",
-      contact: "Contact 4",
-      email: "email3@clientd.co",
-    },
-    {
-      id: 5,
-      name: "Client E",
-      status: "Inactive",
-      location: "New York",
-      contact: "Contact 5",
-      email: "email4@cliente.co",
-    },
-    {
-      id: 6,
-      name: "Client F",
-      status: "Active",
-      location: "New York",
-      contact: "Contact 6",
-      email: "email5@clientf.co",
-    },
-  ];
+  useEffect(() => {
+    getClients();
+  }, []);
 
-  const statusColor = (status) => {
-    if (status === "Active") return "bg-green-100 text-green-700";
-    if (status === "Inactive") return "bg-red-100 text-red-700";
-    if (status === "Onboarding") return "bg-yellow-100 text-yellow-700";
+  const filteredClients = clients.filter((c) =>
+    c.name?.toLowerCase().includes(search.toLowerCase()) ||
+    c.email?.toLowerCase().includes(search.toLowerCase()) ||
+    c.industry?.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSaveClient = async () => {
+    if (!formData.name) return;
+    setSaving(true);
+    try {
+      await createClient(formData);
+      setShowModal(false);
+      setFormData({ name: "", email: "", phone: "", location: "", status: "Active", industry: "" });
+    } catch (err) {
+      console.error("Failed to create client:", err);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
-    <div className="p-8 bg-gray-50 min-h-screen">
+    <div className="p-4 md:p-8 bg-gray-50 min-h-screen">
+      <div className="max-w-7xl mx-auto">
 
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-
-        <div className="md:flex md:items-center md:justify-between mb-8">
-              <div>
-                <h2 className="text-2xl font-bold text-slate-900">Manage Clients</h2>
-                <nav className="flex mt-1 text-sm text-gray-500">
-                  <Link to="/users" >
-                  <span className="text-slate-900 hover:text-slate-600 cursor-pointer">User Management</span>
-                  </Link>
-                  <span className="mx-2">/</span>
-                  <span>Clients</span>
-                </nav>
-              </div>
-        </div>
-        <div className="flex gap-3">
-
-          <input
-            type="text"
-            placeholder="Search clients by company name, location, contact..."
-            className="border rounded-lg px-4 py-2 w-80 text-sm"
-          />
-
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Clients</h1>
+            <p className="text-sm text-gray-500 mt-1">{clients.length} total clients</p>
+          </div>
           <button
             onClick={() => setShowModal(true)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700"
+            className="inline-flex items-center gap-2 bg-[#002D62] hover:bg-[#001f44] text-white px-4 py-2 rounded-lg text-sm font-medium transition"
           >
-            + Add Client
+            <Plus size={18} /> Add Client
           </button>
-
-          <button className="border px-4 py-2 rounded-lg text-sm">
-            Import
-          </button>
-
-          <button className="border px-4 py-2 rounded-lg text-sm">
-            Export
-          </button>
-
         </div>
-      </div>
 
-      {/* Table */}
-      <div className="bg-white border rounded-xl shadow-sm overflow-hidden">
+        {/* Search */}
+        <div className="relative mb-6">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search clients by name, email, or industry..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+          />
+        </div>
 
-        <table className="w-full text-sm">
+        {/* Stats Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          {[
+            { label: "Total Clients", value: clients.length },
+            { label: "Active",        value: clients.filter((c) => c.status === "Active" || c.status === "active").length },
+            { label: "Inactive",      value: clients.filter((c) => c.status === "Inactive" || c.status === "inactive").length },
+            { label: "Industries",    value: new Set(clients.map((c) => c.industry).filter(Boolean)).size },
+          ].map(({ label, value }) => (
+            <div key={label} className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+              <p className="text-sm text-gray-500">{label}</p>
+              <p className="text-2xl font-bold text-gray-800 mt-1">{value}</p>
+            </div>
+          ))}
+        </div>
 
-          <thead className="bg-gray-100 text-gray-600 text-left">
-            <tr>
-              <th className="p-4">Client Company</th>
-              <th>Status</th>
-              <th>Location</th>
-              <th>Primary Contact</th>
-              <th>Email</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-
-          <tbody>
-
-            {clients.map((client) => (
-              <tr
-                key={client.id}
-                className="border-t hover:bg-gray-50"
-              >
-
-                <td className="p-4 flex items-center gap-3">
-
-                  <div className="w-8 h-8 border rounded flex items-center justify-center">
-                    ✉
+        {/* Client Cards Grid */}
+        {isLoading ? (
+          <div className="bg-white rounded-xl border border-gray-200 p-12 text-center text-gray-400">Loading clients...</div>
+        ) : filteredClients.length === 0 ? (
+          <div className="bg-white rounded-xl border border-gray-200 p-12 text-center text-gray-400">
+            {search ? `No clients found for "${search}"` : "No clients yet. Add your first client."}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredClients.map((client) => (
+              <div key={client.id} className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm hover:shadow-md transition group">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-[#002D62] text-white flex items-center justify-center text-sm font-bold flex-shrink-0">
+                      {client.name?.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)}
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900">{client.name}</h3>
+                      {client.industry && <p className="text-xs text-gray-500">{client.industry}</p>}
+                    </div>
                   </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-xs font-medium px-2 py-1 rounded-full ${
+                      client.status === "Active" || client.status === "active"
+                        ? "bg-green-100 text-green-700"
+                        : "bg-gray-100 text-gray-600"
+                    }`}>
+                      {client.status ?? "Active"}
+                    </span>
+                    <button className="p-1 opacity-0 group-hover:opacity-100 text-gray-400 hover:text-gray-600 transition">
+                      <MoreVertical size={16} />
+                    </button>
+                  </div>
+                </div>
 
-                  <span className="font-medium">
-                    {client.name}
-                  </span>
+                <div className="space-y-2 text-sm text-gray-600">
+                  {client.email && (
+                    <div className="flex items-center gap-2">
+                      <Mail size={14} className="text-gray-400 flex-shrink-0" />
+                      <span className="truncate">{client.email}</span>
+                    </div>
+                  )}
+                  {client.phone && (
+                    <div className="flex items-center gap-2">
+                      <Phone size={14} className="text-gray-400 flex-shrink-0" />
+                      <span>{client.phone}</span>
+                    </div>
+                  )}
+                  {client.location && (
+                    <div className="flex items-center gap-2">
+                      <MapPin size={14} className="text-gray-400 flex-shrink-0" />
+                      <span>{client.location}</span>
+                    </div>
+                  )}
+                </div>
 
-                </td>
-
-                <td>
-                  <span
-                    className={`px-3 py-1 text-xs rounded-full font-medium ${statusColor(
-                      client.status
-                    )}`}
-                  >
-                    {client.status}
-                  </span>
-                </td>
-
-                <td>{client.location}</td>
-
-                <td className="flex items-center gap-2">
-
-                  <div className="w-8 h-8 bg-gray-300 rounded-full"></div>
-
-                  {client.contact}
-
-                </td>
-
-                <td>{client.email}</td>
-
-                <td className="flex gap-2">
-
-                  <button className="border px-3 py-1 rounded text-xs">
-                    View Details
-                  </button>
-
-                  <button className="border px-3 py-1 rounded text-xs">
-                    Edit
-                  </button>
-
-                  <button className="border px-3 py-1 rounded text-xs">
-                    Archive
-                  </button>
-
-                </td>
-
-              </tr>
-            ))}
-
-          </tbody>
-        </table>
-
-      </div>
-
-      {/* Pagination */}
-      <div className="flex justify-between items-center mt-4 text-sm text-gray-600">
-
-        <p>Showing 1-6 of 85 clients</p>
-
-        <div className="flex gap-2">
-          <button className="px-3 py-1 border rounded">1</button>
-          <button className="px-3 py-1 border rounded">2</button>
-          <button className="px-3 py-1 border rounded">3</button>
-        </div>
-
-      </div>
-
-      {/* Modal */}
-      {showModal && (
-
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-
-          <div className="bg-white w-[650px] rounded-xl shadow-lg p-6">
-
-            <h2 className="text-xl font-semibold mb-6">
-              Add New Client
-            </h2>
-
-            <div className="grid grid-cols-2 gap-4">
-
-              <button className="border rounded-lg py-2 text-sm">
-                + Add Contact Person
-              </button>
-
-              <button className="border rounded-lg py-2 text-sm">
-                Upload Contract File
-              </button>
-
-              <input
-                placeholder="Client Company Name"
-                className="border p-2 rounded"
-              />
-
-              <select className="border p-2 rounded">
-                <option>Department / Industry</option>
-                <option>Finance</option>
-                <option>Technology</option>
-                <option>Healthcare</option>
-              </select>
-
-              <select className="border p-2 rounded">
-                <option>Project Ares</option>
-                <option>Project Alpha</option>
-                <option>Project Beta</option>
-              </select>
-
-              <select className="border p-2 rounded">
-                <option>John Doe</option>
-                <option>Jane Smith</option>
-                <option>Mike Johnson</option>
-              </select>
-
-            </div>
-
-            <div className="mt-4">
-
-              <label className="text-sm font-medium">
-                Client Communication Channels
-              </label>
-
-              <div className="flex gap-2 mt-2">
-
-                <span className="border px-3 py-1 rounded text-sm">
-                  Slack
-                </span>
-
-                <span className="border px-3 py-1 rounded text-sm">
-                  Email
-                </span>
-
-                <span className="border px-3 py-1 rounded text-sm">
-                  Phone
-                </span>
-
+                {client.addedDate && (
+                  <p className="text-xs text-gray-400 mt-3">Added {new Date(client.addedDate).toLocaleDateString("en-ZA")}</p>
+                )}
               </div>
+            ))}
+          </div>
+        )}
+      </div>
 
+      {/* Add Client Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Add New Client</h2>
+            <div className="space-y-4">
+              {[
+                { name: "name",     label: "Client Name *", type: "text",  required: true },
+                { name: "email",    label: "Email",         type: "email"  },
+                { name: "phone",    label: "Phone",         type: "text"   },
+                { name: "location", label: "Location",      type: "text"   },
+                { name: "industry", label: "Industry",      type: "text"   },
+              ].map(({ name, label, type }) => (
+                <div key={name}>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+                  <input
+                    type={type}
+                    name={name}
+                    value={formData[name]}
+                    onChange={handleInputChange}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              ))}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                <select
+                  name="status"
+                  value={formData.status}
+                  onChange={handleInputChange}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="Active">Active</option>
+                  <option value="Inactive">Inactive</option>
+                </select>
+              </div>
             </div>
-
-            <textarea
-              placeholder="Client Notes (optional)"
-              className="border w-full mt-4 p-2 rounded"
-            />
-
-            <div className="flex justify-end gap-3 mt-6">
-
-              <button
-                onClick={() => setShowModal(false)}
-                className="border px-4 py-2 rounded"
-              >
+            <div className="flex gap-3 justify-end mt-6">
+              <button onClick={() => setShowModal(false)} className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">
                 Cancel
               </button>
-
-              <button className="bg-blue-600 text-white px-4 py-2 rounded">
-                Save Client
+              <button
+                onClick={handleSaveClient}
+                disabled={saving || !formData.name}
+                className="px-4 py-2 bg-[#002D62] text-white rounded-md text-sm font-medium hover:bg-[#001f44] transition disabled:opacity-60"
+              >
+                {saving ? "Saving..." : "Save Client"}
               </button>
-
             </div>
-
           </div>
-
         </div>
-
       )}
     </div>
   );
-};
-
-export default Clients;
-
-
+}

@@ -1,14 +1,26 @@
-import React from "react";
-import { Link } from "react-router-dom";
+// src/Pages/LogInOut-flow/Dashboard.jsx
+import { useEffect } from "react";
 import DashboardCards from "../../Components/Dashboard/DashboardCards";
-import DashboardLayout from "../../Layouts/DashboardLayout";
+import { useProjectStore } from "../../store/projectStore";
+import { useSprintStore } from "../../store/sprintStore";
+import { useTaskStore } from "../../store/taskStore";
 
 const Dashboard = () => {
-    return (
-            
-            <DashboardCards />
+  const { fetchProjects, currentProject } = useProjectStore();
+  const { getSprints } = useSprintStore();
+  const { getTasks } = useTaskStore();
 
-    );
+
+  useEffect(() => {
+    fetchProjects();
+    getTasks();
+  }, []);
+
+  useEffect(() => {
+    if (currentProject?.id) getSprints({ projectId: currentProject.id });
+  }, [currentProject?.id]);
+
+  return <DashboardCards />;
 };
 
 export default Dashboard;

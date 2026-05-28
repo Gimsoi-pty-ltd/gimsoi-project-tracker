@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useTaskStore } from '../../store/taskStore';
 
 // Kanban Cards
 
@@ -169,84 +170,71 @@ const Column = ({
   );
 };
 
-// Sample data for testing
-const SAMPLE_COLUMNS = [
-  {
-    id: 'backlog',
-    title: 'Backlog',
-    headerColor: 'bg-gray-600',
-    cards: [
-      { id: '1', title: 'Implement login page',      priority: 'High',   assignee: 'DevOps',        tags: ['New Feature'], cardColor: 'bg-purple-600' },
-      { id: '2', title: 'Duplicate Entries',         priority: 'High',   assignee: 'Backend Team',  tags: ['Bug Fix'],     cardColor: 'bg-orange-400' },
-      { id: '3', title: 'Implement dark theme mode', priority: 'Low',    assignee: 'Frontend Team', tags: ['Improvement'], cardColor: 'bg-yellow-400' },
-    ],
-  },
-  {
-    id: 'todo',
-    title: 'TO DO',
-    headerColor: 'bg-blue-600',
-    cards: [
-      { id: '1', title: 'Build Dashboard Charts', priority: 'High',   assignee: 'Dave',  tags: ['Technical Task'], cardColor: 'bg-blue-700'   },
-      { id: '2', title: 'Advanced Filtering',     priority: 'Low',    assignee: 'Frank', tags: ['Improvement'],    cardColor: 'bg-yellow-400' },
-      { id: '3', title: 'Bulk Actions',           priority: 'Medium', assignee: 'Carol', tags: ['New Feature'],    cardColor: 'bg-purple-600' },
-    ],
-  },
-  {
-    id: 'in-progress',
-    title: 'In Progress',
-    headerColor: 'bg-green-600',
-    cards: [
-      { id: '1', title: 'Set up CI/CD pipeline',    priority: 'High',   assignee: 'Frank', tags: ['Technical Task'], cardColor: 'bg-blue-700'   },
-      { id: '2', title: 'User management page',     priority: 'Medium', assignee: 'Dave',  tags: ['Technical Task'], cardColor: 'bg-blue-700'   },
-      { id: '3', title: 'Users cannot log emails.', priority: 'High',   assignee: 'John',  tags: ['Bug Fix'],        cardColor: 'bg-orange-400' },
-    ],
-  },
-  {
-    id: 'review',
-    title: 'QA / Review',
-    headerColor: 'bg-yellow-500',
-    cards: [
-      { id: '1', title: 'AI-Driven Scheduling.',        priority: 'High',   assignee: 'Alice', tags: ['New Feature'],    cardColor: 'bg-purple-600' },
-      { id: '2', title: 'Email Notification Fix.',      priority: 'Medium', assignee: 'John',  tags: ['Bug Fix'],        cardColor: 'bg-orange-400' },
-      { id: '3', title: 'Environment Variable Cleanup', priority: 'Low',    assignee: 'Ace',   tags: ['Technical Task'], cardColor: 'bg-blue-700'   },
-    ],
-  },
-  {
-    id: 'done',
-    title: 'Done',
-    headerColor: 'bg-green-800',
-    cards: [],
-  },
+const STATUS_COLUMNS = [
+  { id: 'TODO', title: 'To Do', headerColor: 'bg-blue-600' },
+  { id: 'IN_PROGRESS', title: 'In Progress', headerColor: 'bg-green-600' },
+  { id: 'REVIEW', title: 'Review', headerColor: 'bg-yellow-500' },
+  { id: 'BLOCKED', title: 'Blocked', headerColor: 'bg-red-600' },
+  { id: 'DONE', title: 'Done', headerColor: 'bg-green-800' },
 ];
+
+const PRIORITY_COLOR_MAP = {
+  HIGH: 'bg-red-500',
+  MEDIUM: 'bg-orange-400',
+  LOW: 'bg-blue-500',
+};
 
 // Main Kanban Component
 const Kanban = () => {
-  const [columns, setColumns]           = useState(SAMPLE_COLUMNS);
+  const { tasks, getTasks, updateTask, isLoading, error } = useTaskStore();
   const [selectedCard, setSelectedCard] = useState(null);
-  const [draggedCard, setDraggedCard]   = useState(null);
+  const [draggedCard, setDraggedCard] = useState(null);
 
-  const totalCards  = columns.reduce((sum, col) => sum + col.cards.length, 0);
-  const doneCards   = columns.find((c) => c.id === 'done')?.cards.length ?? 0;
+  useEffect(() => {
+    getTasks({ limit: 100 });
+  }, [getTasks]);
+
+  const columns = useMemo(() =>
+    STATUS_COLUMNS.map((column) => ({
+      ...column,
+      cards: tasks
+        .filter((task) => task.status === column.id)
+        .map((task) => ({
+          id: task.id,
+          title: task.title,
+          priority: task.priority ? task.priority.charAt(0).toUpperCase() + task.priority.slice(1).toLowerCase() : 'Medium',
+          assignee: task.assignee?.fullName || 'Unassigned',
+          tags: [task.project?.name || 'General'].filter(Boolean),
+          cardColor: PRIORITY_COLOR_MAP[task.priority?.toUpperCase()] || 'bg-blue-500',
+          dueDate: task.dueDate,
+        })),
+    })),
+    [tasks]
+  );
+
+  const totalCards = tasks.length;
+  const doneCards = tasks.filter((task) => task.status === 'DONE').length;
   const progressPct = totalCards ? Math.round((doneCards / totalCards) * 100) : 0;
 
   const handleDragStart = (fromColumnId, cardId) => setDraggedCard({ fromColumnId, cardId });
-  const handleDragEnd   = () => setDraggedCard(null);
+  const handleDragEnd = () => setDraggedCard(null);
 
-  const handleDrop = (toColumnId) => {
+  const handleDrop = async (toColumnId) => {
     if (!draggedCard) return;
-    const { fromColumnId, cardId } = draggedCard;
-    if (fromColumnId === toColumnId) { setDraggedCard(null); return; }
 
-    setColumns((prev) => {
-      const card = prev.find((c) => c.id === fromColumnId)?.cards.find((c) => c.id === cardId);
-      if (!card) return prev;
-      return prev.map((col) => {
-        if (col.id === fromColumnId) return { ...col, cards: col.cards.filter((c) => c.id !== cardId) };
-        if (col.id === toColumnId)   return { ...col, cards: [...col.cards, card] };
-        return col;
-      });
-    });
-    setDraggedCard(null);
+    const { fromColumnId, cardId } = draggedCard;
+    if (fromColumnId === toColumnId) {
+      setDraggedCard(null);
+      return;
+    }
+
+    try {
+      await updateTask(cardId, { status: toColumnId });
+    } catch (err) {
+      console.error('Failed to update task status', err);
+    } finally {
+      setDraggedCard(null);
+    }
   };
 
   return (
@@ -291,6 +279,8 @@ const Kanban = () => {
           </div>
         </div>
 
+        {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
+
         {/* Card click feedback */}
         {selectedCard && (
           <div className="mb-4 p-3 bg-green-50 border border-green-300 rounded text-sm text-green-800">
@@ -301,20 +291,24 @@ const Kanban = () => {
         <h2 className="text-lg font-semibold text-gray-700 mb-3">Kanban board</h2>
 
         <div className="flex gap-4 overflow-x-auto pb-2">
-          {columns.map((col) => (
-            <Column
-              key={col.id}
-              id={col.id}
-              title={col.title}
-              headerColor={col.headerColor}
-              cards={col.cards}
-              onCardClick={setSelectedCard}
-              onCardDragStart={handleDragStart}
-              onCardDragEnd={handleDragEnd}
-              onDropCard={handleDrop}
-              draggedCard={draggedCard}
-            />
-          ))}
+          {isLoading ? (
+            <div className="text-sm text-gray-500">Loading tasks…</div>
+          ) : (
+            columns.map((col) => (
+              <Column
+                key={col.id}
+                id={col.id}
+                title={col.title}
+                headerColor={col.headerColor}
+                cards={col.cards}
+                onCardClick={setSelectedCard}
+                onCardDragStart={handleDragStart}
+                onCardDragEnd={handleDragEnd}
+                onDropCard={handleDrop}
+                draggedCard={draggedCard}
+              />
+            ))
+          )}
         </div>
 
       </div>
