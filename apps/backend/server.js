@@ -44,8 +44,6 @@ app.use(methodOverride(function (req, res) {
   }
 }));
 
-import { healthLimiter } from "./middleware/rate-limiter.middleware.js";
-
 // Health endpoint — registered before CSRF so probes require no session token
 app.use("/api/health", healthLimiter, healthRoute);
 
