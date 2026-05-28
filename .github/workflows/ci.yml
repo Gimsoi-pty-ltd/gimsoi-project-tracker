@@ -30,10 +30,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Check YAML Syntax
-        uses: ibiqlik/action-yamllint@v3
-        with:
-          file_or_dir: .github/workflows/
-          strict: true
+        run: |
+          pipx install yamllint
+          yamllint --strict .github/workflows/
 
   # ------------------------------------------------------------------
   # JOB 2: SECURITY

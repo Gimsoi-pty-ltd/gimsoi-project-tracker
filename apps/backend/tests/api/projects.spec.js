@@ -142,4 +142,95 @@ test.describe('Project Lifecycle & Ownership Validation', () => {
         expect(json2.data[0].id).not.toBe(json.data[0].id);
     });
 
+    test('PM can create and update a project with description and endDate', async ({ pmApi, testClient }) => {
+        // A. Create with description and endDate
+        const endDateStr = "2026-12-31T00:00:00.000Z";
+        const createRes = await pmApi.post('/api/projects', {
+            data: {
+                name: "TDD Project Metadata",
+                clientId: testClient.id,
+                description: "Initial description",
+                endDate: endDateStr
+            }
+        });
+
+        expect(createRes.status()).toBe(201);
+        const created = (await createRes.json()).data;
+        expect(created.description).toBe("Initial description");
+        expect(created.endDate).toBe(endDateStr);
+
+        // B. Update description via PATCH
+        const updateRes = await pmApi.patch(`/api/projects/${created.id}`, {
+            data: {
+                description: "Updated description"
+            }
+        });
+
+        expect(updateRes.status()).toBe(200);
+        const updated = (await updateRes.json()).data;
+        expect(updated.description).toBe("Updated description");
+    });
+
+    test('PM can search for projects by name or description using ?search= query parameter', async ({ pmApi, testClient }) => {
+        // Create search target projects
+        const projName1 = `Alpha Search Target ${Date.now()}`;
+        const projName2 = `Beta Search Target ${Date.now()}`;
+        
+        const res1 = await pmApi.post('/api/projects', {
+            data: {
+                name: projName1,
+                clientId: testClient.id,
+                description: "DeepMind and Google technologies"
+            }
+        });
+        expect(res1.status()).toBe(201);
+        const p1 = (await res1.json()).data;
+
+        const res2 = await pmApi.post('/api/projects', {
+            data: {
+                name: projName2,
+                clientId: testClient.id,
+                description: "Completely unrelated text"
+            }
+        });
+        expect(res2.status()).toBe(201);
+        const p2 = (await res2.json()).data;
+
+        // 1. Search by name (case-insensitive)
+        const searchNameRes = await pmApi.get(`/api/projects?search=alpha`);
+        expect(searchNameRes.status()).toBe(200);
+        const nameJson = await searchNameRes.json();
+        // Check if p1 is present and p2 is NOT present
+        const hasP1 = nameJson.data.some(p => p.id === p1.id);
+        const hasP2 = nameJson.data.some(p => p.id === p2.id);
+        expect(hasP1).toBe(true);
+        expect(hasP2).toBe(false);
+
+        // 2. Search by description (case-insensitive)
+        const searchDescRes = await pmApi.get(`/api/projects?search=deepmind`);
+        expect(searchDescRes.status()).toBe(200);
+        const descJson = await searchDescRes.json();
+        const hasP1Desc = descJson.data.some(p => p.id === p1.id);
+        const hasP2Desc = descJson.data.some(p => p.id === p2.id);
+        expect(hasP1Desc).toBe(true);
+        expect(hasP2Desc).toBe(false);
+    });
+
+    test('PM can delete a project and subsequent GET returns 404', async ({ pmApi, testClient }) => {
+        // Create a project
+        const createRes = await pmApi.post('/api/projects', {
+            data: { name: `Deletable Project ${Date.now()}`, clientId: testClient.id }
+        });
+        expect(createRes.status()).toBe(201);
+        const project = (await createRes.json()).data;
+
+        // Delete the project
+        const delRes = await pmApi.delete(`/api/projects/${project.id}`);
+        expect(delRes.status()).toBe(204);
+
+        // Verify it no longer exists
+        const getRes = await pmApi.get(`/api/projects/${project.id}`);
+        expect(getRes.status()).toBe(404);
+    });
+
 });

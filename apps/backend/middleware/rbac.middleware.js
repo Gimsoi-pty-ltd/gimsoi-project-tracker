@@ -1,5 +1,5 @@
 export const requireAnyRole = (roles = []) => {
-  const allowed = new Set(roles);
+  const allowed = new Set(Array.isArray(roles) ? roles : [roles]);
 
   return (req, res, next) => {
     if (!req.user) return res.status(401).json({ message: "Unauthenticated" });

@@ -17,6 +17,58 @@ test.describe('Task Creation & Pipeline Validation', () => {
         expect(json.data.status).toBe('TODO');
     });
 
+    test.describe('Phase-Aware Task Linkage', () => {
+        test('Task creation successfully links to a valid phaseId', async ({ pmApi, testProject }) => {
+            // 1. Create a phase
+            const phaseRes = await pmApi.post('/api/phases', {
+                data: { name: 'Backend Phase', projectId: testProject.id }
+            });
+            const phaseId = (await phaseRes.json()).data.id;
+
+            // 2. Create task with phaseId
+            const response = await pmApi.post('/api/tasks', {
+                data: {
+                    title: "Phase Task",
+                    projectId: testProject.id,
+                    phaseId: phaseId
+                }
+            });
+
+            expect(response.status()).toBe(201);
+            const json = await response.json();
+            expect(json.data.phaseId).toBe(phaseId);
+        });
+
+        test('Task creation blocks cross-project phase linking', async ({ adminApi, pmApi, testProject }) => {
+            // 1. Create a completely different project and phase
+            const newClientRes = await adminApi.post('/api/clients', {
+                data: { name: `Cross Client`, contactEmail: `cross@test.com` }
+            });
+            const otherProjectId = (await pmApi.post('/api/projects', {
+                data: { name: `Other Project`, clientId: (await newClientRes.json()).data.id }
+            }).then(r => r.json())).data.id;
+
+            const otherPhaseRes = await pmApi.post('/api/phases', {
+                data: { name: 'Other Phase', projectId: otherProjectId }
+            });
+            const otherPhaseId = (await otherPhaseRes.json()).data.id;
+
+            // 2. Attempt to create task in testProject using otherPhaseId
+            const response = await pmApi.post('/api/tasks', {
+                data: {
+                    title: "Invalid Phase Task",
+                    projectId: testProject.id,
+                    phaseId: otherPhaseId
+                }
+            });
+
+            expect(response.status()).toBe(400); // StateTransitionError mapping
+            const json = await response.json();
+            expect(json.success).toBe(false);
+            expect(json.message).toMatch(/Phase does not belong to the specified project/);
+        });
+    });
+
     test('PM Completes Task', async ({ pmApi, testProject, testSprint }) => {
         // Create the task — defaults to TODO
         const taskRes = await pmApi.post('/api/tasks', {
@@ -127,6 +179,7 @@ test.describe('Task Creation & Pipeline Validation', () => {
         expect(toDone.status()).toBe(200);
         const doneData = (await toDone.json()).data;
         expect(doneData.status).toBe('DONE');
+        expect(doneData.completedAt).not.toBeNull();
     });
 
     // --- Step 1 tests ---
@@ -485,6 +538,50 @@ test.describe('Task Creation & Pipeline Validation', () => {
             expect(res2.status()).toBe(200);
             const body2 = await res2.json();
             expect(body2.data.status).toBe('IN_PROGRESS');
+        });
+
+        test('Happy path: querying GET /api/tasks without projectId works and returns global task list', async ({ pmApi, testProject }) => {
+            // Seed a task with projectId to ensure at least one task exists
+            await pmApi.post('/api/tasks', {
+                data: { title: 'Global Query Task', projectId: testProject.id }
+            });
+
+            // Call GET /api/tasks without projectId
+            const res = await pmApi.get('/api/tasks');
+            expect(res.status()).toBe(200);
+            const body = await res.json();
+            expect(body.success).toBe(true);
+            expect(Array.isArray(body.data)).toBe(true);
+            expect(body.data.length).toBeGreaterThan(0);
+        });
+
+        test('CLIENT is completely blocked from creating or editing tasks', async ({ clientApi, pmApi, testProject }) => {
+            // Client attempts to create
+            const createRes = await clientApi.post('/api/tasks', {
+                data: { title: 'Client Task', projectId: testProject.id }
+            });
+            expect(createRes.status()).toBe(403);
+
+            // PM creates a task
+            const taskRes = await pmApi.post('/api/tasks', {
+                data: { title: 'PM Task', projectId: testProject.id }
+            });
+            const task = (await taskRes.json()).data;
+
+            // Client attempts to update
+            const updateRes = await clientApi.patch(`/api/tasks/${task.id}`, {
+                data: { status: 'IN_PROGRESS' }
+            });
+            expect(updateRes.status()).toBe(403);
+        });
+
+        test('Task creation with invalid status is rejected by schema (400)', async ({ pmApi, testProject }) => {
+            const createRes = await pmApi.post('/api/tasks', {
+                data: { title: 'Invalid Status Task', projectId: testProject.id, status: 'INVALID' }
+            });
+            expect(createRes.status()).toBe(400);
+            const body = await createRes.json();
+            expect(body.message).toContain('Task status cannot be set on creation');
         });
     });
 

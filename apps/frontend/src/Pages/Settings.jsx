@@ -4,6 +4,7 @@ import PreferencesSection from "./Settings-Page/PreferencesSection";
 import StorageSection from "./Settings-Page/StorageSection";
 import ActivitySection from "./Settings-Page/ActivitySection";
 
+
 export default function Settings() {
   return (
     <div className="min-h-screen bg-gray-50 p-8">
