@@ -16,8 +16,7 @@ export const assertOwnership = (resource, userId, userRole) => {
     }
 
     if (resource.createdByUserId !== userId) {
-        throw new ForbiddenError("You do not have permission to modify this resource. Only the creator or an ADMIN can perform this action.");
+        throw new ForbiddenError("You do not have permission to access this resource.");
     }
-
     return true;
 };

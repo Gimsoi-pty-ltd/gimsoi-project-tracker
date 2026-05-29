@@ -19,6 +19,7 @@ const SAFE_USER_SELECT = {
   lastLogin: true,
   createdAt: true,
   updatedAt: true,
+  version: true,
 };
 
 /**
@@ -85,18 +86,21 @@ export const adminCreateUser = async ({ email, password, fullName, role }) => {
  * @param {string} role — must be a valid Role enum value
  * @returns {User}
  */
-export const updateUserRole = async (userId, role) => {
+export const updateUserRole = async (userId, role, version) => {
   try {
     const user = await prisma.user.update({
-      where: { id: userId },
-      data: { role },
+      where: { id: userId, version },
+      data: { 
+        role,
+        version: { increment: 1 }
+      },
       select: SAFE_USER_SELECT,
     });
 
     return user;
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
-      throw new NotFoundError('User not found');
+      throw new ConflictError('User was modified by another user or not found. Please refresh and try again.');
     }
     throw error;
   }
@@ -113,16 +117,20 @@ export const updateUserRole = async (userId, role) => {
  */
 export const updateProfile = async (userId, data) => {
   try {
+    const { version, ...updateData } = data;
     const user = await prisma.user.update({
-      where: { id: userId },
-      data,
+      where: { id: userId, version },
+      data: {
+        ...updateData,
+        version: { increment: 1 }
+      },
       select: SAFE_USER_SELECT,
     });
 
     return user;
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
-      throw new NotFoundError('User not found');
+      throw new ConflictError('User was modified by another user or not found. Please refresh and try again.');
     }
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
       throw new ConflictError('This email address is already in use');
@@ -139,18 +147,21 @@ export const updateProfile = async (userId, data) => {
  * @param {string} avatarUrl — the URL or path where the uploaded file was stored
  * @returns {User}
  */
-export const updateAvatarUrl = async (userId, avatarUrl) => {
+export const updateAvatarUrl = async (userId, avatarUrl, version) => {
   try {
     const user = await prisma.user.update({
-      where: { id: userId },
-      data: { avatarUrl },
+      where: { id: userId, version: Number(version) },
+      data: { 
+        avatarUrl,
+        version: { increment: 1 }
+      },
       select: SAFE_USER_SELECT,
     });
 
     return user;
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
-      throw new NotFoundError('User not found');
+      throw new ConflictError('User was modified by another user or not found. Please refresh and try again.');
     }
     throw error;
   }

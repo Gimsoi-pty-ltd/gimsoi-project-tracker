@@ -27,7 +27,7 @@ export const injectAnalyticsScope = (req, res, next) => {
 
     // VIEW_ALL_ANALYTICS is ADMIN-only — the clean boundary between ADMIN and PM.
     // PM shares MANAGE_PROJECTS + UPDATE_ANY_TASK with ADMIN, so those cannot distinguish.
-    const isAdmin = hasPermission(role, 'VIEW_ALL_ANALYTICS');
+    const isAdmin = role === 'ADMIN';
 
     if (hasPermission(role, 'MANAGE_PROJECTS')) {
         // ADMIN: global scope (no owner filter)

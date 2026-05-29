@@ -8,8 +8,8 @@ import {
     createReportHandler,
     getReportsHandler,
     getReportPdfHandler,
-    createReportSchema,
 } from '../controllers/report.controller.js';
+import { createReportSchema } from '../schemas/report.schema.js';
 
 const router = express.Router();
 
