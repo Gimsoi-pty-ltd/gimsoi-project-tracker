@@ -8,6 +8,18 @@ export const teamAnalyticsSchema = z.object({
     cursor: z.string().optional(),
 });
 
+export const ingestHealthScore = async (req, res, next) => {
+    try {
+        // Just validate. We don't necessarily need to store it if the API just validates metrics incoming.
+        const { healthScoreSchema } = await import('../schemas/analytics.schema.js');
+        const validated = healthScoreSchema.parse(req.body);
+        
+        return res.status(200).json({ success: true, message: "Health score ingested" });
+    } catch (err) {
+        next(err);
+    }
+};
+
 export const getTeamPerformanceHandler = async (req, res, next) => {
     try {
         const { limit, cursor } = req.query;

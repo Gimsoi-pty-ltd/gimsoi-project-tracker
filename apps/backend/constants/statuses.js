@@ -23,5 +23,6 @@ export const SPRINT_STATUS = {
 export const PROJECT_STATUS = {
     DRAFT:     'DRAFT',
     ACTIVE:    'ACTIVE',
-    COMPLETED: 'COMPLETED'
+    COMPLETED: 'COMPLETED',
+    ARCHIVED:  'ARCHIVED'
 };

@@ -19,17 +19,13 @@ export const getUsers = async (req, res, next) => {
  */
 export const adminCreateUser = async (req, res, next) => {
   try {
-    const validatedData = adminCreateUserSchema.parse(req.body);
-    const user = await userService.adminCreateUser(validatedData);
+    const user = await userService.adminCreateUser(req.body);
     return res.status(201).json({
       success: true,
       message: 'User created successfully',
       data: user,
     });
   } catch (error) {
-    if (error.name === 'ZodError') {
-      return res.status(400).json({ success: false, message: error.errors[0].message });
-    }
     next(error);
   }
 };
@@ -41,22 +37,18 @@ export const adminCreateUser = async (req, res, next) => {
 export const updateUserRole = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const validatedData = updateUserRoleSchema.parse(req.body);
-
-    if (id === req.user.id) {
+    if (String(id) === String(req.user.id)) {
       throw new ForbiddenError('You cannot change your own role');
     }
-
-    const user = await userService.updateUserRole(id, validatedData.role);
+    
+    const { role, version } = req.body;
+    const user = await userService.updateUserRole(id, role, version);
     return res.status(200).json({
       success: true,
       message: 'User role updated successfully',
       data: user,
     });
   } catch (error) {
-    if (error.name === 'ZodError') {
-      return res.status(400).json({ success: false, message: error.errors[0].message });
-    }
     next(error);
   }
 };
@@ -66,17 +58,13 @@ export const updateUserRole = async (req, res, next) => {
  */
 export const updateProfile = async (req, res, next) => {
   try {
-    const validatedData = updateProfileSchema.parse(req.body);
-    const user = await userService.updateProfile(req.user.id, validatedData);
+    const user = await userService.updateProfile(req.user.id, req.body);
     return res.status(200).json({
       success: true,
       message: 'Profile updated successfully',
       data: user,
     });
   } catch (error) {
-    if (error.name === 'ZodError') {
-      return res.status(400).json({ success: false, message: error.errors[0].message });
-    }
     next(error);
   }
 };
@@ -95,7 +83,7 @@ export const updateAvatar = async (req, res, next) => {
     const b64 = req.file.buffer.toString('base64');
     const dataUri = `data:${req.file.mimetype};base64,${b64}`;
 
-    const user = await userService.updateAvatarUrl(req.user.id, dataUri);
+    const user = await userService.updateAvatarUrl(req.user.id, dataUri, req.body.version);
     
     return res.status(200).json({
       success: true,

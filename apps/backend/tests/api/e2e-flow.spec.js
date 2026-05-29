@@ -86,20 +86,20 @@ test.describe('E2E Backend Flow Verification', () => {
             taskId = (await taskRes.json()).data.id;
 
             const activateRes = await request.patch(`/api/sprints/${sprintId}/status`, {
-                data: { status: 'ACTIVE' },
+                data: { status: 'ACTIVE', version: 1 },
                 headers: { 'x-csrf-token': csrfToken }
             });
             expect(activateRes.ok()).toBeTruthy();
 
             const progressRes = await request.patch(`/api/tasks/${taskId}`, {
-                data: { status: 'IN_PROGRESS' },
+                data: { status: 'IN_PROGRESS', version: 1 },
                 headers: { 'x-csrf-token': csrfToken }
             });
             if (!progressRes.ok()) console.error('IN_PROGRESS failed:', await progressRes.text());
             expect(progressRes.ok()).toBeTruthy();
 
             const doneResPass = await request.patch(`/api/tasks/${taskId}`, {
-                data: { status: 'DONE' },
+                data: { status: 'DONE', version: 2 },
                 headers: { 'x-csrf-token': csrfToken }
             });
             if (!doneResPass.ok()) console.error('DONE failed:', await doneResPass.text());
@@ -107,7 +107,10 @@ test.describe('E2E Backend Flow Verification', () => {
         });
 
         await test.step('Phase 4: RBAC & Negative Scenarios', async () => {
-            await request.post('/api/auth/logout');
+            const logoutRes1 = await request.post('/api/auth/logout', {
+                headers: { 'x-csrf-token': csrfToken }
+            });
+            expect(logoutRes1.ok()).toBeTruthy();
 
             const internSignupRes = await request.post('/api/auth/signup', {
                 data: { fullName: 'Intern User', email: internEmail, password }
@@ -125,7 +128,9 @@ test.describe('E2E Backend Flow Verification', () => {
             // Re-fetch CSRF token after intern login
             const csrfResAfterInternLogin = await request.get('/api/auth/csrf-token');
             expect(csrfResAfterInternLogin.ok()).toBeTruthy();
-            csrfToken = (await csrfResAfterInternLogin.json()).csrfToken || '';
+            const internState = await request.storageState();
+            const internXsrfCookie = internState.cookies.find(c => c.name === 'XSRF-TOKEN');
+            csrfToken = internXsrfCookie ? decodeURIComponent(internXsrfCookie.value) : '';
 
             const failProjRes = await request.post('/api/projects', {
                 data: { name: 'Illegal Project', clientId },
@@ -136,9 +141,9 @@ test.describe('E2E Backend Flow Verification', () => {
             const failDeleteRes = await request.delete(`/api/tasks/${taskId}`, {
                 headers: { 'x-csrf-token': csrfToken }
             });
-            // It could be 400 (if task is DONE) or 403 (Forbidden). 
-            // In our flow, it's DONE, so 400 is actually expected from the state machine guard.
-            expect([400, 403]).toContain(failDeleteRes.status());
+            // Task is in DONE state; the state machine guard (400) fires before RBAC (403).
+            // If this ever returns 403, the state machine guard was bypassed — regression.
+            expect(failDeleteRes.status()).toBe(400);
         });
 
         await test.step('Phase 5: Analytics Validation', async () => {
@@ -151,7 +156,9 @@ test.describe('E2E Backend Flow Verification', () => {
             // Re-fetch CSRF token after admin re-login
             const csrfResAfterAdminLogin = await request.get('/api/auth/csrf-token');
             expect(csrfResAfterAdminLogin.ok()).toBeTruthy();
-            csrfToken = (await csrfResAfterAdminLogin.json()).csrfToken || '';
+            const adminState = await request.storageState();
+            const adminXsrfCookie = adminState.cookies.find(c => c.name === 'XSRF-TOKEN');
+            csrfToken = adminXsrfCookie ? decodeURIComponent(adminXsrfCookie.value) : '';
 
             const summaryRes = await request.get(`/api/tasks/projects/${projectId}/summary`);
             expect(summaryRes.ok()).toBeTruthy();
@@ -162,19 +169,22 @@ test.describe('E2E Backend Flow Verification', () => {
         });
 
         await test.step('Phase 6: Lifecycle Constraints & Teardown', async () => {
-            await request.patch(`/api/sprints/${sprintId}/status`, {
-                data: { status: 'CLOSED' },
+            const closeSprintRes = await request.patch(`/api/sprints/${sprintId}/status`, {
+                data: { status: 'CLOSED', version: 2 },
                 headers: { 'x-csrf-token': csrfToken }
             });
+            expect(closeSprintRes.ok()).toBeTruthy();
 
-            await request.patch(`/api/projects/${projectId}`, {
-                data: { status: 'COMPLETED' },
+            const completeProjectRes = await request.patch(`/api/projects/${projectId}`, {
+                data: { status: 'COMPLETED', version: 1 },
                 headers: { 'x-csrf-token': csrfToken }
             });
+            expect(completeProjectRes.ok()).toBeTruthy();
 
-            await request.post('/api/auth/logout', {
+            const finalLogoutRes = await request.post('/api/auth/logout', {
                 headers: { 'x-csrf-token': csrfToken }
             });
+            expect(finalLogoutRes.ok()).toBeTruthy();
         });
     });
 

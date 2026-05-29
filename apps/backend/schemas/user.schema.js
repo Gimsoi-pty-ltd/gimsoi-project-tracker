@@ -12,12 +12,14 @@ export const adminCreateUserSchema = z.object({
 
 export const updateUserRoleSchema = z.object({
   role: RoleEnum,
+  version: z.number().int().positive('version is required for optimistic locking'),
 });
 
 export const updateProfileSchema = z.object({
   fullName: z.string().min(1).max(100).optional(),
   email: z.string().email('Invalid email address').optional(),
+  version: z.number().int().positive('version is required for optimistic locking'),
 }).refine(
-  (data) => Object.keys(data).length > 0,
-  { message: 'At least one field must be provided for update' }
+  (data) => Object.keys(data).length > 1,
+  { message: 'At least one field (besides version) must be provided for update' }
 );

@@ -11,15 +11,17 @@ import {
     getPhaseByIdHandler,
     updatePhaseHandler,
     deletePhaseHandler,
-    createPhaseSchema,
-    updatePhaseSchema,
+    getMilestoneStatusHandler,
 } from '../controllers/phase.controller.js';
+import { createPhaseSchema, updatePhaseSchema } from '../schemas/phase.schema.js';
 
 const router = express.Router();
 
 // Specific schema for the list query
 const listPhasesSchema = z.object({
-    projectId: z.string().uuid('projectId must be a valid UUID')
+    projectId: z.string().uuid('projectId must be a valid UUID'),
+    limit: z.string().optional(),
+    cursor: z.string().optional(),
 });
 
 /**
@@ -33,6 +35,11 @@ router.get('/', readLimiter, verifyToken, authorize('VIEW_PHASES'), validate(lis
  * Allowed: ADMIN, PM, INTERN, CLIENT
  */
 router.get('/:id', readLimiter, verifyToken, authorize('VIEW_PHASES'), getPhaseByIdHandler);
+
+/**
+ * GET /api/phases/:id/milestone — VIEW_PHASES
+ */
+router.get('/:id/milestone', readLimiter, verifyToken, authorize('VIEW_PHASES'), getMilestoneStatusHandler);
 
 /**
  * POST /api/phases — MANAGE_PHASES
