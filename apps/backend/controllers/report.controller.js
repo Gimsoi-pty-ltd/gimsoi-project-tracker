@@ -1,12 +1,5 @@
-import { z } from 'zod';
 import { createReport, getReportById, getReports } from '../services/report.service.js';
 import { generateProjectReportPDF } from '../utils/pdf.js';
-
-export const createReportSchema = z.object({
-    name: z.string().min(1, 'Report name is required'),
-    type: z.string().min(1, 'Report type is required'),
-    projectId: z.string().uuid().optional().nullish(),
-});
 
 export const createReportHandler = async (req, res, next) => {
     try {

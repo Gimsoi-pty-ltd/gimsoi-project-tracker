@@ -24,7 +24,7 @@ export const signup = async (req, res) => {
         const userAlreadyExists = await prisma.user.findUnique({ where: { email } });
         if (userAlreadyExists) {
             return res
-                .status(400)
+                .status(409)
                 .json({ success: false, message: "User already exists" });
         }
 
@@ -267,7 +267,7 @@ export const checkAuth = async (req, res) => {
 
         if (!user) {
             return res
-                .status(400)
+                .status(401)
                 .json({ success: false, message: "User not found" });
         }
 

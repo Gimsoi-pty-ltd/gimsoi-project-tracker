@@ -25,4 +25,19 @@ test.describe('Client API Validation', () => {
 
         expect(response.status()).toBe(403);
     });
+
+    test('ADMIN can update a Client with versioning', async ({ adminApi }) => {
+        const createRes = await adminApi.post('/api/clients', {
+            data: { name: 'Update Test Client', contactEmail: 'update@test.com' }
+        });
+        const client = (await createRes.json()).data;
+
+        const response = await adminApi.patch(`/api/clients/${client.id}`, {
+            data: { name: 'Updated Client Name', version: client.version }
+        });
+
+        expect(response.status()).toBe(200);
+        const json = await response.json();
+        expect(json.data.name).toBe('Updated Client Name');
+    });
 });

@@ -59,10 +59,11 @@ export const getProjectAnalytics = async ({ projectId, taskFilter, ownerIdForRaw
 
 const getBottleneckLabels = async ({ projectId, taskFilter, ownerIdForRaw }) => {
     const queryParts = [Prisma.sql`
-        SELECT   label, COUNT(*)::int as count
+        SELECT   l.name as label, COUNT(*)::int as count
         FROM     "Task" t
         JOIN     "Project" p ON t."projectId" = p.id
-        CROSS JOIN LATERAL unnest(t.labels) as label
+        JOIN     "_LabelToTask" lt ON lt."B" = t.id
+        JOIN     "Label" l ON l.id = lt."A"
         WHERE    t.status IN ('BLOCKED'::${Prisma.raw(TASK_STATUS_ENUM)}, 'IN_PROGRESS'::${Prisma.raw(TASK_STATUS_ENUM)})
     `];
 
@@ -73,7 +74,7 @@ const getBottleneckLabels = async ({ projectId, taskFilter, ownerIdForRaw }) => 
         queryParts.push(Prisma.sql`AND p."createdByUserId" = ${ownerIdForRaw}`);
     }
 
-    queryParts.push(Prisma.sql`GROUP BY label ORDER BY count DESC LIMIT 3`);
+    queryParts.push(Prisma.sql`GROUP BY l.name ORDER BY count DESC LIMIT 3`);
 
     const rows = await prisma.$queryRaw(Prisma.join(queryParts, ' '));
     return rows;

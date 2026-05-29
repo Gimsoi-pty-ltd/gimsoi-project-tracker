@@ -6,8 +6,12 @@ import {
   createClient,
   getClients,
   getClientById,
+  updateClient,
+  deleteClient,
 } from "../controllers/client.controller.js";
 import { requireCSRF } from "../middleware/csrf.middleware.js";
+import { validate } from "../middleware/validate.middleware.js";
+import { createClientSchema, updateClientSchema } from "../schemas/client.schema.js";
 
 const router = express.Router();
 
@@ -15,7 +19,9 @@ const router = express.Router();
 router.get("/", readLimiter, verifyToken, authorize("VIEW_PROGRESS"), getClients);
 router.get("/:id", readLimiter, verifyToken, authorize("VIEW_PROGRESS"), getClientById);
 
-// Only Admin/PM can create
-router.post("/", writeLimiter, verifyToken, authorize("MANAGE_CLIENTS"), requireCSRF, createClient);
+// Only Admin/PM can create, update, delete
+router.post("/", writeLimiter, verifyToken, authorize("MANAGE_CLIENTS"), requireCSRF, validate(createClientSchema), createClient);
+router.patch("/:id", writeLimiter, verifyToken, authorize("MANAGE_CLIENTS"), requireCSRF, validate(updateClientSchema), updateClient);
+router.delete("/:id", writeLimiter, verifyToken, authorize("MANAGE_CLIENTS"), requireCSRF, deleteClient);
 
 export default router;

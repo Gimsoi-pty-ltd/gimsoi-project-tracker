@@ -2,6 +2,7 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import morgan from "morgan";
 import methodOverride from "method-override";
 import authRoutes from "./routes/auth.route.js";
 import tasksRoutes from "./routes/task.route.js";
@@ -14,12 +15,17 @@ import userRoutes from "./routes/user.route.js";
 import phaseRoutes from "./routes/phase.route.js";
 import reportRoutes from "./routes/report.route.js";
 import searchRoutes from "./routes/search.route.js";
+import commentRoutes from "./routes/comment.route.js";
+import labelRoutes from "./routes/label.route.js";
+
+import { swaggerSpec } from "./lib/swagger.js";
+import swaggerUi from "swagger-ui-express";
+import { healthLimiter, authLimiter } from "./middleware/rate-limiter.middleware.js";
+import { ZodError } from "zod";
+import pkg from "./lib/generated/prisma/index.js";
+const { Prisma } = pkg;
 import { validateEnv } from "./utils/validateEnv.js";
 import { csrfProtection, csrfErrorHandler, generateCsrfToken } from "./middleware/csrf.middleware.js";
-import { populateUser } from "./middleware/populate-user.middleware.js";
-import swaggerUi from "swagger-ui-express";
-import { swaggerSpec } from "./lib/swagger.js";
-import { healthLimiter, authLimiter } from "./middleware/rate-limiter.middleware.js";
 import { verifyToken } from "./middleware/verify-token.middleware.js";
 import registerTestingRoutes from "./utils/registerTestingRoutes.js";
 
@@ -32,6 +38,8 @@ if (process.env.NODE_ENV === "production" && !process.env.CLIENT_URL) {
 }
 
 const app = express();
+app.use(morgan("dev"));
+app.disable("x-powered-by");
 app.set("trust proxy", 1);
 
 // CORS — origin callback for explicit multi-origin matching
@@ -109,17 +117,47 @@ app.use("/api/phases", phaseRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/search", searchRoutes);
 app.use("/api/analytics", analyticsRoutes);
+app.use("/api/comments", commentRoutes);
+app.use("/api/labels", labelRoutes);
 
 // CSRF error handler — must be after routes
 app.use(csrfErrorHandler);
 
 // Global Error Handler
 app.use((err, req, res, next) => {
-  const statusCode = err.statusCode || 500;
+  let statusCode = err.statusCode || 500;
+  let message = err.message || "Internal Server Error";
+
+  // Semantic Mapping: Zod Validation Errors
+  if (err instanceof ZodError || err.name === 'ZodError') {
+    statusCode = 400;
+    message = err.errors?.[0]?.message || err.message;
+  } 
+  // Semantic Mapping: Prisma Database Errors
+  else if (err.name === 'PrismaClientKnownRequestError' || (err.constructor && err.constructor.name === 'PrismaClientKnownRequestError')) {
+    if (err.code === "P2002") {
+      statusCode = 409;
+      message = "A resource with that value already exists.";
+    } else if (err.code === "P2025") {
+      statusCode = 404;
+      message = "The requested resource was not found.";
+    } else if (err.code === "P2003") {
+      statusCode = 409;
+      message = "Operation failed due to a missing related resource.";
+    } else if (err.code === "P2009" || err.code === "P2019") {
+      statusCode = 400;
+      message = `Invalid data provided: ${err.message}`;
+    }
+  }
+
   if (statusCode === 500) {
     console.error("[Global Error Handler]", err);
+    if (process.env.NODE_ENV === "production") {
+      message = "An unexpected server error occurred. Please contact support.";
+    }
   }
-  return res.status(statusCode).json({ success: false, message: err.message || "Internal Server Error" });
+
+  return res.status(statusCode).json({ success: false, message });
 });
 
 // Test-only routes
