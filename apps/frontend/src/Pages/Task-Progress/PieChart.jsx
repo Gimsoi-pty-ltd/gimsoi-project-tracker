@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 
 const data = [
   { label: "Complete", pct: 75, color: "#0047AB" },

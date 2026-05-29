@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { X, AlertCircle, ChevronDown, Check, Calendar } from "lucide-react";
 import NavyButton from "../Buttons";
 import { useProjectStore } from "../../store/projectStore";

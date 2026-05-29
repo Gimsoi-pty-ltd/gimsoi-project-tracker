@@ -1,38 +1,49 @@
-import React from "react";
-import { useNavigate } from 'react-router-dom';
+// src/Components/Dashboard/DaysRemaining.jsx
+
+import { useNavigate } from "react-router-dom";
+import { useSprintStore } from "../../store/sprintStore";
 
 const DaysRemaining = () => {
-  const navigate = useNavigate();
+  const navigate   = useNavigate();
+  const { sprints, isLoading } = useSprintStore();
 
-  // Example sprint data – later replace with real data source
-  const sprintData = {
-    sprintId: 'sprint-2',
-    sprintName: 'Days Remaining',
-    goal: 'Sprint deadline',
-    completion: 67,
-    totalTasks: 25,
-    completedTasks: 20,
-    daysRemaining: 5,
-    status: 'Active'
-  };
+  const activeSprint = sprints.find((s) => s.status === "active") || sprints[0];
 
-  const daysRemaining = sprintData.daysRemaining ?? 0;
-  const isUrgent = daysRemaining <= 3;
+  
+  const daysRemaining = React.useMemo(() => {
+    if (!activeSprint?.endDate) return null;
+    const end  = new Date(activeSprint.endDate);
+    const now  = new Date();
+    const diff = Math.ceil((end - now) / (1000 * 60 * 60 * 24));
+    return Math.max(0, diff);
+  }, [activeSprint?.endDate]);
 
-  const handleCardClick = () => {
-    navigate('/days-remaining', { state: sprintData });
+ 
+  const sprintDuration = React.useMemo(() => {
+    if (!activeSprint?.startDate || !activeSprint?.endDate) return null;
+    const start = new Date(activeSprint.startDate);
+    const end   = new Date(activeSprint.endDate);
+    return Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+  }, [activeSprint]);
+
+  const isUrgent   = daysRemaining !== null && daysRemaining <= 3;
+  const arcColor   = isUrgent ? "#ef4444" : "#FF8C00";
+
+  
+  const arcProgress = sprintDuration && daysRemaining !== null
+    ? Math.round(((sprintDuration - daysRemaining) / sprintDuration) * 44) // 44 = approx arc length
+    : 22; // default half-filled
+
+  const handleClick = () => {
+    navigate("/days-remaining", { state: { sprint: activeSprint } });
   };
 
   return (
     <div
-      onClick={handleCardClick}
-      className={`
-        bg-white p-6 rounded-[20px] 
-        border border-gray-100 shadow-sm 
-        text-center flex flex-col items-center justify-center h-full 
-        hover:shadow-md transition-shadow cursor-pointer
-        ${isUrgent ? 'border-red-200 bg-red-50/30' : ''}
-      `}
+      onClick={handleClick}
+      className={`bg-white p-6 rounded-[20px] border shadow-sm text-center flex flex-col items-center justify-center h-full hover:shadow-md transition-shadow cursor-pointer ${
+        isUrgent ? "border-red-200 bg-red-50/30" : "border-gray-100"
+      }`}
     >
       <h3 className="text-md font-bold text-blue-500 mb-4 uppercase tracking-wider">
         Days Remaining
@@ -40,40 +51,32 @@ const DaysRemaining = () => {
 
       <div className="relative w-40 h-20 mb-2">
         <svg viewBox="0 0 36 21" className="w-full h-full">
-          {/* Background Arc */}
+          {/* Background arc */}
+          <path d="M4 19 A14 14 0 0 1 32 19" fill="none" stroke="#F1F5F9" strokeWidth="4" strokeLinecap="round" />
+          {/* Progress arc */}
           <path
             d="M4 19 A14 14 0 0 1 32 19"
             fill="none"
-            stroke="#F1F5F9"
+            stroke={arcColor}
             strokeWidth="4"
-            strokeLinecap="round"
-          />
-
-          {/* Progress Arc */}
-          <path
-            d="M4 19 A14 14 0 0 1 32 19"
-            fill="none"
-            stroke={isUrgent ? "#ef4444" : "#FF8C00"}
-            strokeWidth="4"
-            strokeDasharray="60 100"
+            strokeDasharray={`${arcProgress} 100`}
             strokeLinecap="round"
           />
         </svg>
 
         <div className="absolute bottom-1 inset-x-0 flex flex-col items-center">
-          <span
-            className={`
-              text-4xl font-extrabold leading-none
-              ${isUrgent ? 'text-red-600' : 'text-gray-800'}
-            `}
-          >
-            {daysRemaining}
-          </span>
+          {isLoading ? (
+            <div className="w-6 h-6 border-2 border-orange-400 border-t-transparent rounded-full animate-spin" />
+          ) : (
+            <span className={`text-4xl font-extrabold leading-none ${isUrgent ? "text-red-600" : "text-gray-800"}`}>
+              {daysRemaining ?? "—"}
+            </span>
+          )}
         </div>
       </div>
 
       <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mt-1">
-        Deadline Approaching
+        {activeSprint?.name ?? "No active sprint"}
       </p>
     </div>
   );

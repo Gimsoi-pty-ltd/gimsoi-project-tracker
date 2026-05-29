@@ -256,6 +256,10 @@ export const resetPassword = async (req, res) => {
 
 export const checkAuth = async (req, res) => {
     try {
+        if (!req.user?.id) {
+            return res.status(401).json({ success: false, message: "Unauthorized - no token provided" });
+        }
+
         const user = await prisma.user.findUnique({
             where: { id: req.user.id },
             omit: { password: true },

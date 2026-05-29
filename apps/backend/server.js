@@ -91,7 +91,7 @@ if (isNonProd) {
 }
 
 // Register the public CSRF token endpoint before the global CSRF protection
-app.get("/api/auth/csrf-token", authLimiter, verifyToken, (req, res) => {
+app.get("/api/auth/csrf-token", authLimiter, populateUser, (req, res) => {
     try {
         if (!req.user || !req.user.id) {
             return res.json({ success: true, csrfToken: null, message: "No active session; CSRF not required." });

@@ -1,271 +1,155 @@
-import React, { useState } from "react";
-import { Search, Plus, Download, Upload } from "lucide-react";
+// src/Pages/Users/Teams.jsx
+import { useState, useEffect } from "react";
+import { useProjectStore } from "../../store/projectStore";
+import { resourceAPI } from "../../api/api";
+import { Plus, Search, Users } from "lucide-react";
 
-export default function Teams() {
-  const [openModal, setOpenModal] = useState(false);
+const statusColor = (status) => {
+  const s = status?.toLowerCase();
+  if (s === "active" || s === "in_progress") return "bg-green-100 text-green-700";
+  if (s === "completed") return "bg-blue-100 text-blue-700";
+  if (s === "on_hold" || s === "on hold") return "bg-yellow-100 text-yellow-700";
+  return "bg-gray-100 text-gray-600";
+};
 
-  const teams = [
-    { name: "Team Alpha", project: "Project Ares", dept: "Engineering", lead: "John Doe", members: 15, status: "Active" },
-    { name: "Team Beta", project: "Project Ares", dept: "Engineering", lead: "John Doe", members: 16, status: "Active" },
-    { name: "Team Gamma", project: "Project Aeta", dept: "Engineering", lead: "Mark Bayenn", members: 12, status: "On Hold" },
-    { name: "Team Alpha", project: "Project Ares", dept: "Engineering", lead: "John Doe", members: 15, status: "Active" },
-    { name: "Team Beta", project: "Project Ares", dept: "Engineering", lead: "John Doe", members: 14, status: "Active" },
-    { name: "Team Feta", project: "Project Ares", dept: "Engineering", lead: "Mark Bayenn", members: 12, status: "On Hold" },
-    { name: "Team Gamma", project: "Project Anns", dept: "Engineering", lead: "John Doe", members: 8, status: "Active" },
-    { name: "Team Heni", project: "Project Ares", dept: "Engineering", lead: "John Doe", members: 17, status: "Active" },
-    { name: "Team Alpha", project: "Project Ares", dept: "Engineering", lead: "John Doe", members: 9, status: "On Hold" },
-    { name: "Team Beta", project: "Project Ares", dept: "Engineering", lead: "John Doe", members: 6, status: "Archived" },
-  ];
+export default function TeamsPage() {
+  const { projects, fetchProjects } = useProjectStore();
+  const [teamMembers, setTeamMembers] = useState([]);
+  const [search, setSearch] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const statusColor = (status) => {
-    if (status === "Active")
-      return "bg-green-100 text-green-700";
-    if (status === "On Hold")
-      return "bg-yellow-100 text-yellow-700";
-    if (status === "Archived")
-      return "bg-gray-200 text-gray-600";
-  };
+  useEffect(() => {
+    fetchProjects();
+    const fetchMembers = async () => {
+      setIsLoading(true);
+      try {
+        const response = await resourceAPI.get("/users");
+        setTeamMembers(response.data.users || response.data || []);
+      } catch {
+        setTeamMembers([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchMembers();
+  }, []);
+
+  
+  const teams = projects
+    .map((project) => {
+      const projectMembers = teamMembers.filter((m) =>
+        m.projectIds?.includes(project.id) || m.projects?.includes(project.id)
+      );
+      const lead = projectMembers.find((m) => m.role === "Lead" || m.role === "Manager") || projectMembers[0];
+      return {
+        id:      project.id,
+        name:    `${project.name} Team`,
+        project: project.name,
+        client:  project.clientName || project.client || "—",
+        lead:    lead?.fullName || lead?.name || "—",
+        members: projectMembers.length || teamMembers.length, 
+        status:  project.status,
+        dept:    project.department || "Engineering",
+      };
+    })
+    .filter((t) =>
+      t.name.toLowerCase().includes(search.toLowerCase()) ||
+      t.project.toLowerCase().includes(search.toLowerCase()) ||
+      t.client.toLowerCase().includes(search.toLowerCase())
+    );
 
   return (
-    <div className="p-8 bg-gray-50 min-h-screen">
+    <div className="p-4 md:p-8 bg-gray-50 min-h-screen">
+      <div className="max-w-7xl mx-auto">
 
-      {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-
-        <h1 className="text-2xl font-semibold text-gray-800">
-          Manage Teams
-        </h1>
-
-        <div className="flex items-center gap-3">
-
-          {/* Search */}
-          <div className="flex items-center bg-white border rounded-lg px-3 py-2 w-72">
-            <Search size={16} className="text-gray-400 mr-2" />
-            <input
-              className="outline-none w-full text-sm"
-              placeholder="Search teams by name, project, department..."
-            />
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Teams</h1>
+            <p className="text-sm text-gray-500 mt-1">{teams.length} teams · {teamMembers.length} members</p>
           </div>
-
-          {/* Add */}
-          <button
-            onClick={() => setOpenModal(true)}
-            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-          >
-            <Plus size={16} />
-            Add Team
+          <button className="inline-flex items-center gap-2 bg-[#002D62] hover:bg-[#001f44] text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+            <Plus size={18} /> Create Team
           </button>
-
-          {/* Import */}
-          <button className="flex items-center gap-2 border px-4 py-2 rounded-lg bg-white">
-            <Download size={16} />
-            Import
-          </button>
-
-          {/* Export */}
-          <button className="flex items-center gap-2 border px-4 py-2 rounded-lg bg-white">
-            <Upload size={16} />
-            Export
-          </button>
-
-        </div>
-      </div>
-
-
-      {/* Table */}
-      <div className="bg-white border rounded-xl overflow-hidden">
-
-        <table className="w-full text-sm">
-
-          <thead className="bg-gray-100 text-gray-600">
-            <tr>
-              <th className="p-3 text-left">Team Name</th>
-              <th className="p-3 text-left">Primary Project</th>
-              <th className="p-3 text-left">Department</th>
-              <th className="p-3 text-left">Team Lead</th>
-              <th className="p-3 text-left">Members</th>
-              <th className="p-3 text-left">Status</th>
-              <th className="p-3 text-left">Actions</th>
-            </tr>
-          </thead>
-
-          <tbody>
-
-            {teams.map((team, index) => (
-
-              <tr key={index} className="border-t hover:bg-gray-50">
-
-                <td className="p-3 font-medium">{team.name}</td>
-
-                <td className="p-3">{team.project}</td>
-
-                <td className="p-3">{team.dept}</td>
-
-                <td className="p-3 flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-full bg-gray-300"></div>
-                  {team.lead}
-                </td>
-
-                <td className="p-3">{team.members}</td>
-
-                <td className="p-3">
-                  <span
-                    className={`px-3 py-1 rounded-full text-xs font-medium ${statusColor(
-                      team.status
-                    )}`}
-                  >
-                    {team.status}
-                  </span>
-                </td>
-
-                <td className="p-3 flex gap-2">
-
-                  <button className="border px-3 py-1 rounded-md text-sm bg-white">
-                    View Team
-                  </button>
-
-                  <button className="border px-3 py-1 rounded-md text-sm bg-white">
-                    Edit
-                  </button>
-
-                  <button className="border px-3 py-1 rounded-md text-sm bg-white">
-                    View Members
-                  </button>
-
-                </td>
-
-              </tr>
-
-            ))}
-
-          </tbody>
-
-        </table>
-
-      </div>
-
-
-      {/* Footer */}
-      <div className="flex justify-between items-center mt-4 text-sm text-gray-600">
-
-        <span>Showing 1-12 of 34 teams</span>
-
-        <div className="flex gap-3">
-          <span className="font-semibold text-blue-600">1</span>
-          <span>2</span>
-          <span>3</span>
-          <span>4</span>
-          <span>...</span>
-          <span>8</span>
         </div>
 
-      </div>
-
-
-      {/* Modal */}
-      {openModal && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center">
-
-          <div className="bg-white rounded-xl w-[650px] p-6">
-
-          <div className="md:flex md:items-center md:justify-between mb-8">
-              <div>
-                <h2 className="text-2xl font-bold text-slate-900">Manage Teams</h2>
-                <nav className="flex mt-1 text-sm text-gray-500">
-                  <Link to="/users" >
-                  <span className="text-slate-900 hover:text-slate-600 cursor-pointer">User Management</span>
-                  </Link>
-                  <span className="mx-2">/</span>
-                  <span>Teams</span>
-                </nav>
-              </div>
+        {/* Search */}
+        <div className="relative mb-6">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search teams..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+          />
         </div>
-            <div className="grid grid-cols-2 gap-4">
 
-              <div className="col-span-2">
-                <label className="text-sm text-gray-600">
-                  Team Name
-                </label>
-                <input
-                  className="w-full border rounded-lg p-2 mt-1"
-                  placeholder="Enter team name"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm text-gray-600">
-                  Associated Primary Project
-                </label>
-                <select className="w-full border rounded-lg p-2 mt-1">
-                  <option>Project Ares</option>
-                  <option>Project Atlas</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="text-sm text-gray-600">
-                  Department
-                </label>
-                <select className="w-full border rounded-lg p-2 mt-1">
-                  <option>Engineering</option>
-                  <option>Marketing</option>
-                  <option>Sales</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="text-sm text-gray-600">
-                  Assign Team Lead
-                </label>
-                <select className="w-full border rounded-lg p-2 mt-1">
-                  <option>John Doe</option>
-                  <option>Mark Bayenn</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="text-sm text-gray-600">
-                  Initial Status
-                </label>
-                <select className="w-full border rounded-lg p-2 mt-1">
-                  <option>Active</option>
-                  <option>On Hold</option>
-                </select>
-              </div>
-
-              <div className="col-span-2">
-                <label className="text-sm text-gray-600">
-                  Notes / Description
-                </label>
-                <textarea
-                  className="w-full border rounded-lg p-2 mt-1"
-                  rows="3"
-                ></textarea>
-              </div>
-
+        {/* Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+          {[
+            { label: "Total Teams",   value: teams.length },
+            { label: "Total Members", value: teamMembers.length },
+            { label: "Active Teams",  value: teams.filter((t) => t.status?.toLowerCase() === "active").length },
+          ].map(({ label, value }) => (
+            <div key={label} className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+              <p className="text-sm text-gray-500">{label}</p>
+              <p className="text-2xl font-bold text-gray-800 mt-1">{value}</p>
             </div>
+          ))}
+        </div>
 
-
-            {/* Buttons */}
-            <div className="flex justify-end gap-3 mt-6">
-
-              <button
-                onClick={() => setOpenModal(false)}
-                className="px-4 py-2 border rounded-lg"
-              >
-                Cancel
-              </button>
-
-              <button className="px-4 py-2 bg-blue-600 text-white rounded-lg">
-                Save Team
-              </button>
-
-            </div>
-
+        {/* Team Table */}
+        {isLoading ? (
+          <div className="bg-white rounded-xl border border-gray-200 p-12 text-center text-gray-400">Loading teams...</div>
+        ) : teams.length === 0 ? (
+          <div className="bg-white rounded-xl border border-gray-200 p-12 text-center text-gray-400">
+            {search ? `No teams found for "${search}"` : "No projects found to build teams from."}
           </div>
-
-        </div>
-      )}
+        ) : (
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm min-w-[600px]">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="px-6 py-4 font-medium text-gray-600">Team</th>
+                    <th className="px-6 py-4 font-medium text-gray-600">Project</th>
+                    <th className="px-6 py-4 font-medium text-gray-600">Client</th>
+                    <th className="px-6 py-4 font-medium text-gray-600">Lead</th>
+                    <th className="px-6 py-4 font-medium text-gray-600 text-center">Members</th>
+                    <th className="px-6 py-4 font-medium text-gray-600">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {teams.map((team) => (
+                    <tr key={team.id} className="hover:bg-gray-50 transition">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-[#002D62] text-white flex items-center justify-center flex-shrink-0">
+                            <Users size={14} />
+                          </div>
+                          <span className="font-medium text-gray-900">{team.name}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-gray-600">{team.project}</td>
+                      <td className="px-6 py-4 text-gray-600">{team.client}</td>
+                      <td className="px-6 py-4 text-gray-600">{team.lead}</td>
+                      <td className="px-6 py-4 text-center">
+                        <span className="bg-blue-100 text-blue-700 text-xs font-medium px-2 py-1 rounded-full">{team.members}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`text-xs font-medium px-2 py-1 rounded-full ${statusColor(team.status)}`}>
+                          {team.status ?? "—"}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { ArrowLeft, Mail, ChevronLeft, Loader } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import NavyButton from '../../Components/Buttons';

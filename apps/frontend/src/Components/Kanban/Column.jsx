@@ -1,4 +1,3 @@
-import React from 'react';
 import KanbanCard from './KanbanCard';
 
 const Column = ({

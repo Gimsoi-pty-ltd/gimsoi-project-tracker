@@ -9,18 +9,23 @@ export const useTaskStore = create((set) => ({
 
     getTasks: async (filters = {}) => {
         set({ isLoading: true, error: null });
-        setTimeout(() => {
-            set({ 
-                tasks: [
-                    { id: 101, title: "Design Homepage", status: "completed", priority: "high" },
-                    { id: 102, title: "Setup Database", status: "in_progress", priority: "critical" },
-                    { id: 103, title: "Write API Docs", status: "blocked", priority: "medium" },
-                    { id: 104, title: "Fix Login Bug", status: "blocked", priority: "high", dueDate: new Date(Date.now() - 86400000).toISOString() },
-                    { id: 105, title: "Update Dependencies", status: "todo", priority: "low", dueDate: new Date(Date.now() + 86400000).toISOString() }
-                ], 
-                isLoading: false 
-            });
-        }, 500);
+        try {
+            const params = new URLSearchParams();
+            if (filters.projectId) params.append("projectId", filters.projectId);
+            if (filters.status) params.append("status", filters.status);
+            if (filters.isBlocked !== undefined) params.append("isBlocked", String(filters.isBlocked));
+            if (filters.isOverdue !== undefined) params.append("isOverdue", String(filters.isOverdue));
+            if (filters.limit) params.append("limit", String(filters.limit));
+            if (filters.cursor) params.append("cursor", filters.cursor);
+
+            const response = await resourceAPI.get(`/tasks${params.toString() ? `?${params.toString()}` : ""}`);
+            const tasksData = response.data.data || [];
+            set({ tasks: tasksData, isLoading: false });
+            return response.data;
+        } catch (error) {
+            set({ error: error.response?.data?.message || "Error fetching tasks", isLoading: false });
+            throw error;
+        }
     },
 
     getTaskById: async (id) => {

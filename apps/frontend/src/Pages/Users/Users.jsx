@@ -1,285 +1,273 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
+// src/Pages/Users/Users.jsx
+import { useState, useEffect, useCallback } from "react";
+import { resourceAPI } from "../../api/api";
+import { Plus, Search, Edit2, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 
-const Users = () => {
-  const [showModal, setShowModal] = useState(false);
+const ROLES = ["Admin", "Manager", "Developer", "Designer", "QA", "Member"];
 
-  const users = [
-    {
-      id: 1,
-      name: "Sarah Chen",
-      email: "product@company.co",
-      role: "Designer",
-      title: "Senior Product Designer",
-      team: "Design Team",
-      status: "Active",
-    },
-    {
-      id: 2,
-      name: "Mike Ross",
-      email: "mike@company.co",
-      role: "Developer",
-      title: "Lead Frontend Developer",
-      team: "Engineering",
-      status: "Active",
-    },
-    {
-      id: 3,
-      name: "Rachel Zane",
-      email: "rachel@company.co",
-      role: "Manager",
-      title: "Project Manager",
-      team: "Operations",
-      status: "Pending",
-    },
-    {
-      id: 4,
-      name: "Harvey Specter",
-      email: "harvey@company.co",
-      role: "Admin",
-      title: "System Administrator",
-      team: "IT",
-      status: "Active",
-    },
-    {
-      id: 5,
-      name: "Donna Paulsen",
-      email: "donna@company.co",
-      role: "HR",
-      title: "HR Coordinator",
-      team: "People",
-      status: "Active",
-    },
-    {
-      id: 6,
-      name: "Louis Litt",
-      email: "louis@company.co",
-      role: "QA",
-      title: "QA Engineer",
-      team: "Engineering",
-      status: "Inactive",
-    },
-  ];
+export default function UsersPage() {
+  const [users, setUsers]           = useState([]);
+  const [totalPages, setTotalPages] = useState(1);
+  const [page, setPage]             = useState(1);
+  const [search, setSearch]         = useState("");
+  const [isLoading, setIsLoading]   = useState(false);
+  const [error, setError]           = useState("");
 
-  const statusStyle = (status) => {
-    if (status === "Active")
-      return "bg-green-100 text-green-700";
-    if (status === "Pending")
-      return "bg-yellow-100 text-yellow-700";
-    if (status === "Inactive")
-      return "bg-red-100 text-red-700";
+  const [showModal, setShowModal]   = useState(false);
+  const [isEditing, setIsEditing]   = useState(false);
+  const [saving, setSaving]         = useState(false);
+  const [formData, setFormData]     = useState({
+    id: null, fullName: "", email: "", role: "Member", jobTitle: "",
+  });
+
+  const fetchUsers = useCallback(async () => {
+    setIsLoading(true);
+    setError("");
+    try {
+      const params = new URLSearchParams({ page, limit: 8 });
+      if (search) params.append("search", search);
+      const response = await resourceAPI.get(`/users?${params}`);
+      setUsers(response.data.users || response.data.data || []);
+      setTotalPages(response.data.totalPages || 1);
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to load users");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [page, search]);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
+
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => setPage(1), 400);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const openAddModal = () => {
+    setFormData({ id: null, fullName: "", email: "", role: "Member", jobTitle: "" });
+    setIsEditing(false);
+    setShowModal(true);
+  };
+
+  const openEditModal = (user) => {
+    setFormData({
+      id: user.id,
+      fullName: user.fullName || user.name || "",
+      email: user.email || "",
+      role: user.role || "Member",
+      jobTitle: user.jobTitle || user.title || "",
+    });
+    setIsEditing(true);
+    setShowModal(true);
+  };
+
+  const handleSave = async () => {
+    if (!formData.fullName || !formData.email) return;
+    setSaving(true);
+    try {
+      if (isEditing) {
+        await resourceAPI.patch(`/users/${formData.id}`, formData);
+      } else {
+        await resourceAPI.post("/users", formData);
+      }
+      setShowModal(false);
+      fetchUsers();
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to save user");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("Delete this user?")) return;
+    try {
+      await resourceAPI.delete(`/users/${id}`);
+      fetchUsers();
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to delete user");
+    }
+  };
+
+  const initials = (name) =>
+    (name || "?").split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
+
   return (
-    <div className="p-8 bg-gray-50 min-h-screen">
+    <div className="p-4 md:p-8 bg-gray-50 min-h-screen">
+      <div className="max-w-7xl mx-auto">
 
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-
-       <div className="md:flex md:items-center md:justify-between mb-8">
-              <div>
-                <h2 className="text-2xl font-bold text-slate-900">Manage Users</h2>
-                <nav className="flex mt-1 text-sm text-gray-500">
-                  <Link to="/users" >
-                  <span className="text-slate-900 hover:text-slate-600 cursor-pointer">User Management</span>
-                  </Link>
-                  <span className="mx-2">/</span>
-                  <span>Users</span>
-                </nav>
-              </div>
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Users</h1>
+            <p className="text-sm text-gray-500 mt-1">Manage your team members</p>
+          </div>
+          <button
+            onClick={openAddModal}
+            className="inline-flex items-center gap-2 bg-[#002D62] hover:bg-[#001f44] text-white px-4 py-2 rounded-lg text-sm font-medium transition"
+          >
+            <Plus size={18} /> Add User
+          </button>
         </div>
 
-        <div className="flex gap-3">
-
+        {/* Search */}
+        <div className="relative mb-6">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
           <input
             type="text"
-            placeholder="Search users by name, role, email..."
-            className="border rounded-lg px-4 py-2 w-72 text-sm"
+            placeholder="Search users by name or email..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
           />
-
-          <button
-            onClick={() => setShowModal(true)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700"
-          >
-            + Add User
-          </button>
-
-          <button className="border px-4 py-2 rounded-lg text-sm">
-            Import
-          </button>
-
-          <button className="border px-4 py-2 rounded-lg text-sm">
-            Export
-          </button>
-
         </div>
-      </div>
 
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 text-sm text-red-700">{error}</div>
+        )}
 
-      {/* Users Table */}
-      <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
-
-        <table className="w-full text-sm">
-
-          <thead className="bg-gray-100 text-gray-600 text-left">
-            <tr>
-              <th className="p-4">Users</th>
-              <th>Email</th>
-              <th>Role</th>
-              <th>Team</th>
-              <th>Permission Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-
-          <tbody>
-
-            {users.map((user) => (
-              <tr
-                key={user.id}
-                className="border-t hover:bg-gray-50"
-              >
-                <td className="p-4 flex items-center gap-3">
-
-                  <div className="w-10 h-10 rounded-full bg-gray-300"></div>
-
-                  <div>
-                    <p className="font-medium">{user.name}</p>
-                    <p className="text-xs text-gray-500">
-                      Company Colleague
-                    </p>
-                  </div>
-
-                </td>
-
-                <td>{user.email}</td>
-
-                <td>
-                  <span className="text-gray-700">
-                    {user.role}
-                  </span>
-                </td>
-
-                <td>{user.team}</td>
-
-                <td>
-                  <span
-                    className={`px-3 py-1 rounded-full text-xs font-medium ${statusStyle(
-                      user.status
-                    )}`}
-                  >
-                    {user.status}
-                  </span>
-                </td>
-
-                <td className="flex gap-2">
-
-                  <button className="border px-3 py-1 rounded text-xs">
-                    Edit
-                  </button>
-
-                  <button className="border px-3 py-1 rounded text-xs">
-                    Deactivate
-                  </button>
-
-                </td>
-              </tr>
-            ))}
-
-          </tbody>
-        </table>
-
-      </div>
-
-
-      {/* Pagination */}
-      <div className="flex justify-between items-center mt-4 text-sm text-gray-600">
-
-        <p>Showing 1-6 of 85 users</p>
-
-        <div className="flex gap-2">
-          <button className="px-3 py-1 border rounded">1</button>
-          <button className="px-3 py-1 border rounded">2</button>
-          <button className="px-3 py-1 border rounded">3</button>
-        </div>
-      </div>
-
-      {/* Add User Modal */}
-      {showModal && (
-
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-
-          <div className="bg-white w-[600px] rounded-xl p-6 shadow-lg">
-
-            <h2 className="text-xl font-semibold mb-6">
-              Add New User
-            </h2>
-
-            <div className="grid grid-cols-2 gap-4">
-
-              <input
-                placeholder="Full Name"
-                className="border p-2 rounded"
-              />
-
-              <input
-                placeholder="Email Address"
-                className="border p-2 rounded"
-              />
-
-              <input
-                placeholder="Phone Number"
-                className="border p-2 rounded"
-              />
-
-              <select className="border p-2 rounded">
-                <option>Frontend Developer</option>
-                <option>Backend Developer</option>
-                <option>Designer</option>
-              </select>
-
-              <select className="border p-2 rounded">
-                <option>Engineering</option>
-                <option>Marketing</option>
-                <option>Sales</option>
-              </select>
-
-              <select className="border p-2 rounded">
-                <option>Project Ares Team</option>
-                <option>Marketing Squad</option>
-                <option>Sales Group</option>
-              </select>
-
-            </div>
-
-            <textarea
-              placeholder="User Notes (optional)"
-              className="border rounded w-full p-2 mt-4"
-            ></textarea>
-
-
-            <div className="flex justify-end gap-3 mt-6">
-
-              <button
-                onClick={() => setShowModal(false)}
-                className="px-4 py-2 border rounded"
-              >
-                Cancel
-              </button>
-
-              <button className="px-4 py-2 bg-blue-600 text-white rounded">
-                Save User
-              </button>
-
-            </div>
-
+        {/* User Table */}
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm min-w-[560px]">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="px-6 py-4 font-medium text-gray-600">User</th>
+                  <th className="px-6 py-4 font-medium text-gray-600">Role</th>
+                  <th className="px-6 py-4 font-medium text-gray-600 hidden md:table-cell">Job Title</th>
+                  <th className="px-6 py-4 font-medium text-gray-600">Status</th>
+                  <th className="px-6 py-4 font-medium text-gray-600 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {isLoading ? (
+                  <tr><td colSpan={5} className="px-6 py-12 text-center text-gray-400">Loading users...</td></tr>
+                ) : users.length === 0 ? (
+                  <tr><td colSpan={5} className="px-6 py-12 text-center text-gray-400">No users found</td></tr>
+                ) : (
+                  users.map((user) => (
+                    <tr key={user.id} className="hover:bg-gray-50 transition">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-full bg-[#002D62] text-white flex items-center justify-center text-xs font-bold flex-shrink-0">
+                            {initials(user.fullName || user.name)}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-medium text-gray-900 truncate">{user.fullName || user.name}</p>
+                            <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="bg-blue-100 text-blue-700 text-xs font-medium px-2 py-1 rounded-full">{user.role ?? "Member"}</span>
+                      </td>
+                      <td className="px-6 py-4 text-gray-600 hidden md:table-cell">{user.jobTitle || user.title || "—"}</td>
+                      <td className="px-6 py-4">
+                        <span className={`text-xs font-medium px-2 py-1 rounded-full ${
+                          user.isVerified || user.status === "Active" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"
+                        }`}>
+                          {user.isVerified ? "Verified" : user.status ?? "Pending"}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button onClick={() => openEditModal(user)} className="p-2 text-gray-400 hover:text-blue-600 transition">
+                            <Edit2 size={15} />
+                          </button>
+                          <button onClick={() => handleDelete(user.id)} className="p-2 text-gray-400 hover:text-red-600 transition">
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
 
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+              <p className="text-sm text-gray-500">Page {page} of {totalPages}</p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="p-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <button
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                  className="p-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
+      </div>
 
+      {/* Add/Edit Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">{isEditing ? "Edit User" : "Add New User"}</h2>
+            <div className="space-y-4">
+              {[
+                { name: "fullName", label: "Full Name *", type: "text" },
+                { name: "email",    label: "Email *",     type: "email" },
+                { name: "jobTitle", label: "Job Title",   type: "text" },
+              ].map(({ name, label, type }) => (
+                <div key={name}>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+                  <input
+                    type={type}
+                    name={name}
+                    value={formData[name]}
+                    onChange={handleInputChange}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              ))}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                <select
+                  name="role"
+                  value={formData.role}
+                  onChange={handleInputChange}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="flex gap-3 justify-end mt-6">
+              <button onClick={() => setShowModal(false)} className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">
+                Cancel
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={saving || !formData.fullName || !formData.email}
+                className="px-4 py-2 bg-[#002D62] text-white rounded-md text-sm font-medium hover:bg-[#001f44] transition disabled:opacity-60"
+              >
+                {saving ? "Saving..." : isEditing ? "Save Changes" : "Add User"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
-};
-
-export default Users;
+}
