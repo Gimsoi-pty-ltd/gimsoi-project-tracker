@@ -52,7 +52,7 @@ test.describe('Search, Reports, and Phases API Tests', () => {
             const phase = (await createRes.json()).data;
 
             const response = await pmApi.patch(`/api/phases/${phase.id}`, {
-                data: { name: 'Updated Phase Name' }
+                data: { name: 'Updated Phase Name', version: phase.version }
             });
             expect(response.status()).toBe(200);
             const body = await response.json();
@@ -97,6 +97,30 @@ test.describe('Search, Reports, and Phases API Tests', () => {
         expect(body.data[0]).toHaveProperty('metrics');
         expect(body.data[0].metrics).toHaveProperty('completionRate');
         expect(body).toHaveProperty('nextCursor');
+    });
+
+    test('GET /api/analytics/team › respects limit and returns nextCursor', async ({ pmApi }) => {
+        // Fetch with limit=1
+        const response = await pmApi.get('/api/analytics/team?limit=1');
+        expect(response.status()).toBe(200);
+        const body = await response.json();
+        expect(body.data).toHaveLength(1);
+        expect(body.nextCursor).not.toBeNull();
+    });
+
+    // --- Phase Security ---
+    test('GET /api/phases/:id › forbids access to phase from another PMs project', async ({ pmApi, internApi, testProject }) => {
+        // pmApi creates a phase in their project
+        const createRes = await pmApi.post('/api/phases', {
+            data: { name: 'Secret Phase', projectId: testProject.id }
+        });
+        const phase = (await createRes.json()).data;
+
+        // internApi (not assigned to project) attempts to view it
+        // Note: In our current simple ownership logic, an INTERN can only see things they created or if they are an ADMIN/PM.
+        // Actually, internApi is a separate user.
+        const response = await internApi.get(`/api/phases/${phase.id}`);
+        expect(response.status()).toBe(403);
     });
 
     // --- Sprint Velocity ---

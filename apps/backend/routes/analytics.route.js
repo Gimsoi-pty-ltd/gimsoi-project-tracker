@@ -8,10 +8,23 @@ import { validate } from '../middleware/validate.middleware.js';
 import {
     getTeamPerformanceHandler,
     teamAnalyticsSchema,
-    getAIContext
+    getAIContext,
+    ingestHealthScore
 } from '../controllers/analytics.controller.js';
+import { requireCSRF } from '../middleware/csrf.middleware.js';
+import { writeLimiter } from '../middleware/rate-limiter.middleware.js';
 
 const router = express.Router();
+
+/**
+ * POST /api/analytics/health-score
+ */
+router.post('/health-score', writeLimiter, verifyToken, authorize('VIEW_ANALYTICS'), requireCSRF, ingestHealthScore);
+
+/**
+ * POST /api/analytics/metrics
+ */
+router.post('/metrics', writeLimiter, verifyToken, authorize('VIEW_ANALYTICS'), requireCSRF, ingestHealthScore);
 
 /**
  * GET /api/analytics/team — VIEW_ANALYTICS

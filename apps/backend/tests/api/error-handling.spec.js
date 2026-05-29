@@ -32,8 +32,8 @@ test.describe('Error Handling & Contract Integrity', () => {
             const taskRes = await pmApi.post('/api/tasks', {
                 data: { title: 'Jump Error Task', projectId: testProject.id }
             });
-            const taskId = (await taskRes.json()).data.id;
-            const res400 = await pmApi.patch(`/api/tasks/${taskId}`, { data: { status: 'DONE' } });
+            const task = (await taskRes.json()).data;
+            const res400 = await pmApi.patch(`/api/tasks/${task.id}`, { data: { status: 'DONE', version: task.version } });
             
             expect(res400.status()).toBe(400);
             const data400 = await res400.json();

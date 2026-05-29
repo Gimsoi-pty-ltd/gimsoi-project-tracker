@@ -1,42 +1,74 @@
+/** @see {@link docs/DATA_CONTRACT.md} */
 import prisma from "../lib/prisma.js";
-import { StateTransitionError, NotFoundError } from "../utils/errors.js";
+import { StateTransitionError, NotFoundError, ConflictError } from "../utils/errors.js";
 import { assertOwnership } from "../utils/ownership.js";
+// Cross-domain dependency: Project domain requires task summary data. Access only via the narrow summary function — do not import broad task service internals.
+import { getProjectTaskSummary, getProjectTaskSummaryBatch } from "./task.service.js";
+import { PROJECT_STATUS } from "../constants/statuses.js";
+import ROLES from "../constants/roles.js";
 
-export const createProject = async ({ name, clientId, status, createdByUserId, description, endDate }) => {
-  return prisma.project.create({
-    data: {
-      name,
-      clientId: String(clientId),
-      status: status || "DRAFT",
-      createdByUserId,
-      description,
-      endDate: endDate ? new Date(endDate) : null,
-    },
+export const createProject = async ({ name, clientId, status, description, createdByUserId }) => {
+  if (status && ![PROJECT_STATUS.DRAFT, PROJECT_STATUS.ACTIVE, PROJECT_STATUS.COMPLETED, PROJECT_STATUS.ARCHIVED].includes(status)) {
+    throw new StateTransitionError(`Invalid project status '${status}'.`);
+  }
+
+  return prisma.$transaction(async (tx) => {
+    const project = await tx.project.create({
+      data: {
+        name,
+        clientId: String(clientId),
+        status: status || PROJECT_STATUS.DRAFT,
+        description,
+        createdByUserId,
+      },
+    });
+
+    if (createdByUserId) {
+      await tx.projectMember.create({
+        data: {
+          projectId: project.id,
+          userId: createdByUserId,
+          role: 'OWNER'
+        }
+      });
+    }
+
+    return project;
   });
 };
 
 /**
- * @param {{ limit?: number, cursor?: string, search?: string }} options
+ * @param {{ limit?: number, cursor?: string }} options
  * limit defaults to 50, max 100. cursor is the id of the last record from the previous page.
  */
-export const getProjects = async ({ limit = 50, cursor, search } = {}) => {
+export const getProjects = async ({ limit = 50, cursor, search, status, createdByUserId, includeArchived } = {}) => {
   const take = Math.min(Number(limit) || 50, 100);
-  const where = search ? {
-    OR: [
+
+  const where = {};
+  if (search) {
+    where.OR = [
       { name: { contains: search, mode: 'insensitive' } },
       { description: { contains: search, mode: 'insensitive' } }
-    ]
-  } : {};
+    ];
+  }
+  if (status) {
+    where.status = status;
+  } else if (includeArchived !== 'true' && includeArchived !== true) {
+    // Exclude archived by default if no explicit status is requested
+    where.status = { not: PROJECT_STATUS.ARCHIVED };
+  }
+  if (createdByUserId) {
+    where.createdByUserId = createdByUserId;
+  }
 
   return prisma.project.findMany({
-    where,
     take: take + 1,         // fetch one extra to detect whether there's a next page
     ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
+    where,
     orderBy: { createdAt: 'desc' },
     include: { client: true },
   });
 };
-
 
 export const getProjectById = async (id) => {
   return prisma.project.findUnique({
@@ -51,99 +83,72 @@ export const updateProject = async (id, data, userId, userRole) => {
 
   assertOwnership(existing, userId, userRole);
 
-  if (data.status) {
-    if (existing.status !== data.status) {
-      const validTransitions = {
-        'DRAFT': ['ACTIVE', 'COMPLETED'],
-        'ACTIVE': ['COMPLETED', 'DRAFT'],
-        // POLICY-PENDING: team must decide if a COMPLETED project can revert to ACTIVE.
-        // Currently permitted. Remove 'ACTIVE' here to permanently block regression.
-        'COMPLETED': ['ACTIVE']
-      };
+  if (data.status && existing.status !== data.status) {
+    const validTransitions = {
+      [PROJECT_STATUS.DRAFT]: [PROJECT_STATUS.ACTIVE, PROJECT_STATUS.COMPLETED],
+      [PROJECT_STATUS.ACTIVE]: [PROJECT_STATUS.COMPLETED, PROJECT_STATUS.DRAFT, PROJECT_STATUS.ARCHIVED],
+      [PROJECT_STATUS.COMPLETED]: [PROJECT_STATUS.ARCHIVED],
+      [PROJECT_STATUS.ARCHIVED]: [PROJECT_STATUS.ACTIVE]
+    };
 
-      const allowed = validTransitions[existing.status] || [];
-      if (!allowed.includes(data.status)) {
-        throw new StateTransitionError(`Illegal project state transition from ${existing.status} to ${data.status}`);
-      }
+    const allowed = validTransitions[existing.status] || [];
+    if (!allowed.includes(data.status)) {
+      throw new StateTransitionError(`Illegal project state transition from ${existing.status} to ${data.status}`);
     }
   }
 
-  return prisma.project.update({
-    where: { id: String(id) },
-    data: {
-      ...(data.name !== undefined ? { name: data.name } : {}),
-      ...(data.status !== undefined ? { status: data.status } : {}),
-      ...(data.description !== undefined ? { description: data.description } : {}),
-      ...(data.endDate !== undefined ? { endDate: data.endDate ? new Date(data.endDate) : null } : {}),
-    },
-  });
+  try {
+    return await prisma.project.update({
+      where: { id: String(id), version: data.version },
+      data: {
+        ...(data.name && { name: data.name }),
+        ...(data.status && { status: data.status }),
+        ...(data.description !== undefined ? { description: data.description } : {}),
+        ...(data.endDate !== undefined ? { endDate: data.endDate } : {}),
+        version: { increment: 1 }
+      },
+    });
+  } catch (err) {
+    if (err.code === 'P2025') {
+      throw new ConflictError("Project was modified by another user. Please refresh and try again.");
+    }
+    throw err;
+  }
 };
 
 /**
  * Returns task completion counts for a project in a single aggregation query.
- * POLICY-PENDING: whether CLIENT role should receive full breakdown vs percentComplete only.
  *
  * @param {string} projectId
  * @returns {{ TODO: number, IN_PROGRESS: number, DONE: number, total: number, percentComplete: number }}
  */
-export const getProjectProgress = async (projectId) => {
-  const project = await prisma.project.findUnique({ where: { id: String(projectId) } });
-  if (!project) return null;
+export const getProjectProgress = async (projectId, userRole) => {
+  const summary = await getProjectTaskSummary(projectId);
 
-  const groups = await prisma.task.groupBy({
-    by: ['status'],
-    where: { projectId: String(projectId) },
-    _count: { status: true },
-  });
-
-  const totals = { TODO: 0, IN_PROGRESS: 0, DONE: 0 };
-  for (const g of groups) {
-    if (g.status in totals) totals[g.status] = g._count.status;
+  // CLIENT role receives percentComplete only. Full task breakdown is restricted to internal roles. See docs/DATA_CONTRACT.md.
+  if (userRole === ROLES.CLIENT) {
+    return { percentComplete: summary.percentComplete };
   }
 
-  const total = totals.TODO + totals.IN_PROGRESS + totals.DONE;
-  return {
-    ...totals,
-    total,
-    percentComplete: total ? Math.round((totals.DONE / total) * 100) : 0,
-  };
+  return summary;
 };
 
-export const syncProjectAnalytics = async (projectId) => {
-  const taskSummary = await getProjectTaskSummary(projectId);
-  
-  const totalSprints = await prisma.sprint.count({ where: { projectId: String(projectId) } });
-  const activeSprints = await prisma.sprint.count({ 
-      where: { 
-          projectId: String(projectId),
-          status: 'ACTIVE'
-      } 
-  });
+export const getBatchProjectProgress = async (projectIds, userRole) => {
+  if (!projectIds || projectIds.length === 0) return {};
 
-  return prisma.projectAnalytics.upsert({
-      where: { projectId: String(projectId) },
-      create: {
-          projectId: String(projectId),
-          totalTasks: taskSummary.total,
-          completedTasks: taskSummary.DONE,
-          blockedTasks: taskSummary.BLOCKED,
-          cancelledTasks: taskSummary.CANCELLED,
-          totalSprints,
-          activeSprints,
-          syncStatus: 'synced',
-          lastSyncedAt: new Date()
-      },
-      update: {
-          totalTasks: taskSummary.total,
-          completedTasks: taskSummary.DONE,
-          blockedTasks: taskSummary.BLOCKED,
-          cancelledTasks: taskSummary.CANCELLED,
-          totalSprints,
-          activeSprints,
-          syncStatus: 'synced',
-          lastSyncedAt: new Date()
+  const summaries = await getProjectTaskSummaryBatch(projectIds);
+  const results = {};
+
+  for (const projectId of projectIds) {
+    const summary = summaries[projectId];
+    if (userRole === ROLES.CLIENT) {
+      results[projectId] = { percentComplete: summary ? summary.percentComplete : 0 };
+    } else {
+      results[projectId] = summary;
     }
-  });
+  }
+
+  return results;
 };
 
 export const deleteProject = async (id, userId, userRole) => {
@@ -152,8 +157,42 @@ export const deleteProject = async (id, userId, userRole) => {
 
   assertOwnership(existing, userId, userRole);
 
-  return prisma.project.delete({
-    where: { id: String(id) },
-  });
+  return prisma.project.delete({ where: { id: String(id) } });
 };
 
+export const syncProjectAnalytics = async (projectId) => {
+  const taskSummary = await getProjectTaskSummary(projectId);
+
+  const totalSprints = await prisma.sprint.count({ where: { projectId: String(projectId) } });
+  const activeSprints = await prisma.sprint.count({
+    where: {
+      projectId: String(projectId),
+      status: 'ACTIVE'
+    }
+  });
+
+  return prisma.projectAnalytics.upsert({
+    where: { projectId: String(projectId) },
+    create: {
+      projectId: String(projectId),
+      totalTasks: taskSummary.total,
+      completedTasks: taskSummary.DONE,
+      blockedTasks: taskSummary.BLOCKED,
+      cancelledTasks: taskSummary.CANCELLED,
+      totalSprints,
+      activeSprints,
+      syncStatus: 'synced',
+      lastSyncedAt: new Date()
+    },
+    update: {
+      totalTasks: taskSummary.total,
+      completedTasks: taskSummary.DONE,
+      blockedTasks: taskSummary.BLOCKED,
+      cancelledTasks: taskSummary.CANCELLED,
+      totalSprints,
+      activeSprints,
+      syncStatus: 'synced',
+      lastSyncedAt: new Date()
+    }
+  });
+};

@@ -148,7 +148,7 @@ test.describe('Users API Tests', () => {
                     Authorization: `Bearer ${adminToken}`,
                     'x-csrf-token': adminCsrf
                 },
-                data: { role: 'PM' }
+                data: { role: 'PM', version: targetUser.version }
             });
             expect(response.status()).toBe(200);
             const body = await response.json();
@@ -166,7 +166,7 @@ test.describe('Users API Tests', () => {
                     Authorization: `Bearer ${adminToken}`,
                     'x-csrf-token': adminCsrf
                 },
-                data: { role: 'INTERN' }
+                data: { role: 'INTERN', version: me.version }
             });
             expect(response.status()).toBe(403);
             expect((await response.json()).message).toContain('own role');
@@ -175,13 +175,18 @@ test.describe('Users API Tests', () => {
 
     test.describe('PATCH /api/users/me (Self)', () => {
         test('User can update their own profile', async ({ request }) => {
+            const meRes = await request.get('/api/auth/check-auth', {
+                headers: { Authorization: `Bearer ${userToken}` }
+            });
+            const me = (await meRes.json()).user;
+
             const newName = 'Updated Name';
             const response = await request.patch('/api/users/me', {
                 headers: { 
                     Authorization: `Bearer ${userToken}`,
                     'x-csrf-token': userCsrf
                 },
-                data: { fullName: newName }
+                data: { fullName: newName, version: me.version }
             });
             expect(response.status()).toBe(200);
             const body = await response.json();
@@ -194,6 +199,11 @@ test.describe('Users API Tests', () => {
             // Mock a small transparent pixel image buffer
             const buffer = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==', 'base64');
             
+            const meRes = await request.get('/api/auth/check-auth', {
+                headers: { Authorization: `Bearer ${userToken}` }
+            });
+            const me = (await meRes.json()).user;
+
             const response = await request.post('/api/users/me/avatar', {
                 headers: { 
                     Authorization: `Bearer ${userToken}`,
@@ -204,7 +214,8 @@ test.describe('Users API Tests', () => {
                         name: 'test.png',
                         mimeType: 'image/png',
                         buffer: buffer,
-                    }
+                    },
+                    version: String(me.version)
                 }
             });
             
