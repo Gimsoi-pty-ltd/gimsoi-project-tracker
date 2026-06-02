@@ -69,12 +69,6 @@ web_modules/
 # Yarn Integrity file
 .yarn-integrity
 
-# Zoho Catalyst — deployment config & credentials (never commit these)
-.catalystrc
-catalyst.json
-app-config.json
-app-config.staging.json
-
 # AI and Developer Artifacts
 .gemini/
 **/scratch/
@@ -169,6 +163,4 @@ apps/backend/cookies.txt
 
 # Zoho Catalyst — deployment config & credentials (never commit these)
 .catalystrc
-catalyst.json
-app-config.json
-app-config.staging.json
+
