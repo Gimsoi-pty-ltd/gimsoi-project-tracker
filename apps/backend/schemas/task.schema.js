@@ -1,51 +1,67 @@
-import { z } from "zod";
-import { TASK_STATUS } from "../constants/statuses.js";
+import { z } from 'zod';
 
-const VALID_TASK_STATUSES = /** @type {[string, ...string[]]} */ (Object.values(TASK_STATUS));
+const TaskStatusEnum = z.enum(['TODO', 'IN_PROGRESS', 'DONE', 'CANCELLED', 'BLOCKED']);
+const TaskPriorityEnum = z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']);
+
 export const createTaskSchema = z.object({
-  body: z.object({
-    title: z.string().min(1, "Task title is required"),
-    description: z.string().optional(),
-    projectId: z.string().uuid("Invalid projectId format"),
-    sprintId: z.string().uuid("Invalid sprintId format").optional(),
-    assigneeId: z.string().uuid("Invalid assigneeId format").optional(),
-    priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]).optional().default("MEDIUM"),
-    isBlocked: z.boolean().optional().default(false),
-    dueDate: z.string().datetime().optional().nullable(),
-  }).strict(),
+  title: z.string().min(1, 'Task title is required').max(200),
+  description: z.string().max(5000).optional().nullable(),
+  projectId: z.string().uuid('projectId must be a valid UUID'),
+  sprintId: z.string().uuid('sprintId must be a valid UUID').optional().nullable(),
+  phaseId: z.string().uuid('phaseId must be a valid UUID').optional().nullable(),
+  assigneeId: z.string().uuid('assigneeId must be a valid UUID').optional().nullable(),
+  priority: TaskPriorityEnum.optional().default('MEDIUM'),
+  isBlocked: z.boolean().optional().default(false),
+  dueDate: z.coerce.date().optional().nullable(),
 });
 
 export const updateTaskSchema = z.object({
-  params: z.object({
-    id: z.string().uuid("Invalid task ID format"),
-  }),
-  body: z.object({
-    title: z.string().min(1).optional(),
-    description: z.string().optional(),
-    priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]).optional(),
-    status: z.enum(VALID_TASK_STATUSES).optional(),
-    isBlocked: z.boolean().optional(),
-    dueDate: z.string().datetime().optional().nullable(),
+  title: z.string().min(1).max(200).optional(),
+  description: z.string().max(5000).optional().nullable(),
+  status: TaskStatusEnum.optional(),
+  sprintId: z.string().uuid().optional().nullable(),
+  phaseId: z.string().uuid().optional().nullable(),
+  assigneeId: z.string().uuid().optional().nullable(),
+  priority: TaskPriorityEnum.optional(),
+  isBlocked: z.boolean().optional(),
+  dueDate: z.coerce.date().optional().nullable(),
+  version: z.number().int().positive('version is required for optimistic locking'),
+}).refine(
+  (data) => Object.keys(data).length > 1, // At least one field + version
+  { message: 'At least one field (besides version) must be provided for update' }
+);
+
+const TaskIdentifierSchema = z.object({
+  id: z.string().uuid('Task ID must be a valid UUID'),
+  version: z.number().int().positive('Task version is required for optimistic locking'),
+});
+
+export const bulkUpdateTasksSchema = z.object({
+  tasks: z.array(TaskIdentifierSchema).min(1, 'At least one task must be provided for bulk update'),
+  updateData: z.object({
+    status: TaskStatusEnum.optional(),
     sprintId: z.string().uuid().optional().nullable(),
+    phaseId: z.string().uuid().optional().nullable(),
     assigneeId: z.string().uuid().optional().nullable(),
-  }).refine((data) => Object.keys(data).length > 0, {
-    message: "At least one field must be provided for update",
-  }),
+    priority: TaskPriorityEnum.optional(),
+    isBlocked: z.boolean().optional(),
+    dueDate: z.coerce.date().optional().nullable(),
+  }).refine(
+    (data) => Object.keys(data).length > 0,
+    { message: 'At least one field must be provided in updateData for bulk update' }
+  )
 });
 
-export const getTaskSchema = z.object({
-  params: z.object({
-    id: z.string().uuid("Invalid task ID format"),
-  }),
+export const bulkDeleteTasksSchema = z.object({
+  tasks: z.array(TaskIdentifierSchema).min(1, 'At least one task must be provided for bulk delete'),
 });
 
-export const getTasksQuerySchema = z.object({
-  query: z.object({
-    projectId: z.string().uuid("projectId query parameter is required and must be a valid UUID"),
-    status: z.enum(VALID_TASK_STATUSES).optional(),
-    isBlocked: z.enum(["true", "false"]).optional(),
-    isOverdue: z.enum(["true", "false"]).optional(),
-    limit: z.string().regex(/^\d+$/).optional(),
-    cursor: z.string().optional(),
-  }),
+export const listTasksSchema = z.object({
+  projectId: z.string().uuid('projectId must be a valid UUID'),
+  status: TaskStatusEnum.optional(),
+  isBlocked: z.preprocess((val) => val === 'true' ? true : val === 'false' ? false : val, z.boolean().optional()),
+  isOverdue: z.preprocess((val) => val === 'true' ? true : val === 'false' ? false : val, z.boolean().optional()),
+  limit: z.string().optional(),
+  cursor: z.string().optional(),
+  sortBy: z.enum(['urgency']).optional(),
 });

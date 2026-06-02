@@ -51,13 +51,9 @@ export const getSprints = async (req, res) => {
 export const updateSprintStatus = async (req, res) => {
     try {
         const { id } = req.params;
-        const { status } = req.body;
+        const { status, version } = req.body;
 
-        if (!status) {
-            return res.status(400).json({ success: false, message: "status is required to update sprint state" });
-        }
-
-        const updated = await sprintService.updateSprintStatus(id, status, req.user.id, req.user.role);
+        const updated = await sprintService.updateSprintStatus(id, status, req.user.id, req.user.role, version);
 
         return res.status(200).json({ success: true, message: "Sprint state updated successfully", data: updated });
     } catch (err) {
@@ -69,13 +65,23 @@ export const updateSprintStatus = async (req, res) => {
 export const updateSprint = async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, startDate, endDate } = req.body;
+        const { name, startDate, endDate, version } = req.body;
 
-        const updated = await sprintService.updateSprint(id, { name, startDate, endDate }, req.user.id, req.user.role);
+        const updated = await sprintService.updateSprint(id, { name, startDate, endDate, version }, req.user.id, req.user.role);
 
         return res.status(200).json({ success: true, message: "Sprint updated successfully", data: updated });
     } catch (err) {
         const statusCode = err.statusCode || 500;
         return res.status(statusCode).json({ success: false, message: err.message || "Failed to update sprint" });
+    }
+};
+
+export const getSprintVelocity = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const velocity = await sprintService.getSprintVelocity(id);
+        return res.status(200).json({ success: true, data: velocity });
+    } catch (err) {
+        next(err);
     }
 };

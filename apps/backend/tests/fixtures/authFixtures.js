@@ -53,10 +53,8 @@ async function createAuthenticatedApiContext(rolePrefix, emailSuffix, baseURL) {
         token = loginData.token;
     }
 
-    // 3. Extract CSRF token directly from cookies
+    // 3. Extract storageState to retain session cookies
     const storageState = await context.storageState();
-    const xsrfCookie = storageState.cookies.find(c => c.name === 'XSRF-TOKEN');
-    const csrfToken = xsrfCookie ? decodeURIComponent(xsrfCookie.value) : null;
 
     // 4. Build final context with automatic CSRF injection
     const finalContext = await request.newContext({
@@ -66,6 +64,9 @@ async function createAuthenticatedApiContext(rolePrefix, emailSuffix, baseURL) {
             'Authorization': `Bearer ${token}`
         }
     });
+
+    // 5. Fetch clean CSRF token using the dedicated endpoint with the Authorization header
+    const csrfToken = await fetchCsrfToken(finalContext);
 
     // Proxy to inject CSRF header into all mutating requests
     return new Proxy(finalContext, {

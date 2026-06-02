@@ -7,7 +7,7 @@ const CSRF_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
  * Format: signature.timestamp
  */
 export function generateStatelessCsrfToken(userId) {
-    const secret = process.env.CSRF_SECRET;
+    const secret = process.env.CSRF_SECRET || (process.env.NODE_ENV !== 'production' ? 'dev_csrf_fallback_secret_32_chars' : undefined);
     if (!secret) throw new Error("CRITICAL: CSRF_SECRET is not defined in environment");
 
     const timestamp = Date.now();
@@ -39,7 +39,8 @@ export function verifyStatelessCsrfToken(userId, providedToken) {
     }
 
     // 2. Validate cryptographic signature
-    const secret = process.env.CSRF_SECRET;
+    const secret = process.env.CSRF_SECRET || (process.env.NODE_ENV !== 'production' ? 'dev_csrf_fallback_secret_32_chars' : undefined);
+    if (!secret) throw new Error("CRITICAL: CSRF_SECRET is not defined in environment");
     const payload = `${userId}:${timestamp}`;
     const expectedSignature = crypto
         .createHmac("sha256", secret)

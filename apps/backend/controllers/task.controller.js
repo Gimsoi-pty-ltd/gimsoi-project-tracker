@@ -1,119 +1,107 @@
 import * as taskService from "../services/task.service.js";
+import { parsePagination, buildPage } from "../utils/pagination.js";
 
-export const createTask = async (req, res) => {
+export const createTask = async (req, res, next) => {
     try {
-        const { title, description, projectId, sprintId, assigneeId, priority, isBlocked, dueDate } = req.body;
+        const { title, description, projectId, sprintId, phaseId, assigneeId, priority, isBlocked, dueDate } = req.body;
 
         if (!title || !projectId) {
             return res.status(400).json({ success: false, message: "Task title and projectId are required" });
         }
 
-        if (req.body.status) {
-            return res.status(400).json({ success: false, message: "Task status cannot be set on creation." });
-        }
-
         const task = await taskService.createTask({
-            title,
-            description,
-            projectId,
-            sprintId,
-            assigneeId,
-            priority,
-            isBlocked,
-            dueDate,
-            reporterId: req.user.id,
-            userRole: req.user.role
+            taskData: { title, description, priority, isBlocked, dueDate },
+            context: { projectId, sprintId, phaseId, assigneeId, reporterId: req.user.id },
+            requestingUser: { role: req.user.role, id: req.user.id }
         });
 
         return res.status(201).json({ success: true, message: "Task created successfully", data: task });
     } catch (err) {
-        const statusCode = err.statusCode || 500;
-        return res.status(statusCode).json({ success: false, message: err.message || "Failed to create task" });
+        next(err);
     }
 };
 
-export const getTasks = async (req, res) => {
+export const getTasks = async (req, res, next) => {
     try {
-        const { projectId, status, isBlocked, isOverdue } = req.query;
+        const { projectId, status, isBlocked, isOverdue, sortBy } = req.query;
+        const { limit, cursor } = parsePagination(req.query);
 
-        const limit = Math.min(parseInt(req.query.limit) || 50, 100);
-        const cursor = req.query.cursor || undefined;
-
-        if (!projectId) {
-            return res.status(400).json({ success: false, message: "projectId query parameter is required" });
-        }
-
-        // Handle isBlocked boolean conversion
-        let blockedFilter = undefined;
-        if (isBlocked === 'true') blockedFilter = true;
-        if (isBlocked === 'false') blockedFilter = false;
-
-        let overdueFilter = undefined;
-        if (isOverdue === 'true') overdueFilter = true;
-
-        const records = await taskService.getTasksByProject(projectId, {
+        const tasks = await taskService.getTasksByProject(projectId, req.user, {
             limit,
             cursor,
             status,
-            isBlocked: blockedFilter,
-            isOverdue: overdueFilter
+            isBlocked,
+            isOverdue,
+            sortBy
         });
 
-        const hasMore = records.length > limit;
-        const data = hasMore ? records.slice(0, limit) : records;
-        const nextCursor = hasMore ? data[data.length - 1].id : null;
+        const { data, nextCursor } = buildPage(tasks, limit);
 
         return res.status(200).json({ success: true, data, nextCursor });
     } catch (err) {
-        const statusCode = err.statusCode || 500;
-        return res.status(statusCode).json({ success: false, message: err.message || "Failed to fetch tasks" });
+        next(err);
     }
 };
 
 export const getTaskById = async (req, res, next) => {
     try {
         const task = await taskService.getTaskById(req.params.id);
-        res.status(200).json({ success: true, data: task });
+        return res.status(200).json({ success: true, data: task });
     } catch (err) {
         next(err);
     }
 };
 
-export const updateTask = async (req, res) => {
+export const updateTask = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const { title, description, status, sprintId, assigneeId, priority, isBlocked, dueDate } = req.body;
-
-        const updated = await taskService.updateTask(id, {
-            title, description, status, sprintId, assigneeId, priority, isBlocked, dueDate
-        }, req.user?.id, req.user?.role);
+        const updated = await taskService.updateTask(id, req.body, req.user?.id, req.user?.role);
 
         return res.status(200).json({ success: true, message: "Task updated successfully", data: updated });
     } catch (err) {
-        const statusCode = err.statusCode || 500;
-        return res.status(statusCode).json({ success: false, message: err.message || "Failed to update task" });
+        next(err);
     }
 };
 
-export const deleteTask = async (req, res) => {
+export const deleteTask = async (req, res, next) => {
     try {
         const { id } = req.params;
         await taskService.deleteTask(id, req.user?.id, req.user?.role);
 
-        return res.status(200).json({ success: true, message: "Task deleted successfully" });
+        return res.status(204).send();
     } catch (err) {
-        const statusCode = err.statusCode || 500;
-        return res.status(statusCode).json({ success: false, message: err.message || "Failed to delete task" });
+        next(err);
     }
 };
 
-export const getTaskSummary = async (req, res) => {
+export const getTaskSummary = async (req, res, next) => {
     try {
         const { projectId } = req.params;
         const summary = await taskService.getProjectTaskSummary(projectId);
         return res.status(200).json({ success: true, data: summary });
     } catch (err) {
-        const statusCode = err.statusCode || 500;
-        return res.status(statusCode).json({ success: false, message: err.message || "Failed to fetch task summary" });
+        next(err);
+    }
+};
+
+export const bulkUpdateTasks = async (req, res, next) => {
+    try {
+        const { projectId } = req.params;
+        const { tasks, updateData } = req.body;
+        const result = await taskService.bulkUpdateTasks(projectId, tasks, updateData, req.user?.id, req.user?.role);
+        return res.status(200).json({ success: true, message: `Successfully updated ${result.count} tasks`, data: result });
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const bulkDeleteTasks = async (req, res, next) => {
+    try {
+        const { projectId } = req.params;
+        const { tasks } = req.body;
+        const result = await taskService.bulkDeleteTasks(projectId, tasks, req.user?.id, req.user?.role);
+        return res.status(200).json({ success: true, message: `Successfully deleted ${result.count} tasks`, data: result });
+    } catch (err) {
+        next(err);
     }
 };
