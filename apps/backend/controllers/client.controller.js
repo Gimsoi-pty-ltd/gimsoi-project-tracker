@@ -1,4 +1,5 @@
 import * as clientService from "../services/client.service.js";
+import { parsePagination, buildPage } from "../utils/pagination.js";
 
 export const createClient = async (req, res) => {
   try {
@@ -22,8 +23,10 @@ export const createClient = async (req, res) => {
 
 export const getClients = async (req, res) => {
   try {
-    const clients = await clientService.getClients();
-    return res.status(200).json({ success: true, data: clients });
+    const { limit } = parsePagination(req.query);
+    const records = await clientService.getClients(req.query);
+    const { data, nextCursor } = buildPage(records, limit);
+    return res.status(200).json({ success: true, data, nextCursor });
   } catch (err) {
     console.error("getClients error:", err?.message);
     return res.status(500).json({ success: false, message: "Failed to fetch clients" });
@@ -41,5 +44,25 @@ export const getClientById = async (req, res) => {
   } catch (err) {
     console.error("getClientById error:", err?.message);
     return res.status(500).json({ success: false, message: "Failed to fetch client" });
+  }
+};
+
+export const updateClient = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const client = await clientService.updateClient(id, req.body);
+    return res.status(200).json({ success: true, message: "Client updated", data: client });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const deleteClient = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    await clientService.deleteClient(id);
+    return res.status(200).json({ success: true, message: "Client deleted" });
+  } catch (err) {
+    next(err);
   }
 };
