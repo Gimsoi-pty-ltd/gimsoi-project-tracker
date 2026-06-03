@@ -24,6 +24,7 @@ import { healthLimiter, authLimiter } from "./middleware/rate-limiter.middleware
 import { ZodError } from "zod";
 import pkg from "./lib/generated/prisma/index.js";
 const { Prisma } = pkg;
+import { populateUser } from "./middleware/populate-user.middleware.js";
 import { validateEnv } from "./utils/validateEnv.js";
 import { csrfProtection, csrfErrorHandler, generateCsrfToken } from "./middleware/csrf.middleware.js";
 import { verifyToken } from "./middleware/verify-token.middleware.js";
