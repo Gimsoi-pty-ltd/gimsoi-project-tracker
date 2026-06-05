@@ -2,6 +2,7 @@ import express from "express";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import morgan from "morgan";
+import cors from "cors";
 import methodOverride from "method-override";
 import authRoutes from "./routes/auth.route.js";
 import tasksRoutes from "./routes/task.route.js";
@@ -41,6 +42,16 @@ app.use(morgan("dev"));
 app.disable("x-powered-by");
 app.set("trust proxy", 1);
 
+// CORS Configuration
+app.use(cors({
+  origin: process.env.Node_ENV === "production"
+    ? process.env.CLIENT_URL
+    : "http://localhost:5173",
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "x-csrf-token"],
+
+}));
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true, limit: "100kb", parameterLimit: 1000 }));
