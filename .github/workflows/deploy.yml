@@ -1,52 +1,163 @@
 ---
-name: Deployment Pipeline
+name: Deploy to Zoho Catalyst
 
 "on":
-  workflow_dispatch:
-  push:
-    branches:
-      - main
+  # ------------------------------------------------------------
+  # Trigger deployment ONLY after CI succeeds
+  # ------------------------------------------------------------
+  workflow_run:
+    workflows: ["CI Pipeline"]
+    types:
+      - completed
 
+  # ------------------------------------------------------------
+  # Allow manual deployments from GitHub Actions UI
+  # ------------------------------------------------------------
+  workflow_dispatch:
+
+# ------------------------------------------------------------
+# Minimal required permissions
+# ------------------------------------------------------------
 permissions:
   contents: read
 
+# ------------------------------------------------------------
+# Prevent overlapping production deployments
+# ------------------------------------------------------------
+concurrency:
+  group: production-deployment
+  cancel-in-progress: true
+
 jobs:
-  prepare-deploy:
-    name: Prepare Deployment
+  deploy:
+    name: Deploy Production
     runs-on: ubuntu-latest
 
+    # ------------------------------------------------------------
+    # Only deploy if:
+    # 1. CI workflow succeeded
+    # OR
+    # 2. Manual workflow_dispatch was used
+    # ------------------------------------------------------------
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+
+    environment:
+      name: production
+
     steps:
+      # ------------------------------------------------------------
+      # STEP 1: CHECKOUT REPOSITORY
+      # ------------------------------------------------------------
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Confirm deployment workflow
-        run: |
-          echo "Deployment workflow is set up."
-          echo "This workflow is ready for future"
-          echo "Zoho Catalyst deployment steps."
+      # ------------------------------------------------------------
+      # STEP 2: SETUP NODE
+      # ------------------------------------------------------------
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
 
-      - name: Confirm backend path
+      # ------------------------------------------------------------
+      # STEP 3: INSTALL BACKEND DEPENDENCIES
+      # ------------------------------------------------------------
+      - name: Install backend dependencies
+        working-directory: apps/backend
+        run: npm ci
+
+      # ------------------------------------------------------------
+      # STEP 4: GENERATE PRISMA CLIENT
+      # ------------------------------------------------------------
+      - name: Generate Prisma Client
+        working-directory: apps/backend
+        run: npx prisma generate
+
+      # ------------------------------------------------------------
+      # STEP 5: INSTALL FRONTEND DEPENDENCIES
+      # ------------------------------------------------------------
+      - name: Install frontend dependencies
+        working-directory: apps/frontend
+        run: npm ci
+
+      # ------------------------------------------------------------
+      # STEP 6: BUILD FRONTEND
+      #
+      # IMPORTANT:
+      # This generates:
+      # - dist/
+      # - index.html
+      # - assets/
+      # - client-package.json
+      # ------------------------------------------------------------
+      - name: Build frontend
+        working-directory: apps/frontend
+        env:
+          VITE_API_BASE_URL: ${{ secrets.CATALYST_PROD_BACKEND_URL }}/api
+        run: npm run build
+
+      # ------------------------------------------------------------
+      # STEP 7: VERIFY BUILD OUTPUT
+      # ------------------------------------------------------------
+      - name: Verify frontend build output
         run: |
-          if [ -d "apps/backend" ]; then
-            echo "Backend folder found."
-          else
-            echo "::error::apps/backend not found"
+          if [ ! -d "apps/frontend/dist" ]; then
+            echo "::error::dist folder missing"
             exit 1
           fi
 
-      - name: Confirm frontend path
-        run: |
-          if [ -d "apps/frontend" ]; then
-            echo "Frontend folder found."
-          else
-            echo "::error::apps/frontend not found"
+          if [ ! -f "apps/frontend/dist/index.html" ]; then
+            echo "::error::index.html missing from dist"
             exit 1
           fi
 
-      - name: Deployment notes
+          if [ ! -f "apps/frontend/dist/client-package.json" ]; then
+            echo "::error::client-package.json missing from dist"
+            exit 1
+          fi
+
+      # ------------------------------------------------------------
+      # STEP 8: INSTALL ZOHO CATALYST CLI
+      # ------------------------------------------------------------
+      - name: Install Catalyst CLI
+        run: npm install -g zcatalyst-cli
+
+      # ------------------------------------------------------------
+      # STEP 9: AUTHENTICATE CATALYST
+      # ------------------------------------------------------------
+      - name: Configure Catalyst Authentication
         run: |
-          echo "Deployment trigger is configured."
-          echo "Environment variables will be"
-          echo "stored in GitHub Secrets."
-          echo "Zoho Catalyst deployment will be"
-          echo "added once platform setup is stable."
+          mkdir -p ~/.catalyst
+
+          TOKEN='${{ secrets.CATALYST_TOKEN }}'
+
+          echo "{\"token\":\"$TOKEN\"}" \
+             > ~/.catalyst/token.json
+
+      # ------------------------------------------------------------
+      # STEP 10: DEPLOY TO CATALYST
+      #
+      # Deploys:
+      # - Backend AppSail service
+      # - Frontend Client Hosting
+      #
+      # Based on catalyst.json:
+      # apps/backend
+      # apps/frontend/dist
+      # ------------------------------------------------------------
+      - name: Deploy to Catalyst
+        env:
+          CATALYST_PROJECT_ID: ${{ secrets.CATALYST_PROJECT_ID_PROD }}
+          NODE_ENV: production
+        run: |
+          catalyst deploy --project $CATALYST_PROJECT_ID
+
+      # ------------------------------------------------------------
+      # STEP 11: SUCCESS MESSAGE
+      # ------------------------------------------------------------
+      - name: Deployment Complete
+        run: |
+          echo "Deployment completed successfully."

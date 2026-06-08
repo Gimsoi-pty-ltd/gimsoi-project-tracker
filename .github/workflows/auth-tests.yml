@@ -33,15 +33,21 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "24"
+          node-version: "22"
 
       - name: Install dependencies
         working-directory: apps/backend
         run: npm ci --omit=optional
 
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-chromium
+
       - name: Install Playwright browsers
         working-directory: apps/backend
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install chromium
 
       - name: Push Prisma Schema
         working-directory: apps/backend
