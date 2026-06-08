@@ -46,7 +46,7 @@ jobs:
         github.event.workflow_run.event == 'push' &&
         github.event.workflow_run.head_branch == 'infrastructure/catalyst-setup'
       )
-      
+
     environment:
       name: production
 
