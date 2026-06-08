@@ -14,7 +14,7 @@ const statusColors = {
 };
 
 export default function ActiveTasksCard() {
-  const { activeSprint } = useProject();
+  const activeSprint = useProjectStore((state) => state.activeSprint);
   const tasks = activeSprint?.tasks || [];
   const [searchTerm,       setSearchTerm]       = useState("");
   const [selectedStatus,   setSelectedStatus]   = useState("All");
@@ -183,7 +183,7 @@ export default function ActiveTasksCard() {
                   </div>
                 </td>
 
-                <td className="py-4 px-2 text-gray-700">{task.storyPoints}</td>
+                <td className="py-4 px-2 text-gray-700">{task.storyPoints ?? "—"}</td>
 
                 <td className="py-4 px-2">
                   <span className={`px-2 py-1 rounded-md text-xs font-medium ${task.tagColor}`}>

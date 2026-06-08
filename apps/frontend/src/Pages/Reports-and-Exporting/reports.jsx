@@ -3,9 +3,23 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { Download } from "lucide-react";
 import { useProjectStore } from "../../store/ProjectStore";
+import EmptyState from "../../Components/EmptyState";
 
 export default function ReportsHub() {
   const { activeSprint, activeProject } = useProjectStore((state) => state);
+
+  if (!activeProject || !activeSprint) {
+    return (
+      <div className="p-6 md:p-8">
+        <EmptyState
+          title="Reports not ready"
+          message="Report data is not available yet. Please make sure a project and sprint are selected, or navigate back to the dashboard to load data."
+          actionLabel="Go to Dashboard"
+          onAction={() => window.location.replace('/dashboard')}
+        />
+      </div>
+    );
+  }
   const metrics = activeSprint?.metrics ?? {};
 
   const reports = [

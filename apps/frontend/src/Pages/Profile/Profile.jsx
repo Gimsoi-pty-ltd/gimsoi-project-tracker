@@ -1,10 +1,22 @@
 // src/Pages/Profile/Profile.jsx
 import React from "react";
 import { useProjectStore } from "../../store/ProjectStore";
+import { useAuthStore } from "../../store/authStore";
+
+const getInitials = (name) => {
+  if (!name) return "?";
+  return name
+    .split(" ")
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+};
 
 export default function ProjectTrackerProfilePage() {
-  const { user } = useProjectStore((state) => state);
-  const assignedProjects = projects.filter((p) => user.projects.includes(p.id));
+  const user = useAuthStore((state) => state.user) || {};
+  const projects = useProjectStore((state) => state.projects) || [];
+  const assignedProjects = projects.filter((p) => user.projects?.includes(p.id));
 
   return (
     <div className="min-h-screen bg-white p-4 md:p-8 lg:p-10">
@@ -57,9 +69,13 @@ export default function ProjectTrackerProfilePage() {
         <div className="bg-gray-100 rounded-2xl shadow-sm p-6">
           <h2 className="text-xl font-semibold text-black mb-4">Activity Log</h2>
           <div className="space-y-3 text-sm text-gray-800">
-            {user.activityLog.map((entry, i) => (
-              <p key={i}><span className="text-gray-500 text-xs">{entry.date}</span><br />{entry.action}</p>
-            ))}
+            {user?.activityLog && user.activityLog.length > 0 ? (
+              user.activityLog.map((entry, i) => (
+                <p key={i}><span className="text-gray-500 text-xs">{entry.date}</span><br />{entry.action}</p>
+              ))
+            ) : (
+              <p className="text-gray-500 italic">No activity yet</p>
+            )}
           </div>
         </div>
       </div>

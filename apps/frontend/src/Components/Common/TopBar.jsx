@@ -2,12 +2,23 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { HelpCircle, Search, Settings, Menu } from "lucide-react";
-import logo from "../../assets/Gimsoi-AI.jpg";
-import { useProjectStore } from "../../store/projectStore";
+import logo from "../../assets/Gimsoi-AI.png";
+import { useAuthStore } from "../../store/authStore";
+
+const getInitials = (name) => {
+  if (!name) return "?";
+  return name
+    .split(" ")
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+};
 
 export default function TopBar({ onMenuClick }) {
   const location  = useLocation();
-  const { user }  = useProjectStore((state) => state);
+  const user = useAuthStore((state) => state.user);
+  const initials = getInitials(user?.fullName || user?.name);
   const [moreOpen, setMoreOpen] = useState(false);
   const moreRef = useRef(null);
 
@@ -22,7 +33,7 @@ export default function TopBar({ onMenuClick }) {
   }, []);
 
   const navItems = [
-    { label: "Dashboard", href: "/" },
+    { label: "Dashboard", href: "/dashboard" },
     { label: "Tasks",     href: "/tasks" },
     { label: "Kanban",    href: "/kanban-board" },
     { label: "Users",     href: "/users" },
@@ -51,7 +62,7 @@ export default function TopBar({ onMenuClick }) {
             <Menu size={24} />
           </button>
 
-          <Link to="/" className="flex items-center gap-2 sm:gap-3 no-underline">
+          <Link to="/dashboard" className="flex items-center gap-2 sm:gap-3 no-underline">
             <img src={logo} alt="logo" className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg" />
             <span className="font-bold text-lg sm:text-xl text-white">Gimsoi</span>
           </Link>
@@ -97,9 +108,9 @@ export default function TopBar({ onMenuClick }) {
           {/* Mobile */}
           <div className="flex lg:hidden">
             <Link
-              to="/"
+              to="/dashboard"
               className={`px-4 py-2 rounded-lg text-sm no-underline ${
-                location.pathname === "/" ? "bg-white text-blue-600 font-bold" : "text-blue-100 hover:bg-white/10 hover:text-white"
+                location.pathname === "/dashboard" ? "bg-white text-blue-600 font-bold" : "text-blue-100 hover:bg-white/10 hover:text-white"
               }`}
             >
               Dashboard
@@ -155,10 +166,10 @@ export default function TopBar({ onMenuClick }) {
           {/* Avatar — shows user initials from context */}
           <Link
             to="/profile"
+            title={user?.fullName || user?.name || "Profile"}
             className="w-[40px] h-[40px] sm:w-[48px] sm:h-[48px] rounded-2xl bg-white flex items-center justify-center text-[16px] sm:text-[18px] font-extrabold text-blue-600"
-            // title={user.name}
           >
-            {/* {user.initials} */}
+            {initials}
           </Link>
         </div>
 

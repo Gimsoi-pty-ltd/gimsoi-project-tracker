@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-
-
+import EmptyState from "../../Components/EmptyState";
 
 const Users = () => {
   const [showModal, setShowModal] = useState(false);
@@ -27,15 +26,17 @@ const Users = () => {
     fetch(`/api/users?page=${page}&limit=6`)
     .then((res) => res.json())
     .then((data) => {
-      setUsers(data.users);
-      setTotalPages(data.totalPages);
+      setUsers(data.users || []);
+      setTotalPages(data.totalPages || 1);
       setLoading(false);
     })
     .catch((err) => {
       console.error("Error fetching users:", err);
+      setUsers([]);
+      setTotalPages(1);
       setLoading(false);
     });
-}, [page]);
+  }, [page]);
 
 
   const statusStyle = (status) => {
@@ -157,10 +158,21 @@ const handleChange = (e) => {
       </div>
 
 
-      {/* Users Table */}
-      <div className="bg-white rounded-xl border shadow-sm overflow-x-auto">
+      {loading ? (
+        <div className="bg-white rounded-xl border shadow-sm p-10 text-center">
+          <p className="text-sm text-gray-600">Loading users…</p>
+        </div>
+      ) : users.length === 0 ? (
+        <EmptyState
+          title="No users found"
+          message="The users list is empty or the users endpoint is unavailable. Please check your connection or contact the admin."
+          actionLabel="Try Again"
+          onAction={() => setPage(1)}
+        />
+      ) : (
+        <div className="bg-white rounded-xl border shadow-sm overflow-x-auto">
 
-        <table className="w-full text-xs md:text-sm min-w-[640px]">
+          <table className="w-full text-xs md:text-sm min-w-[640px]">
 
           <thead className="bg-gray-100 text-gray-600 text-left">
             <tr>
@@ -246,7 +258,7 @@ const handleChange = (e) => {
         </table>
 
       </div>
-
+      )}
 
       {/* Pagination */}
           <div className="flex gap-2">

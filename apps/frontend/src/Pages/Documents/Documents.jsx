@@ -58,7 +58,7 @@ const SectionCard = ({ title, documents }) => {
 };
 
 const DocumentsPage = () => {
-  const { documents, projects } = useProjectStore((state) => state);
+  const { documents = [], projects = [] } = useProjectStore((state) => state);
   const [filterType, setFilterType] = useState('All');
   const [sortBy, setSortBy] = useState('updated');
   const [showNewDocModal, setShowNewDocModal] = useState(false);

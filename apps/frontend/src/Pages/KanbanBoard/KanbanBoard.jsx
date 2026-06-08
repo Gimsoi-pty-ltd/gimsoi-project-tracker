@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
+import { useProjectStore } from '../../store/projectStore';
 
 // Kanban Cards
 
@@ -170,7 +171,7 @@ const Column = ({
 };
 
 // Sample data for testing
-const SAMPLE_COLUMNS = [
+const DEPRECATED_SAMPLE_COLUMNS = [
   {
     id: 'backlog',
     title: 'Backlog',
@@ -221,12 +222,65 @@ const SAMPLE_COLUMNS = [
 
 // Main Kanban Component
 const Kanban = () => {
-  const [columns, setColumns]           = useState(SAMPLE_COLUMNS);
+  const { activeSprint, activeProject, isLoading, error } = useProjectStore();
   const [selectedCard, setSelectedCard] = useState(null);
-  const [draggedCard, setDraggedCard]   = useState(null);
+  const [draggedCard, setDraggedCard] = useState(null);
 
-  const totalCards  = columns.reduce((sum, col) => sum + col.cards.length, 0);
-  const doneCards   = columns.find((c) => c.id === 'done')?.cards.length ?? 0;
+  // Build columns from sprint tasks
+  const columns = useMemo(() => {
+    if (!activeSprint?.tasks || activeSprint.tasks.length === 0) {
+      return [
+        { id: 'backlog', title: 'Backlog', headerColor: 'bg-gray-600', cards: [] },
+        { id: 'todo', title: 'TO DO', headerColor: 'bg-blue-600', cards: [] },
+        { id: 'in-progress', title: 'In Progress', headerColor: 'bg-green-600', cards: [] },
+        { id: 'review', title: 'QA / Review', headerColor: 'bg-yellow-500', cards: [] },
+        { id: 'done', title: 'Done', headerColor: 'bg-green-800', cards: [] },
+      ];
+    }
+
+    const statusMap = {
+      'TODO': 'todo',
+      'IN_PROGRESS': 'in-progress',
+      'DONE': 'done',
+      'BLOCKED': 'review',
+    };
+
+    const cardsByStatus = {
+      backlog: [],
+      todo: [],
+      'in-progress': [],
+      review: [],
+      done: [],
+    };
+
+    activeSprint.tasks.forEach((task) => {
+      const columnId = statusMap[task.status] || 'todo';
+      const priorityLabel = task.priority === 'URGENT' ? 'High' : task.priority === 'HIGH' ? 'High' : task.priority === 'MEDIUM' ? 'Medium' : 'Low';
+      const colors = ['bg-purple-600', 'bg-blue-700', 'bg-orange-400', 'bg-yellow-400', 'bg-green-600'];
+      
+      cardsByStatus[columnId].push({
+        id: task.id?.toString() || Math.random().toString(),
+        title: task.title || '—',
+        priority: priorityLabel,
+        assignee: task.assignee || 'Unassigned',
+        tags: task.label ? [task.label] : [],
+        cardColor: colors[Object.keys(cardsByStatus).findIndex(k => k === columnId) % colors.length],
+      });
+    });
+
+    return [
+      { id: 'backlog', title: 'Backlog', headerColor: 'bg-gray-600', cards: cardsByStatus.backlog },
+      { id: 'todo', title: 'TO DO', headerColor: 'bg-blue-600', cards: cardsByStatus.todo },
+      { id: 'in-progress', title: 'In Progress', headerColor: 'bg-green-600', cards: cardsByStatus['in-progress'] },
+      { id: 'review', title: 'QA / Review', headerColor: 'bg-yellow-500', cards: cardsByStatus.review },
+      { id: 'done', title: 'Done', headerColor: 'bg-green-800', cards: cardsByStatus.done },
+    ];
+  }, [activeSprint?.tasks]);
+
+  const [columnState, setColumnState] = useState(columns);
+
+  const totalCards  = columnState.reduce((sum, col) => sum + col.cards.length, 0);
+  const doneCards   = columnState.find((c) => c.id === 'done')?.cards.length ?? 0;
   const progressPct = totalCards ? Math.round((doneCards / totalCards) * 100) : 0;
 
   const handleDragStart = (fromColumnId, cardId) => setDraggedCard({ fromColumnId, cardId });
@@ -237,7 +291,7 @@ const Kanban = () => {
     const { fromColumnId, cardId } = draggedCard;
     if (fromColumnId === toColumnId) { setDraggedCard(null); return; }
 
-    setColumns((prev) => {
+    setColumnState((prev) => {
       const card = prev.find((c) => c.id === fromColumnId)?.cards.find((c) => c.id === cardId);
       if (!card) return prev;
       return prev.map((col) => {
@@ -249,13 +303,17 @@ const Kanban = () => {
     setDraggedCard(null);
   };
 
+  if (isLoading) return <div className="p-8 text-center">Loading Kanban board...</div>;
+  if (error) return <div className="p-8 text-center text-red-600">Error: {error}</div>;
+  if (!activeSprint) return <div className="p-8 text-center text-gray-500">No active sprint. Create a sprint to see tasks.</div>;
+
   return (
     <div className="bg-gray-200 min-h-screen p-6 text-black" style={{ fontFamily: 'Arial, sans-serif' }}>
       <div className="bg-white rounded-lg shadow-lg p-6">
 
         {/* HEADER */}
         <div className="pb-6 border-b border-gray-200 mb-6">
-          <h1 className="text-2xl font-bold">Sprint Task-Progress</h1>
+          <h1 className="text-2xl font-bold">Sprint Task-Progress {activeProject?.name && `— ${activeProject.name}`}</h1>
 
           <div className="flex items-center justify-between mt-4">
             <div>
@@ -301,7 +359,7 @@ const Kanban = () => {
         <h2 className="text-lg font-semibold text-gray-700 mb-3">Kanban board</h2>
 
         <div className="flex gap-4 overflow-x-auto pb-2">
-          {columns.map((col) => (
+          {columnState.map((col) => (
             <Column
               key={col.id}
               id={col.id}

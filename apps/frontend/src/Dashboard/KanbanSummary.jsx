@@ -5,7 +5,7 @@ import { useProjectStore } from '../store/projectStore';
 
 const KanbanSummary = () => {
     const [showInfo, setShowInfo] = useState(false);
-    const { activeSprint } = useProject();
+    const activeSprint = useProjectStore((state) => state.activeSprint);
     
     const getStatusData = () => {
         const kanban = activeSprint?.kanban || { todo: 0, inProgress: 0, review: 0, done: 0, blocked: 0 };
@@ -69,6 +69,12 @@ const KanbanSummary = () => {
                     }}
                 />
             </div>
+
+            {statusData.length === 0 && (
+                <p className="text-sm text-gray-500 py-8 text-center">
+                    No tasks in this sprint yet
+                </p>
+            )}
 
             {/* Status List */}
             <div className="space-y-4">

@@ -1,12 +1,13 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Info, Flag, ArrowRight } from "lucide-react";
-import { useProjectStore } from "../../store/ProjectStore";
+import { useProjectStore } from "../../store/projectStore";
 
 const SprintGoal = () => {
   const navigate = useNavigate();
   const { activeSprint } = useProjectStore((state) => state);
-  const sprintGoal = activeSprint?.metrics?.sprintGoal || 0;
+  const sprintGoal = activeSprint?.metrics?.sprintGoal;
+  const goalAvailable = sprintGoal != null;
   const completedTasks = activeSprint?.metrics?.completedTasks || 0;
   const totalTasks = activeSprint?.metrics?.totalTasks || 0;
   const sprintName = activeSprint?.name || "Current Sprint";
@@ -56,14 +57,18 @@ const SprintGoal = () => {
       </div>
 
       <div className="mt-5">
-        <div className="flex items-end gap-2 flex-wrap">
-          <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 leading-none">
-            {sprintGoal}
-          </h2>
-          <span className="text-sm sm:text-base text-gray-500 mb-1">
-            story points
-          </span>
-        </div>
+        {goalAvailable ? (
+          <div className="flex items-end gap-2 flex-wrap">
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 leading-none">
+              {sprintGoal}
+            </h2>
+            <span className="text-sm sm:text-base text-gray-500 mb-1">story points</span>
+          </div>
+        ) : (
+          <p className="text-sm text-gray-500 leading-relaxed">
+            Planned sprint goal is not available from the API yet.
+          </p>
+        )}
 
         <div className="mt-4">
           <p className="text-sm text-gray-600">
@@ -77,7 +82,7 @@ const SprintGoal = () => {
 
       <div className="mt-6 flex items-center justify-between">
         <p className="text-[11px] sm:text-xs text-gray-400 max-w-[80%]">
-          Planned story points for {sprintName}
+          {goalAvailable ? `Planned story points for ${sprintName}` : `Task progress for ${sprintName}`}
         </p>
         <div className="flex items-center gap-1 text-sky-500 text-sm font-medium">
           View

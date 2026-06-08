@@ -1,5 +1,6 @@
 // src/Pages/Phases/Phases-of-tasks.jsx
 import React, { useState } from 'react';
+import { useProjectStore } from '../../store/projectStore';
 
 const statusColor = (status) => {
   switch (status) {
@@ -20,7 +21,7 @@ const statusTextColor = (status) => {
 };
 
 export default function ProjectPhasesGantt() {
-  const { projects, activeProject, activeSprint } = useProject();
+  const { projects = [], activeProject = {}, activeSprint = {} } = useProjectStore((state) => state);
 
   // Build phases from projects — each project is a phase row
   const phases = projects.map((project) => {

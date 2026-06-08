@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Info, ArrowRight, CheckCircle2 } from "lucide-react"; 
-import { useProjectStore } from "../../store/ProjectStore";
+import { useProjectStore } from "../../store/projectStore";
 
 const TotalTasks = () => {
   const navigate = useNavigate();

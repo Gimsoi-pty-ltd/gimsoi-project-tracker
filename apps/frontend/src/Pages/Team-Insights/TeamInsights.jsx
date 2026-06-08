@@ -6,9 +6,16 @@ import { useProjectStore } from "../../store/ProjectStore";
 
 
 function TeamInsights() {
-  const { activeSprint, activeProject } = useProjectStore((state) => state);
+  const { activeSprint, activeProject, projects = [] } = useProjectStore((state) => state);
   const metrics = activeSprint?.metrics ?? {};
   const tasks   = activeSprint?.tasks ?? [];
+  const teamMembers = (activeProject?.team || []).map((name, i) => ({
+    id: i,
+    name: name.split('(')[0]?.trim() || 'Team Member',
+    firstName: name.split('(')[0]?.trim().split(' ')[0] || 'Member',
+    initials: name.split('(')[0]?.trim().split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || '?',
+    jobTitle: name.includes('(') ? name.match(/\(([^)]+)\)/)?.[1] || 'Developer' : 'Developer',
+  }));
 
   const memberStats = teamMembers.map((member) => {
     const firstName      = member.name.split(" ")[0];

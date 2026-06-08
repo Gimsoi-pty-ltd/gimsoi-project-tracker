@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { Info } from 'lucide-react';
 import { useProjectStore } from '../store/projectStore';
+
+const isHeatmapEmpty = (rows) =>
+    rows.every((row) => (row.values || []).every((v) => v === 0));
 
 
 const PriorityHeatmap = () => {
@@ -15,13 +17,15 @@ const PriorityHeatmap = () => {
     };
 
    
-    const heatmap = useProjectStore((state) => state.dashboardData.charts.heatmap);
+    const heatmap = useProjectStore((state) => state.dashboardData?.charts?.heatmap ?? []);
 
-     const heatmapData = heatmap.map((row) => ({
-    priority: row.priority.charAt(0).toUpperCase() + row.priority.slice(1),
-    values: Array(5).fill(row.count),
-    colors: COLOR_MAP[row.priority] ?? Array(5).fill('bg-slate-200'),
-}));
+    const heatmapData = heatmap.map((row) => ({
+        priority: row.priorityLabel || row.priority.charAt(0).toUpperCase() + row.priority.slice(1),
+        values: row.values ?? Array(5).fill(row.count ?? 0),
+        colors: COLOR_MAP[row.priority] ?? Array(5).fill('bg-slate-200'),
+    }));
+
+    const isEmpty = heatmap.length === 0 || isHeatmapEmpty(heatmap);
 
     const columns = ['To-do', 'In Progress', 'Review', 'Done', 'Blocked'];
 
@@ -66,7 +70,14 @@ const PriorityHeatmap = () => {
                     ))}
                 </div>
 
-                {/* Heatmap Rows */}
+                {isEmpty ? (
+                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                        <p className="text-sm font-medium text-gray-600">No tasks in this sprint</p>
+                        <p className="text-xs text-gray-400 mt-2 max-w-xs">
+                            Heatmap fills when sprint tasks exist
+                        </p>
+                    </div>
+                ) : (
                 <div className="space-y-2">
                     {heatmapData.map((row) => (
                         <div
@@ -94,6 +105,7 @@ const PriorityHeatmap = () => {
                         </div>
                     ))}
                 </div>
+                )}
 
                 {/* Footer Note */}
                 <div className="mt-6 text-xs text-slate-500 leading-relaxed">

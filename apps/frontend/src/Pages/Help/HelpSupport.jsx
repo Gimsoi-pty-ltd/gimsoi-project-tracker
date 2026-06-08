@@ -3,7 +3,7 @@ import { Search, Mail, MessageCircle, FileText } from "lucide-react";
 import { useProjectStore } from "../../store/projectStore";
 
 export default function HelpSupport() {
-  const { helpTopics } = useProjectStore((state) => state);
+  const { helpTopics = [] } = useProjectStore((state) => state);
   const [activeIndex, setActiveIndex] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");

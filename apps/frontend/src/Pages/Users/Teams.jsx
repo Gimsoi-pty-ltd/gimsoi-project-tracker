@@ -1,8 +1,8 @@
 // src/Pages/Users/Teams.jsx
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { Search, Plus, Download, Upload } from "lucide-react";
-
+import { useProjectStore } from "../../store/projectStore";
 
 const statusColor = (status) => {
   if (status === "Active")   return "bg-green-100 text-green-700";
@@ -12,22 +12,30 @@ const statusColor = (status) => {
 };
 
 // Build teams from projects + team members
-const buildTeams = () =>
-  projects.map((project) => ({
-    name:    `${project.name} Team`,
-    project: project.name,
-    client:  project.client,
-    dept:    "Engineering",
-    lead:    teamMembers[0].name,
-    members: teamMembers.length,
-    status:  project.status,
-  }));
+const buildTeams = (projects = []) =>
+  projects.map((project) => {
+    const teamMembers = (project.team || []).map((name) => ({
+      name: name.split('(')[0]?.trim() || 'Team Member',
+      initials: name.split('(')[0]?.trim().split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || '?',
+    }));
+    return {
+      name:    `${project.name} Team`,
+      project: project.name,
+      client:  project.client || 'N/A',
+      dept:    "Engineering",
+      lead:    teamMembers[0]?.name || 'Unassigned',
+      members: teamMembers.length,
+      status:  project.status || 'Active',
+      _teamMembers: teamMembers,
+    };
+  });
 
 export default function Teams() {
+  const { projects = [] } = useProjectStore((state) => state);
   const [openModal, setOpenModal] = useState(false);
   const [search, setSearch]       = useState("");
 
-  const teams = buildTeams().filter((t) =>
+  const teams = useMemo(() => buildTeams(projects), [projects]).filter((t) =>
     t.name.toLowerCase().includes(search.toLowerCase()) ||
     t.project.toLowerCase().includes(search.toLowerCase())
   );
@@ -102,21 +110,29 @@ export default function Teams() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {teamMembers.map((member) => (
-              <tr key={member.id} className="hover:bg-gray-50 transition">
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-[#002D62] text-white flex items-center justify-center text-xs font-bold">{member.initials}</div>
-                    <span className="font-medium text-gray-900">{member.name}</span>
-                  </div>
+            {teams.length > 0 && teams[0]?._teamMembers?.length > 0 ? (
+              teams[0]._teamMembers.map((member, idx) => (
+                <tr key={idx} className="hover:bg-gray-50 transition">
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-[#002D62] text-white flex items-center justify-center text-xs font-bold">{member.initials || '?'}</div>
+                      <span className="font-medium text-gray-900">{member.name}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className={`text-xs font-medium px-2.5 py-1 rounded-full bg-gray-100 text-gray-600`}>Developer</span>
+                  </td>
+                  <td className="px-6 py-4 text-gray-600">Developer</td>
+                  <td className="px-6 py-4 text-gray-500">—</td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="4" className="px-6 py-8 text-center text-gray-500">
+                  No team members assigned
                 </td>
-                <td className="px-6 py-4">
-                  <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${member.role === "Admin" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600"}`}>{member.role}</span>
-                </td>
-                <td className="px-6 py-4 text-gray-600">{member.jobTitle}</td>
-                <td className="px-6 py-4 text-gray-500">{member.email}</td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
       </div>

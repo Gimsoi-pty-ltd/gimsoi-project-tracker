@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Info, AlertTriangle, ArrowRight } from "lucide-react";
-import { useProjectStore } from "../../store/ProjectStore";
+import { useProjectStore } from "../../store/projectStore";
 
 const riskColors = {
   High: { dot: "bg-red-500", text: "text-red-500", badge: "bg-red-100 text-red-600", icon: "text-red-500", bg: "bg-red-50" },

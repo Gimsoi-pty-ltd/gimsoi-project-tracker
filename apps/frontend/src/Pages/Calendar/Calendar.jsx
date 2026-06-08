@@ -5,7 +5,7 @@ const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
 const Calendar = () => {
-  const { calendarEvents } = useProjectStore((state) => state);
+  const { calendarEvents = [] } = useProjectStore((state) => state);
   const [currentDate, setCurrentDate] = useState(new Date(2026, 4, 21)); // May 21, 2026
   const [showEventModal, setShowEventModal] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);

@@ -1,9 +1,19 @@
 import { useState } from "react";
-import { useProjectStore } from "../../store/ProjectStore";
+import { useAuthStore } from "../../store/authStore";
+
+const getInitials = (name) => {
+  if (!name) return "?";
+  return name
+    .split(" ")
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+};
 
 export default function ProfileSection() {
-  const { user, updateUserProfile, addActivityLog } = useProjectStore((state) => state);
-  const [formData, setFormData] = useState({ name: user.name, email: user.email });
+  const { user = {}, updateUserProfile, addActivityLog } = useAuthStore((state) => state);
+  const [formData, setFormData] = useState({ name: user.fullName || user.name || "", email: user.email || "" });
   const [saved, setSaved] = useState(false);
 
   const handleInputChange = (e) => {
@@ -32,13 +42,13 @@ export default function ProfileSection() {
       {/* Avatar Card */}
       <div className="bg-gray-50 border border-gray-200 p-4 rounded-lg flex gap-4 items-center">
         <div className="w-14 h-14 md:w-16 md:h-16 bg-[#001f44] text-white flex items-center justify-center rounded-lg text-lg md:text-xl font-bold flex-shrink-0">
-          {user.initials}
+          {getInitials(user.fullName || user.name)}
         </div>
         <div className="min-w-0">
-          <p className="font-semibold text-[#001f44] truncate">{user.name}</p>
+          <p className="font-semibold text-[#001f44] truncate">{user.fullName || user.name}</p>
           <p className="text-sm text-gray-500 truncate">{user.email}</p>
           <span className="text-xs bg-orange-500 text-white px-3 py-1 rounded-full inline-block mt-1">
-            {user.jobTitle}
+            {user.jobTitle || user.role || "Member"}
           </span>
         </div>
       </div>

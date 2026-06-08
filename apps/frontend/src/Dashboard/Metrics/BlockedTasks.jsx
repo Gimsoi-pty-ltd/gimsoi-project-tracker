@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { Info, Lock, ArrowRight } from "lucide-react";
-import { useProjectStore } from "../../store/ProjectStore";
+import { useProjectStore } from "../../store/projectStore";
 
 const BlockedCard = () => {
   const navigate = useNavigate();

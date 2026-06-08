@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Info, ShieldCheck, ArrowRight } from "lucide-react";
-import { useProjectStore } from "../../store/ProjectStore";
+import { useProjectStore } from "../../store/projectStore";
 
 const SprintHealth = () => {
   const navigate = useNavigate();
