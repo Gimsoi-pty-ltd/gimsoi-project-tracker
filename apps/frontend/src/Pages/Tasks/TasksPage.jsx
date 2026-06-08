@@ -1,48 +1,42 @@
+import { useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
+import { useTaskStore } from "../../store/taskStore";
 import OverdueTasks from "./OverdueTasks";
+import BlockedTasks from "./BlockedTasks";
 import PieChart from "../Task-Progress/PieChart";
 import TaskCard from "../Task-Progress/TaskCard";
 
-
 const TABS = [
-  { id: "overdue", label: "Overdue Tasks", count: 8 },
-  { id: "blocked", label: "Blocked Tasks", count: 6 },
-  { id: "progress", label: "Task-Progress", count: null },
+  { id: "overdue", label: "Overdue Tasks" },
+  { id: "blocked", label: "Blocked Tasks" },
+  { id: "progress", label: "Task-Progress" },
 ];
-
-const BLOCKED_TASKS = [
-  { id: "b1", title: "Waiting on Data from Backend", severity: "high", assignee: "John Doe" },
-  { id: "b2", title: "Security Review", severity: "medium", assignee: "Jane Doe" },
-  { id: "b3", title: "Priority Conflict", severity: "medium", assignee: "Mike Smith" },
-  { id: "b4", title: "Dependency on External API", severity: "high", assignee: "Sarah Lee" },
-  { id: "b5", title: "Awaiting Design Approval", severity: "low", assignee: "Tom Wilson" },
-  { id: "b6", title: "Resource Unavailable", severity: "high", assignee: "Alex Brown" },
-];
-
-const urgencyStyle = (urgency) => {
-  switch (urgency) {
-    case "Critical":
-    case "high":
-      return "text-red-500";
-    case "Moderate":
-    case "medium":
-      return "text-yellow-600";
-    case "Minor":
-    case "low":
-      return "text-green-700";
-    default:
-      return "text-gray-600";
-  }
-};
 
 export default function TasksPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get("tab") || "overdue";
   const activeTab = TABS.find((t) => t.id === tabParam) ? tabParam : "overdue";
 
-  const setTab = (id) => {
-    setSearchParams({ tab: id });
-  };
+  const { tasks, getTasks } = useTaskStore();
+
+  useEffect(() => {
+    getTasks();
+  }, [getTasks]);
+
+  // Compute live counts from store
+  const now = Date.now();
+  const overdueCount = tasks.filter(
+    (t) => t.dueDate && new Date(t.dueDate).getTime() < now && t.status !== "completed" && t.status !== "done"
+  ).length;
+  const blockedCount = tasks.filter((t) => t.status === "blocked").length;
+
+  const tabsWithCounts = [
+    { id: "overdue", label: "Overdue Tasks", count: overdueCount },
+    { id: "blocked", label: "Blocked Tasks", count: blockedCount },
+    { id: "progress", label: "Task-Progress", count: null },
+  ];
+
+  const setTab = (id) => setSearchParams({ tab: id });
 
   return (
     <div className="bg-gray-50 min-h-screen p-4 md:p-8">
@@ -52,7 +46,7 @@ export default function TasksPage() {
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
           {/* Tabs */}
           <div className="flex gap-1 border-b border-gray-200 bg-gray-50 px-6">
-            {TABS.map((tab) => (
+            {tabsWithCounts.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setTab(tab.id)}
@@ -78,42 +72,7 @@ export default function TasksPage() {
 
           <div className="p-6">
             {activeTab === "overdue" && <OverdueTasks />}
-
-            {activeTab === "blocked" && (
-              <table className="w-full text-sm">
-                <thead className="text-gray-400 border-b">
-                  <tr>
-                    <th className="text-left py-3">Feature</th>
-                    <th className="text-left py-3">Status</th>
-                    <th className="text-left py-3">Severity</th>
-                    <th className="text-left py-3">Assigned to</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {BLOCKED_TASKS.map((task) => (
-                    <tr key={task.id} className="border-b last:border-b-0 hover:bg-gray-50 transition">
-                      <td className="py-5">
-                        <div className="flex items-center gap-3">
-                          <input type="checkbox" className="w-5 h-5 rounded-full accent-blue-600" />
-                          <span className="text-gray-400 text-sm">{task.id}</span>
-                          <span className="text-sm font-medium text-gray-800">{task.title}</span>
-                        </div>
-                      </td>
-                      <td className="py-5">
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-sm font-medium bg-amber-100 text-amber-800">
-                          Blocked
-                        </span>
-                      </td>
-                      <td className={`py-5 text-sm font-medium capitalize ${urgencyStyle(task.severity)}`}>
-                        {task.severity}
-                      </td>
-                      <td className="py-5 text-sm text-gray-600">{task.assignee}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-
+            {activeTab === "blocked" && <BlockedTasks />}
             {activeTab === "progress" && (
               <div className="space-y-6">
                 <div className="max-w-md">
