@@ -1,65 +1,43 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import EmptyState from "../../Components/EmptyState";
 
 const Users = () => {
   const [showModal, setShowModal] = useState(false);
+  const [users, setUsers] = useState([]);
+  const [search, setSearch] = useState("");
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    role: "",
+    team: "",
+    department: "",
+    phone: "",
+    notes: "",
+  });
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading] = useState(true);
 
-  const users = [
-    {
-      id: 1,
-      name: "Sarah Chen",
-      email: "product@company.co",
-      role: "Designer",
-      title: "Senior Product Designer",
-      team: "Design Team",
-      status: "Active",
-    },
-    {
-      id: 2,
-      name: "Mike Ross",
-      email: "mike@company.co",
-      role: "Developer",
-      title: "Lead Frontend Developer",
-      team: "Engineering",
-      status: "Active",
-    },
-    {
-      id: 3,
-      name: "Rachel Zane",
-      email: "rachel@company.co",
-      role: "Manager",
-      title: "Project Manager",
-      team: "Operations",
-      status: "Pending",
-    },
-    {
-      id: 4,
-      name: "Harvey Specter",
-      email: "harvey@company.co",
-      role: "Admin",
-      title: "System Administrator",
-      team: "IT",
-      status: "Active",
-    },
-    {
-      id: 5,
-      name: "Donna Paulsen",
-      email: "donna@company.co",
-      role: "HR",
-      title: "HR Coordinator",
-      team: "People",
-      status: "Active",
-    },
-    {
-      id: 6,
-      name: "Louis Litt",
-      email: "louis@company.co",
-      role: "QA",
-      title: "QA Engineer",
-      team: "Engineering",
-      status: "Inactive",
-    },
-  ];
+   
+
+  useEffect(() => {
+    setLoading(true);
+    fetch(`/api/users?page=${page}&limit=6`)
+    .then((res) => res.json())
+    .then((data) => {
+      setUsers(data.users || []);
+      setTotalPages(data.totalPages || 1);
+      setLoading(false);
+    })
+    .catch((err) => {
+      console.error("Error fetching users:", err);
+      setUsers([]);
+      setTotalPages(1);
+      setLoading(false);
+    });
+  }, [page]);
+
 
   const statusStyle = (status) => {
     if (status === "Active")
@@ -70,45 +48,109 @@ const Users = () => {
       return "bg-red-100 text-red-700";
   };
 
+  const handleSaveUser = async () => {
+    try {
+      if (formData.id) {
+        // Edit existing user
+        const res = await fetch(`/api/users/${formData.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData),
+        });
+        const updatedUser = await res.json();
+        setUsers(users.map((u) => (u.id === formData.id ? updatedUser : u)));
+      } else {
+        // Add new user
+        const res = await fetch("/api/users", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData),
+        });
+        const savedUser = await res.json();
+        setUsers([...users, savedUser]);
+      }
+      setShowModal(false);
+      setFormData({ name: "", email: "", role: "", team: "", department: "", phone: "", notes: "" });
+    } catch (err) {
+      console.error("Error saving user:", err);
+    }
+  };
+
+const handleEditUser = async (id, updatedData) => {
+  try {
+    const res = await fetch(`/api/users/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updatedData),
+    });
+    const updatedUser = await res.json();
+    setUsers(users.map((u) => (u.id === id ? updatedUser : u)));
+  } catch (err) {
+    console.error("Error editing user:", err);
+  }
+};
+
+
+const handleDeactivate = async (id) => {
+  try {
+    await fetch(`/api/users/${id}`, { method: "DELETE" });
+    setUsers(users.filter((u) => u.id !== id));
+  } catch (err) {
+    console.error("Error deactivating user:", err);
+  }
+};
+
+const handleChange = (e) => {
+  const { name, value } = e.target;
+  setFormData(prev => ({ ...prev, [name]: value }));
+};
+
+
+
+
   return (
-    <div className="p-8 bg-gray-50 min-h-screen">
+    <div className="p-4 md:p-6 lg:p-8 bg-gray-50 min-h-screen">
 
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6 md:mb-8">
 
-       <div className="md:flex md:items-center md:justify-between mb-8">
-              <div>
-                <h2 className="text-2xl font-bold text-slate-900">Manage Users</h2>
-                <nav className="flex mt-1 text-sm text-gray-500">
-                  <Link to="/users" >
-                  <span className="text-slate-900 hover:text-slate-600 cursor-pointer">User Management</span>
-                  </Link>
-                  <span className="mx-2">/</span>
-                  <span>Users</span>
-                </nav>
-              </div>
-        </div>
+       <div>
+              <h2 className="text-xl md:text-2xl font-bold text-slate-900">Manage Users</h2>
+              <nav className="flex mt-1 text-xs md:text-sm text-gray-500">
+                <Link to="/users" >
+                <span className="text-slate-900 hover:text-slate-600 cursor-pointer">User Management</span>
+                </Link>
+                <span className="mx-2">/</span>
+                <span>Users</span>
+              </nav>
+            </div>
 
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-2 md:gap-3">
 
+        {/* Filter Input . Allows to search users by name, role, or email. Updates the search state on change. */}
           <input
             type="text"
-            placeholder="Search users by name, role, email..."
-            className="border rounded-lg px-4 py-2 w-72 text-sm"
+            placeholder="Search users..."
+            className="border rounded-lg px-3 md:px-4 py-2 text-xs md:text-sm flex-1 min-w-[150px] md:w-auto"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
           />
 
           <button
-            onClick={() => setShowModal(true)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700"
+            onClick={() => {
+              setFormData({ name: "", email: "", role: "", team: "", department: "", phone: "", notes: "" });
+              setShowModal(true);
+            }}
+            className="bg-blue-600 text-white px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium hover:bg-blue-700 whitespace-nowrap"
           >
             + Add User
           </button>
 
-          <button className="border px-4 py-2 rounded-lg text-sm">
+          <button className="border px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm bg-white hidden sm:block">
             Import
           </button>
 
-          <button className="border px-4 py-2 rounded-lg text-sm">
+          <button className="border px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm bg-white hidden sm:block">
             Export
           </button>
 
@@ -116,10 +158,21 @@ const Users = () => {
       </div>
 
 
-      {/* Users Table */}
-      <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
+      {loading ? (
+        <div className="bg-white rounded-xl border shadow-sm p-10 text-center">
+          <p className="text-sm text-gray-600">Loading users…</p>
+        </div>
+      ) : users.length === 0 ? (
+        <EmptyState
+          title="No users found"
+          message="The users list is empty or the users endpoint is unavailable. Please check your connection or contact the admin."
+          actionLabel="Try Again"
+          onAction={() => setPage(1)}
+        />
+      ) : (
+        <div className="bg-white rounded-xl border shadow-sm overflow-x-auto">
 
-        <table className="w-full text-sm">
+          <table className="w-full text-xs md:text-sm min-w-[640px]">
 
           <thead className="bg-gray-100 text-gray-600 text-left">
             <tr>
@@ -133,8 +186,13 @@ const Users = () => {
           </thead>
 
           <tbody>
-
-            {users.map((user) => (
+            {users
+              .filter((u) =>
+                u.name.toLowerCase().includes(search.toLowerCase()) ||
+                u.email.toLowerCase().includes(search.toLowerCase()) ||
+                u.role.toLowerCase().includes(search.toLowerCase())
+              )
+              .map((user) => (
               <tr
                 key={user.id}
                 className="border-t hover:bg-gray-50"
@@ -173,14 +231,24 @@ const Users = () => {
                 </td>
 
                 <td className="flex gap-2">
-
-                  <button className="border px-3 py-1 rounded text-xs">
+                  {/* Edit user details - opens modal with form to edit all fields */}
+                  <button
+                    onClick={() => {
+                      setFormData(user);
+                      setShowModal(true);
+                    }}
+                    className="border px-3 py-1 rounded text-xs hover:bg-blue-50"
+                  >
                     Edit
                   </button>
 
-                  <button className="border px-3 py-1 rounded text-xs">
+                  <button
+                    onClick={() => handleDeactivate(user.id)}
+                    className="border px-3 py-1 rounded text-xs "
+                  >
                     Deactivate
                   </button>
+
 
                 </td>
               </tr>
@@ -190,71 +258,103 @@ const Users = () => {
         </table>
 
       </div>
-
+      )}
 
       {/* Pagination */}
-      <div className="flex justify-between items-center mt-4 text-sm text-gray-600">
-
-        <p>Showing 1-6 of 85 users</p>
-
-        <div className="flex gap-2">
-          <button className="px-3 py-1 border rounded">1</button>
-          <button className="px-3 py-1 border rounded">2</button>
-          <button className="px-3 py-1 border rounded">3</button>
-        </div>
+          <div className="flex gap-2">
+        {[...Array(totalPages)].map((_, i) => (
+          <button
+            key={i}
+            onClick={() => setPage(i + 1)}
+            className="px-3 py-1 border rounded"
+          >
+            {i + 1}
+          </button>
+        ))}
       </div>
 
+
+
       {/* Add User Modal */}
+
       {showModal && (
 
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center">
 
           <div className="bg-white w-[600px] rounded-xl p-6 shadow-lg">
 
             <h2 className="text-xl font-semibold mb-6">
-              Add New User
+              {formData.id ? "Edit User" : "Add New User"}
             </h2>
 
+            {/* Controlled form state for adding/editing user. Each input updates the formData state on change. */}
             <div className="grid grid-cols-2 gap-4">
 
+        
               <input
-                placeholder="Full Name"
+                 value={formData.name}
+                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                 placeholder="Full Name"
                 className="border p-2 rounded"
               />
 
               <input
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 placeholder="Email Address"
                 className="border p-2 rounded"
               />
 
               <input
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 placeholder="Phone Number"
                 className="border p-2 rounded"
               />
 
-              <select className="border p-2 rounded">
-                <option>Frontend Developer</option>
-                <option>Backend Developer</option>
-                <option>Designer</option>
+              <select
+                name="role"
+                className="border p-2 rounded"
+                value={formData.role}
+                onChange={handleChange}
+              >
+                <option value="">Select Role</option>
+                <option value="Frontend Developer">Frontend Developer</option>
+                <option value="Backend Developer">Backend Developer</option>
+                <option value="Designer">Designer</option>
               </select>
 
-              <select className="border p-2 rounded">
-                <option>Engineering</option>
-                <option>Marketing</option>
-                <option>Sales</option>
+             <select
+                name="department"
+                className="border p-2 rounded"
+                value={formData.department}
+                onChange={handleChange}
+              >
+                <option value="">Select Department</option>
+                <option value="Engineering">Engineering</option>
+                <option value="Marketing">Marketing</option>
+                <option value="Sales">Sales</option>
               </select>
 
-              <select className="border p-2 rounded">
-                <option>Project Ares Team</option>
-                <option>Marketing Squad</option>
-                <option>Sales Group</option>
+              <select
+                name="team"
+                className="border p-2 rounded"
+                value={formData.team}
+                onChange={handleChange}
+              >
+                <option value="">Select Team</option>
+                <option value="Project Ares Team">Project Ares Team</option>
+                <option value="Marketing Squad">Marketing Squad</option>
+                <option value="Sales Group">Sales Group</option>
               </select>
 
             </div>
 
             <textarea
+              value={formData.notes || ""}
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               placeholder="User Notes (optional)"
-              className="border rounded w-full p-2 mt-4"
+              className="border rounded w-full p-2 mt-4 col-span-2"
             ></textarea>
 
 
@@ -267,9 +367,12 @@ const Users = () => {
                 Cancel
               </button>
 
-              <button className="px-4 py-2 bg-blue-600 text-white rounded">
-                Save User
-              </button>
+            <button
+            onClick={handleSaveUser}
+            className="px-4 py-2 bg-blue-600 text-white rounded"
+          >
+            Save User
+          </button>
 
             </div>
 

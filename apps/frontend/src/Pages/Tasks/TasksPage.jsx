@@ -1,38 +1,25 @@
+import { useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
+import { useTaskStore } from "../../store/taskStore";
+import { useProjectStore } from "../../store/projectStore";
 import OverdueTasks from "./OverdueTasks";
+import BlockedTasks from "./BlockedTasks";
 import PieChart from "../Task-Progress/PieChart";
 import TaskCard from "../Task-Progress/TaskCard";
 
-
 const TABS = [
-  { id: "overdue", label: "Overdue Tasks", count: 8 },
-  { id: "blocked", label: "Blocked Tasks", count: 6 },
-  { id: "progress", label: "Task-Progress", count: null },
+  { id: "overdue", label: "Overdue Tasks" },
+  { id: "blocked", label: "Blocked Tasks" },
+  { id: "progress", label: "Task Progress" },
 ];
 
-const BLOCKED_TASKS = [
-  { id: "b1", title: "Waiting on Data from Backend", severity: "high", assignee: "John Doe" },
-  { id: "b2", title: "Security Review", severity: "medium", assignee: "Jane Doe" },
-  { id: "b3", title: "Priority Conflict", severity: "medium", assignee: "Mike Smith" },
-  { id: "b4", title: "Dependency on External API", severity: "high", assignee: "Sarah Lee" },
-  { id: "b5", title: "Awaiting Design Approval", severity: "low", assignee: "Tom Wilson" },
-  { id: "b6", title: "Resource Unavailable", severity: "high", assignee: "Alex Brown" },
-];
-
-const urgencyStyle = (urgency) => {
-  switch (urgency) {
-    case "Critical":
-    case "high":
-      return "text-red-500";
-    case "Moderate":
-    case "medium":
-      return "text-yellow-600";
-    case "Minor":
-    case "low":
-      return "text-green-700";
-    default:
-      return "text-gray-600";
-  }
+const normalizeStatus = (status = "") => {
+  const value = status.toString().toLowerCase();
+  if (value === "in_progress" || value === "inprogress" || value === "in progress") return "in progress";
+  if (value === "todo" || value === "backlog") return "todo";
+  if (value === "done" || value === "completed") return "done";
+  if (value === "blocked") return "blocked";
+  return value;
 };
 
 export default function TasksPage() {
@@ -40,9 +27,30 @@ export default function TasksPage() {
   const tabParam = searchParams.get("tab") || "overdue";
   const activeTab = TABS.find((t) => t.id === tabParam) ? tabParam : "overdue";
 
-  const setTab = (id) => {
-    setSearchParams({ tab: id });
-  };
+  const { tasks, getTasks } = useTaskStore();
+  const activeSprintTasks = useProjectStore((state) => state.activeSprint?.tasks || []);
+  const taskSource = activeSprintTasks.length > 0 ? activeSprintTasks : tasks;
+
+  useEffect(() => {
+    if (!activeSprintTasks.length) {
+      getTasks();
+    }
+  }, [getTasks, activeSprintTasks.length]);
+
+  const now = Date.now();
+  const overdueCount = taskSource.filter(
+    (t) => t.dueDate && new Date(t.dueDate).getTime() < now && !["completed", "done"].includes(normalizeStatus(t.status))
+  ).length;
+  const blockedCount = taskSource.filter((t) => normalizeStatus(t.status) === "blocked").length;
+  const activeTasks = taskSource.filter((t) => normalizeStatus(t.status) !== "done");
+
+  const tabsWithCounts = [
+    { id: "overdue", label: "Overdue Tasks", count: overdueCount },
+    { id: "blocked", label: "Blocked Tasks", count: blockedCount },
+    { id: "progress", label: "Task Progress", count: null },
+  ];
+
+  const setTab = (id) => setSearchParams({ tab: id });
 
   return (
     <div className="bg-gray-50 min-h-screen p-4 md:p-8">
@@ -50,9 +58,8 @@ export default function TasksPage() {
         <h1 className="text-3xl md:text-4xl font-bold text-blue-700 mb-6">Tasks</h1>
 
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-          {/* Tabs */}
           <div className="flex gap-1 border-b border-gray-200 bg-gray-50 px-6">
-            {TABS.map((tab) => (
+            {tabsWithCounts.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setTab(tab.id)}
@@ -78,56 +85,57 @@ export default function TasksPage() {
 
           <div className="p-6">
             {activeTab === "overdue" && <OverdueTasks />}
-
-            {activeTab === "blocked" && (
-              <table className="w-full text-sm">
-                <thead className="text-gray-400 border-b">
-                  <tr>
-                    <th className="text-left py-3">Feature</th>
-                    <th className="text-left py-3">Status</th>
-                    <th className="text-left py-3">Severity</th>
-                    <th className="text-left py-3">Assigned to</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {BLOCKED_TASKS.map((task) => (
-                    <tr key={task.id} className="border-b last:border-b-0 hover:bg-gray-50 transition">
-                      <td className="py-5">
-                        <div className="flex items-center gap-3">
-                          <input type="checkbox" className="w-5 h-5 rounded-full accent-blue-600" />
-                          <span className="text-gray-400 text-sm">{task.id}</span>
-                          <span className="text-sm font-medium text-gray-800">{task.title}</span>
-                        </div>
-                      </td>
-                      <td className="py-5">
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-sm font-medium bg-amber-100 text-amber-800">
-                          Blocked
-                        </span>
-                      </td>
-                      <td className={`py-5 text-sm font-medium capitalize ${urgencyStyle(task.severity)}`}>
-                        {task.severity}
-                      </td>
-                      <td className="py-5 text-sm text-gray-600">{task.assignee}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-
+            {activeTab === "blocked" && <BlockedTasks />}
             {activeTab === "progress" && (
               <div className="space-y-6">
-                <div className="max-w-md">
-                  <PieChart />
-                </div>
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-4">
-                    Active Tasks
-                  </h3>
-                  <div className="flex flex-wrap gap-6">
-                    <TaskCard />
-                    <TaskCard />
-                    <TaskCard />
+                <div className="grid gap-6 lg:grid-cols-[minmax(260px,380px)_minmax(320px,1fr)]">
+                  <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
+                    <h2 className="text-lg font-semibold text-gray-800 mb-3">Sprint task summary</h2>
+                    <p className="text-sm text-gray-600 mb-4">
+                      This view is driven by the current sprint tasks shown in the Kanban board.
+                    </p>
+                    <div className="space-y-3 text-sm text-gray-700">
+                      <div className="flex justify-between">
+                        <span>Total tasks</span>
+                        <span className="font-semibold">{taskSource.length}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Overdue</span>
+                        <span className="font-semibold text-red-600">{overdueCount}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Blocked</span>
+                        <span className="font-semibold text-amber-700">{blockedCount}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>In progress</span>
+                        <span className="font-semibold text-blue-600">{activeTasks.filter((t) => normalizeStatus(t.status) === "in progress").length}</span>
+                      </div>
+                    </div>
                   </div>
+
+                  <div className="max-w-md">
+                    <PieChart tasks={taskSource} />
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Active Tasks</h3>
+                    <span className="text-xs text-gray-500">{taskSource.length} items</span>
+                  </div>
+
+                  {taskSource.length === 0 ? (
+                    <div className="rounded-2xl border border-dashed border-gray-300 bg-white p-10 text-center text-gray-500">
+                      No live task cards available yet. Create tasks or select a sprint to populate this view.
+                    </div>
+                  ) : (
+                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                      {taskSource.map((task) => (
+                        <TaskCard key={task.id} task={task} />
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
