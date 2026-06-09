@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useProjectStore } from "../../store/projectStore";
 import { useTaskStore } from "../../store/taskStore";
 
 const urgencyStyle = (priority) => {
@@ -15,14 +16,23 @@ const urgencyStyle = (priority) => {
   }
 };
 
+const getAssignee = (task) => {
+  if (typeof task.assignee === "string") return task.assignee;
+  return task.assignee?.fullName || task.assignedTo?.fullName || "Unassigned";
+};
+
 export default function BlockedTasks() {
+  const activeSprintTasks = useProjectStore((state) => state.activeSprint?.tasks || []);
   const { tasks, isLoading, error, getTasks } = useTaskStore();
 
   useEffect(() => {
-    getTasks({ status: "blocked" });
-  }, [getTasks]);
+    if (!activeSprintTasks.length) {
+      getTasks({ status: "blocked" });
+    }
+  }, [getTasks, activeSprintTasks.length]);
 
-  const blockedTasks = tasks.filter((t) => t.status === "blocked");
+  const taskSource = activeSprintTasks.length > 0 ? activeSprintTasks : tasks;
+  const blockedTasks = taskSource.filter((t) => (t.status || "").toString().toLowerCase() === "blocked");
 
   return (
     <div className="bg-gray-50 min-h-screen p-4 md:p-8">
@@ -40,22 +50,18 @@ export default function BlockedTasks() {
             </span>
           </div>
 
-          {/* Loading */}
           {isLoading && (
             <div className="text-center py-12 text-gray-400">Loading blocked tasks...</div>
           )}
 
-          {/* Error */}
           {error && !isLoading && (
             <div className="text-center py-12 text-red-500">{error}</div>
           )}
 
-          {/* Empty */}
           {!isLoading && !error && blockedTasks.length === 0 && (
             <div className="text-center py-12 text-gray-400">No blocked tasks — great work! 🎉</div>
           )}
 
-          {/* Table */}
           {!isLoading && blockedTasks.length > 0 && (
             <table className="w-full text-sm">
               <thead className="text-gray-400 border-b">
@@ -84,9 +90,7 @@ export default function BlockedTasks() {
                     <td className={`py-5 text-sm font-medium capitalize ${urgencyStyle(task.priority)}`}>
                       {task.priority || "—"}
                     </td>
-                    <td className="py-5 text-sm text-gray-600">
-                      {task.assignee?.fullName || task.assignedTo?.fullName || "Unassigned"}
-                    </td>
+                    <td className="py-5 text-sm text-gray-600">{getAssignee(task)}</td>
                   </tr>
                 ))}
               </tbody>

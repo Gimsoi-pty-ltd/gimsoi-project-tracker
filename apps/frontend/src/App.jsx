@@ -1,70 +1,70 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 
 // ─── AUTH PAGES ─────────────────────────────
-import LoginPage from './Pages/LogInOut-flow/LoginPage';
-import SignUpPage from './Pages/LogInOut-flow/SignUpPage';
-import ResetPassword from './Pages/LogInOut-flow/ResetPassword';
-import EmailVerification from './Pages/LogInOut-flow/EmailVerification';
-import ForgotEmailPage from './Pages/LogInOut-flow/ForgotEmailPage';
+const LoginPage = lazy(() => import('./Pages/LogInOut-flow/LoginPage'));
+const SignUpPage = lazy(() => import('./Pages/LogInOut-flow/SignUpPage'));
+const ResetPassword = lazy(() => import('./Pages/LogInOut-flow/ResetPassword'));
+const EmailVerification = lazy(() => import('./Pages/LogInOut-flow/EmailVerification'));
+const ForgotEmailPage = lazy(() => import('./Pages/LogInOut-flow/ForgotEmailPage'));
 
 // ─── DASHBOARD LAYOUT & PAGES  ─────────────────────────────
 import DashboardLayout from "./Layouts/DashboardLayout";
 
 // Dashboard & Overview
-import Dashboard from './Pages/LogInOut-flow/Dashboard';
-import DashboardCards from "./Components/Dashboard/DashboardCards";
-import DaysRemainingPage from "./Components/Dashboard/DaysRemainingPage";
-import SprintOverview from './Pages/Sprints/SprintOverview';
-import SprintVelocityPage from './Pages/Sprints/SprintVelocity';
+const Dashboard = lazy(() => import('./Pages/LogInOut-flow/Dashboard'));
+const DashboardCards = lazy(() => import("./Components/Dashboard/DashboardCards"));
+const DaysRemainingPage = lazy(() => import("./Components/Dashboard/DaysRemainingPage"));
+const SprintOverview = lazy(() => import('./Pages/Sprints/SprintOverview'));
+const SprintVelocityPage = lazy(() => import('./Pages/Sprints/SprintVelocity'));
 
 // Tasks
-import TasksPage from './Pages/Tasks/TasksPage';
-import BlockedTasks from './Pages/Tasks/BlockedTasks';
-import OverdueTasks from './Pages/Tasks/OverdueTasks';
-import ActiveProjects from './Pages/Tasks/ActiveProjects';
+const TasksPage = lazy(() => import('./Pages/Tasks/TasksPage'));
+const BlockedTasks = lazy(() => import('./Pages/Tasks/BlockedTasks'));
+const OverdueTasks = lazy(() => import('./Pages/Tasks/OverdueTasks'));
+const ActiveProjects = lazy(() => import('./Pages/Tasks/ActiveProjects'));
 
 // Projects & Phases
-import Projects from './Pages/Project-Management/projects';
-import ProjectOverview from './Pages/Project-Management/projectOverview';
-import ProjectPhasesGantt from "./Pages/Phases/Phases-of-tasks.jsx";
+const Projects = lazy(() => import('./Pages/Project-Management/projects'));
+const ProjectOverview = lazy(() => import('./Pages/Project-Management/projectOverview'));
+const ProjectPhasesGantt = lazy(() => import("./Pages/Phases/Phases-of-tasks.jsx"));
 
 // Reports
-import ReportsHub from './Pages/Reports-and-Exporting/reports';
-import SprintReports from './Pages/Reports-and-Exporting/sprintReports';
-import ProjectReport from './Pages/Reports-and-Exporting/projectReports';
-import TeamPerformance from './Pages/Reports-and-Exporting/teamPerformance';
+const ReportsHub = lazy(() => import('./Pages/Reports-and-Exporting/reports'));
+const SprintReports = lazy(() => import('./Pages/Reports-and-Exporting/sprintReports'));
+const ProjectReport = lazy(() => import('./Pages/Reports-and-Exporting/projectReports'));
+const TeamPerformance = lazy(() => import('./Pages/Reports-and-Exporting/teamPerformance'));
 
 // Team & Insights
-import TeamInsights from './Pages/Team-Insights/TeamInsights';
+const TeamInsights = lazy(() => import('./Pages/Team-Insights/TeamInsights'));
 
 // Calendar & Documents
-import Calendar from './Pages/Calendar/Calendar';
-import Documents from './Pages/Documents/Documents';
+const Calendar = lazy(() => import('./Pages/Calendar/Calendar'));
+const Documents = lazy(() => import('./Pages/Documents/Documents'));
 
 // Profile & Search
-import ProjectTrackerProfilePage from './Pages/Profile/Profile';
-import SearchPage from './Pages/Profile/Search';
+const ProjectTrackerProfilePage = lazy(() => import('./Pages/Profile/Profile'));
+const SearchPage = lazy(() => import('./Pages/Profile/Search'));
 
 // Settings
-import Settings from './Pages/Settings';
-import ProfileSection from './Pages/Settings-Page/ProfileSection';
-import PreferencesSection from './Pages/Settings-Page/PreferencesSection';
-import ActivitySection from './Pages/Settings-Page/ActivitySection';
-import StorageSection from './Pages/Settings-Page/StorageSection';
-import SecuritySection from './Pages/Settings-Page/SecuritySection';
+const Settings = lazy(() => import('./Pages/Settings'));
+const ProfileSection = lazy(() => import('./Pages/Settings-Page/ProfileSection'));
+const PreferencesSection = lazy(() => import('./Pages/Settings-Page/PreferencesSection'));
+const ActivitySection = lazy(() => import('./Pages/Settings-Page/ActivitySection'));
+const StorageSection = lazy(() => import('./Pages/Settings-Page/StorageSection'));
+const SecuritySection = lazy(() => import('./Pages/Settings-Page/SecuritySection'));
 
 // Help
-import HelpSupport from './Pages/Help/HelpSupport';
+const HelpSupport = lazy(() => import('./Pages/Help/HelpSupport'));
 
 // User Management
-import Usermanagement from "./Pages/Users/UserManagementPage";
-import Users from "./Pages/Users/Users";
-import Teams from "./Pages/Users/Teams";
-import Clients from "./Pages/Users/Clients";
+const Usermanagement = lazy(() => import("./Pages/Users/UserManagementPage"));
+const Users = lazy(() => import("./Pages/Users/Users"));
+const Teams = lazy(() => import("./Pages/Users/Teams"));
+const Clients = lazy(() => import("./Pages/Users/Clients"));
 
 // Kanban Board
-import Kanban from "./Pages/KanbanBoard/KanbanBoard";
+const Kanban = lazy(() => import("./Pages/KanbanBoard/KanbanBoard"));
 
 import { useAuthStore } from "./store/authStore";
 
@@ -105,9 +105,10 @@ function App() {
 
   return (
     <Router>
-      <Routes>
-        {/* === AUTH ROUTES  === */}
-        <Route path="/login" element={
+      <Suspense fallback={<div className="min-h-screen grid place-items-center text-slate-600">Loading...</div>}>
+        <Routes>
+          {/* === AUTH ROUTES  === */}
+          <Route path="/login" element={
           <RedirectAuthenticatedUser>
             <LoginPage />
           </RedirectAuthenticatedUser>
@@ -334,6 +335,7 @@ function App() {
         {/* === CATCH-ALL: Redirect to login when unauthenticated === */}
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
+    </Suspense>
     </Router>
   );
 }

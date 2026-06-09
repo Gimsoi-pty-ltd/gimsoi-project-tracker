@@ -25,7 +25,8 @@ export default function ProjectPhasesGantt() {
 
   // Build phases from projects — each project is a phase row
   const phases = projects.map((project) => {
-    const sprint = project.sprints.find((s) => s.id === project.activeSprint) ?? project.sprints[project.sprints.length - 1];
+    const sprints = project.sprints || [];
+    const sprint = sprints.find((s) => s.id === project.activeSprint) ?? sprints[sprints.length - 1];
     return {
       id: project.id,
       project: project.name,

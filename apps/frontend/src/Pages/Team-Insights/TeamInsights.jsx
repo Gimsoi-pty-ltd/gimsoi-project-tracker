@@ -2,7 +2,7 @@
 import React from "react";
 import { Users, Activity, CheckCircle, Clock, Bell } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
-import { useProjectStore } from "../../store/ProjectStore";
+import { useProjectStore } from "../../store/projectStore";
 
 
 function TeamInsights() {

@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Search as SearchIcon, Filter, Clock, FileText, User, Folder, CheckCircle2, AlertCircle } from 'lucide-react';
-import { useProjectStore } from "../../store/ProjectStore";
+import { useProjectStore } from "../../store/projectStore";
 
 export default function SearchPage() {
   const { searchableItems } = useProjectStore((state) => state);

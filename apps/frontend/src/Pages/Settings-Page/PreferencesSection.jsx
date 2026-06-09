@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useProjectStore } from "../../store/ProjectStore";
+import { useProjectStore } from "../../store/projectStore";
 import ToggleSwitch from "./ToggleSwitch";
 
 export default function PreferencesSection() {

@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { useProjectStore } from "../../store/ProjectStore";
+import { useAuthStore } from "../../store/authStore";
 
 export default function ActivitySection() {
-  const { user } = useProjectStore((state) => state);
+  const user = useAuthStore((state) => state.user) || {};
   const [open, setOpen] = useState(false);
 
   return (
@@ -26,7 +26,7 @@ export default function ActivitySection() {
 
       {open && (
         <div className="mt-2 space-y-3">
-          {user.activityLog.map((entry, i) => (
+          {(user.activityLog || []).map((entry, i) => (
             <div key={i} className="bg-gray-50 border border-gray-200 border-l-4 border-l-orange-500 p-3 rounded">
               <p className="text-sm font-medium">{entry.action}</p>
               <p className="text-xs text-gray-500">{entry.date}</p>

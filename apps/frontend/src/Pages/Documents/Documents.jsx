@@ -8,6 +8,7 @@ import {
   Share2,
   MoreVertical
 } from "lucide-react";
+import { useProjectStore } from "../../store/projectStore";
 
 const DocumentRow = ({ doc, Icon = FileText }) => {
   return (

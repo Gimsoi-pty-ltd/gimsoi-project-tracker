@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useProjectStore } from '../../store/projectStore';
 
 // Kanban Cards
@@ -279,6 +279,10 @@ const Kanban = () => {
 
   const [columnState, setColumnState] = useState(columns);
 
+  useEffect(() => {
+    setColumnState(columns);
+  }, [columns]);
+
   const totalCards  = columnState.reduce((sum, col) => sum + col.cards.length, 0);
   const doneCards   = columnState.find((c) => c.id === 'done')?.cards.length ?? 0;
   const progressPct = totalCards ? Math.round((doneCards / totalCards) * 100) : 0;
@@ -305,7 +309,12 @@ const Kanban = () => {
 
   if (isLoading) return <div className="p-8 text-center">Loading Kanban board...</div>;
   if (error) return <div className="p-8 text-center text-red-600">Error: {error}</div>;
-  if (!activeSprint) return <div className="p-8 text-center text-gray-500">No active sprint. Create a sprint to see tasks.</div>;
+
+  const boardMessage = !activeSprint
+    ? "No active sprint selected. Create or select a sprint to begin tracking tasks."
+    : activeSprint.tasks.length === 0
+      ? "This sprint has no tasks yet. Add work items to populate the Kanban board."
+      : null;
 
   return (
     <div className="bg-gray-200 min-h-screen p-6 text-black" style={{ fontFamily: 'Arial, sans-serif' }}>
@@ -357,6 +366,12 @@ const Kanban = () => {
         )}
 
         <h2 className="text-lg font-semibold text-gray-700 mb-3">Kanban board</h2>
+
+        {boardMessage && (
+          <div className="mb-4 rounded-2xl bg-yellow-50 border border-yellow-200 p-4 text-sm text-yellow-800">
+            {boardMessage}
+          </div>
+        )}
 
         <div className="flex gap-4 overflow-x-auto pb-2">
           {columnState.map((col) => (

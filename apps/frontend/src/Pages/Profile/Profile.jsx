@@ -1,6 +1,6 @@
 // src/Pages/Profile/Profile.jsx
 import React from "react";
-import { useProjectStore } from "../../store/ProjectStore";
+import { useProjectStore } from "../../store/projectStore";
 import { useAuthStore } from "../../store/authStore";
 
 const getInitials = (name) => {
