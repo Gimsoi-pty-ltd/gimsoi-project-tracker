@@ -174,16 +174,20 @@ test.describe('Users API Tests', () => {
             const me = (await meRes.json()).user;
 
             const newName = 'Updated Name';
+            const newJob = 'Senior Intern';
+            const newPhone = '+27821234567';
             const response = await request.patch('/api/users/me', {
                 headers: { 
                     Authorization: `Bearer ${userToken}`,
                     'x-csrf-token': userCsrf
                 },
-                data: { fullName: newName, version: me.version }
+                data: { fullName: newName, jobTitle: newJob, phone: newPhone, version: me.version }
             });
             expect(response.status()).toBe(200);
             const body = await response.json();
             expect(body.data.fullName).toBe(newName);
+            expect(body.data.jobTitle).toBe(newJob);
+            expect(body.data.phone).toBe(newPhone);
         });
     });
 
@@ -246,4 +250,39 @@ test.describe('Users API Tests', () => {
             expect(Array.isArray(body.data)).toBe(true);
         });
     });
+
+    test.describe('PATCH /api/users/me/password (Self)', () => {
+        test('User can change password with correct current password', async ({ request }) => {
+            const response = await request.patch('/api/users/me/password', {
+                headers: { 
+                    Authorization: `Bearer ${userToken}`,
+                    'x-csrf-token': userCsrf
+                },
+                data: { currentPassword: password, newPassword: 'newsecurepassword' }
+            });
+            expect(response.status()).toBe(200);
+
+            // Revert back so we don't break other test sequences
+            const revertResponse = await request.patch('/api/users/me/password', {
+                headers: { 
+                    Authorization: `Bearer ${userToken}`,
+                    'x-csrf-token': userCsrf
+                },
+                data: { currentPassword: 'newsecurepassword', newPassword: password }
+            });
+            expect(revertResponse.status()).toBe(200);
+        });
+
+        test('Fails on incorrect current password', async ({ request }) => {
+            const response = await request.patch('/api/users/me/password', {
+                headers: { 
+                    Authorization: `Bearer ${userToken}`,
+                    'x-csrf-token': userCsrf
+                },
+                data: { currentPassword: 'wrongpassword', newPassword: 'newsecurepassword' }
+            });
+            expect(response.status()).toBe(401);
+        });
+    });
 });
+

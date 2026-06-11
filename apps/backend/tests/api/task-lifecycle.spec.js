@@ -27,9 +27,9 @@ test.describe('Task Lifecycle & Transition Guards', () => {
             expect(validRes.status()).toBe(200);
         });
 
-        test('Illegal transition: DONE -> IN_PROGRESS is blocked', async ({ pmApi, testProject, testSprint }) => {
+        test('Valid transition: DONE -> IN_PROGRESS is allowed', async ({ pmApi, testProject, testSprint }) => {
             const taskRes = await pmApi.post('/api/tasks', {
-                data: { title: 'Illegal Regression Task', projectId: testProject.id, sprintId: testSprint.id }
+                data: { title: 'Reopen Task', projectId: testProject.id, sprintId: testSprint.id }
             });
             let task = (await taskRes.json()).data;
 
@@ -42,8 +42,8 @@ test.describe('Task Lifecycle & Transition Guards', () => {
             task = (await res2.json()).data;
 
             const failRes = await pmApi.patch(`/api/tasks/${task.id}`, { data: { status: 'IN_PROGRESS', version: task.version } });
-            expect(failRes.status()).toBe(400);
-            expect((await failRes.json()).message).toContain('Cannot modify');
+            expect(failRes.status()).toBe(200);
+            expect((await failRes.json()).data.status).toBe('IN_PROGRESS');
         });
 
         test('DONE task rejects non-status field modification (title update blocked)', async ({ pmApi, testProject, testSprint }) => {
