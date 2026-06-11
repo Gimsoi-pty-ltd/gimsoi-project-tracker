@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuthStore } from "../../store/authStore";
 
 const getInitials = (name) => {
@@ -12,20 +12,32 @@ const getInitials = (name) => {
 };
 
 export default function ProfileSection() {
-  const { user = {}, updateUserProfile, addActivityLog } = useAuthStore((state) => state);
+  const { user = {}, updateProfile, addActivityLog } = useAuthStore((state) => state);
   const [formData, setFormData] = useState({ name: user.fullName || user.name || "", email: user.email || "" });
   const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    setFormData({ name: user.fullName || user.name || "", email: user.email || "" });
+  }, [user]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSave = () => {
-    updateUserProfile({ name: formData.name, email: formData.email });
-    addActivityLog(`Updated profile information`);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
+  const handleSave = async () => {
+    try {
+      await updateProfile({
+        fullName: formData.name,
+        email: formData.email,
+        version: user.version,
+      });
+      addActivityLog(`Updated profile information`);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch (error) {
+      throw Object.assign(new Error("Failed to save profile changes in settings"), { cause: error });
+    }
   };
 
   return (

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Building2, Briefcase, Users as UsersIcon, ArrowRight } from "lucide-react";
 import { resourceAPI } from "../../api/api";
+import { useAuthStore } from "../../store/authStore";
 
 
 const SectionCard = ({ section }) => {
@@ -63,6 +64,7 @@ export default function UserManagement() {
   const [clientsCount, setClientsCount] = useState(0);
   const [activeProjects, setActiveProjects] = useState(0);
   const [onHoldProjects, setOnHoldProjects] = useState(0);
+  const { userActivities = [], fetchActivities } = useAuthStore((state) => state);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -83,12 +85,14 @@ export default function UserManagement() {
         setActiveProjects(projects.filter(p => p.status === 'ACTIVE').length);
         setOnHoldProjects(projects.filter(p => p.status === 'ON_HOLD').length);
 
+        fetchActivities();
+
       } catch (error) {
         console.error("Failed to load user management stats", error);
       }
     };
     fetchData();
-  }, []);
+  }, [fetchActivities]);
 
   const SECTIONS = [
     {
@@ -148,13 +152,22 @@ export default function UserManagement() {
 
         {/* Quick Actions Bar */}
         <div className="flex flex-wrap gap-3 mb-8">
-          <button className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
+          <button 
+            onClick={() => alert("Add New action triggered - this would open the user creation modal.")}
+            className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+          >
             + Add New
           </button>
-          <button className="px-4 py-2 border text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors">
+          <button 
+            onClick={() => alert("Import Data action triggered - this would open the CSV upload interface.")}
+            className="px-4 py-2 border text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
+          >
             Import Data
           </button>
-          <button className="px-4 py-2 border text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors">
+          <button 
+            onClick={() => alert("Export Report action triggered - this generates and downloads a CSV report.")}
+            className="px-4 py-2 border text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
+          >
             Export Report
           </button>
         </div>
@@ -170,9 +183,15 @@ export default function UserManagement() {
         <div className="mt-12 bg-white border rounded-2xl p-6">
           <h3 className="font-semibold text-gray-800 mb-4">Recent Activity</h3>
           <div className="space-y-3 text-sm text-gray-600">
-            <p>• Client "Acme Corp" was updated by Sarah Chen</p>
-            <p>• New user "jane@company.co" pending approval</p>
-            <p>• Team "Alpha" completed Project Ares milestone</p>
+            {userActivities && userActivities.length > 0 ? (
+              userActivities.slice(0, 5).map((act, i) => (
+                <p key={i}>
+                  • {act.action} - <span className="text-gray-400 text-xs">{new Date(act.timestamp).toLocaleString()}</span>
+                </p>
+              ))
+            ) : (
+              <p className="text-gray-400">No recent activities logged.</p>
+            )}
           </div>
         </div>
 

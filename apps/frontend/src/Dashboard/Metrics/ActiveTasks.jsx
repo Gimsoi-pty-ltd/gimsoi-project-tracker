@@ -1,9 +1,12 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Search, ArrowUp, ArrowDown, ArrowRight,
   ArrowUpRight, MoreVertical, ExternalLink,
 } from "lucide-react";
 import { useProjectStore } from "../../store/projectStore";
+import { useTaskStore } from "../../store/taskStore";
+import TaskModal from "./TaskModal";
 
 const statusColors = {
   inProgress: "bg-blue-500",
@@ -14,6 +17,7 @@ const statusColors = {
 };
 
 export default function ActiveTasksCard() {
+  const navigate = useNavigate();
   const activeSprint = useProjectStore((state) => state.activeSprint);
   const tasks = activeSprint?.tasks || [];
   const [searchTerm,       setSearchTerm]       = useState("");
@@ -21,11 +25,25 @@ export default function ActiveTasksCard() {
   const [selectedOwner,    setSelectedOwner]    = useState("All");
   const [selectedPriority, setSelectedPriority] = useState("All");
   const [dueDateSort,      setDueDateSort]      = useState("Earliest");
+  const [isTaskModalOpen,  setIsTaskModalOpen]  = useState(false);
+  const [selectedTaskIds,  setSelectedTaskIds]  = useState(new Set());
+  
+  const [activeDropdownTaskId, setActiveDropdownTaskId] = useState(null);
+  const [editingTask, setEditingTask] = useState(null);
+
+  const deleteTask = useTaskStore((state) => state.deleteTask);
+  const updateTask = useTaskStore((state) => state.updateTask);
+
   const statusOptions   = ["All", ...new Set(tasks.map((t) => t.status))];
   const ownerOptions    = ["All", ...new Set(tasks.map((t) => t.assignee))];
   const priorityOptions = ["All", ...new Set(tasks.map((t) => t.priority))];
 
-  
+  useEffect(() => {
+    const handleClose = () => setActiveDropdownTaskId(null);
+    window.addEventListener("click", handleClose);
+    return () => window.removeEventListener("click", handleClose);
+  }, []);
+
   const filteredTasks = useMemo(() => {
     let result = [...tasks];
 
@@ -52,12 +70,77 @@ export default function ActiveTasksCard() {
     return result;
   }, [tasks, searchTerm, selectedStatus, selectedOwner, selectedPriority, dueDateSort]);
 
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      setSelectedTaskIds(new Set(filteredTasks.map((t) => t.id)));
+    } else {
+      setSelectedTaskIds(new Set());
+    }
+  };
+
+  const handleSelectRow = (id) => {
+    setSelectedTaskIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleExport = () => {
+    if (filteredTasks.length === 0) return;
+    const headers = ["Task ID", "Task Name", "Owner", "Status", "Due Date", "Priority", "Story Points", "Tag"];
+    const rows = filteredTasks.map((t) => [
+      t.id,
+      `"${t.title.replace(/"/g, '""')}"`,
+      `"${t.assignee}"`,
+      t.status,
+      t.dueDate,
+      t.priority,
+      t.storyPoints ?? "",
+      t.tag,
+    ]);
+    const csvContent = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `tasks_export_${new Date().toISOString().split("T")[0]}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const clearFilters = () => {
     setSearchTerm("");
     setSelectedStatus("All");
     setSelectedOwner("All");
     setSelectedPriority("All");
     setDueDateSort("Earliest");
+  };
+
+  const handleDeleteTask = async (id) => {
+    if (window.confirm("Are you sure you want to delete this task?")) {
+      try {
+        await deleteTask(id);
+        await useProjectStore.getState().fetchDashboard();
+      } catch (err) {
+        alert(err.message || "Failed to delete task");
+      }
+    }
+  };
+
+  const handleStatusChange = async (task, newStatus) => {
+    try {
+      await updateTask(task.id, {
+        version: task.version,
+        status: newStatus
+      });
+      await useProjectStore.getState().fetchDashboard();
+    } catch (err) {
+      alert(err.message || "Failed to update task status");
+    }
   };
 
   return (
@@ -74,14 +157,32 @@ export default function ActiveTasksCard() {
             <option value="Earliest">Due Date: Earliest</option>
             <option value="Latest">Due Date: Latest</option>
           </select>
-          <button className="border border-gray-200 rounded-lg px-4 py-2 text-sm font-medium hover:bg-gray-50 transition">
+          <button 
+            onClick={handleExport}
+            className="border border-gray-200 rounded-lg px-4 py-2 text-sm font-medium hover:bg-gray-50 transition cursor-pointer"
+          >
             Export
           </button>
-          <button className="bg-blue-900 hover:bg-blue-700 text-white rounded-lg px-4 py-2 text-sm font-medium transition">
+          <button 
+            onClick={() => {
+              setEditingTask(null);
+              setIsTaskModalOpen(true);
+            }}
+            className="bg-blue-900 hover:bg-blue-700 text-white rounded-lg px-4 py-2 text-sm font-medium transition cursor-pointer"
+          >
             + Add Task
           </button>
         </div>
       </div>
+
+      <TaskModal 
+        isOpen={isTaskModalOpen} 
+        onClose={() => {
+          setIsTaskModalOpen(false);
+          setEditingTask(null);
+        }} 
+        task={editingTask}
+      />
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3 mb-5">
@@ -128,7 +229,7 @@ export default function ActiveTasksCard() {
 
         <button
           onClick={clearFilters}
-          className="text-blue-600 text-sm font-medium hover:underline"
+          className="text-blue-600 text-sm font-medium hover:underline cursor-pointer"
         >
           Clear Filters
         </button>
@@ -139,7 +240,14 @@ export default function ActiveTasksCard() {
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-gray-500 border-b border-gray-200">
-              <th className="py-3 px-2"><input type="checkbox" /></th>
+              <th className="py-3 px-2">
+                <input 
+                  type="checkbox" 
+                  checked={filteredTasks.length > 0 && selectedTaskIds.size === filteredTasks.length}
+                  onChange={handleSelectAll}
+                  className="cursor-pointer"
+                />
+              </th>
               <th className="py-3 px-2 font-medium">TASK NAME</th>
               <th className="py-3 px-2 font-medium">OWNER</th>
               <th className="py-3 px-2 font-medium">STATUS</th>
@@ -147,13 +255,20 @@ export default function ActiveTasksCard() {
               <th className="py-3 px-2 font-medium">PRIORITY</th>
               <th className="py-3 px-2 font-medium">STORY POINTS</th>
               <th className="py-3 px-2 font-medium">TAGS</th>
-              <th className="py-3 px-2 font-medium">ACTIONS</th>
+              <th className="py-3 px-2 font-medium text-right pr-6">ACTIONS</th>
             </tr>
           </thead>
           <tbody>
             {filteredTasks.map((task) => (
               <tr key={task.id} className="border-b border-gray-100 hover:bg-gray-50 transition">
-                <td className="py-4 px-2"><input type="checkbox" /></td>
+                <td className="py-4 px-2">
+                  <input 
+                    type="checkbox" 
+                    checked={selectedTaskIds.has(task.id)}
+                    onChange={() => handleSelectRow(task.id)}
+                    className="cursor-pointer"
+                  />
+                </td>
 
                 <td className="py-4 px-2">
                   <div className="flex items-center gap-3">
@@ -191,11 +306,89 @@ export default function ActiveTasksCard() {
                   </span>
                 </td>
 
-                <td className="py-4 px-2">
-                  <div className="flex items-center gap-3 text-gray-500">
-                    <button className="hover:text-gray-700"><ExternalLink size={16} /></button>
-                    <button className="hover:text-gray-700"><MoreVertical size={16} /></button>
+                <td className="py-4 px-2 text-right pr-6 relative">
+                  <div className="flex items-center justify-end gap-3 text-gray-500">
+                    <button 
+                      onClick={() => navigate("/kanban-board")} 
+                      className="hover:text-gray-700 cursor-pointer"
+                      title="View on Kanban board"
+                    >
+                      <ExternalLink size={16} />
+                    </button>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveDropdownTaskId(activeDropdownTaskId === task.id ? null : task.id);
+                      }} 
+                      className="hover:text-gray-700 cursor-pointer"
+                      title="More actions"
+                    >
+                      <MoreVertical size={16} />
+                    </button>
                   </div>
+
+                  {activeDropdownTaskId === task.id && (
+                    <div className="absolute right-6 mt-1 w-48 bg-white border border-gray-200 rounded-xl shadow-lg z-50 py-1 text-left">
+                      <button
+                        onClick={() => {
+                          setEditingTask(task);
+                          setIsTaskModalOpen(true);
+                          setActiveDropdownTaskId(null);
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 font-medium"
+                      >
+                        Edit Task
+                      </button>
+                      <div className="border-t border-gray-100 my-1" />
+                      <div className="px-4 py-1 text-xs text-gray-400 font-bold uppercase tracking-wider">Change Status</div>
+                      <button
+                        onClick={() => {
+                          handleStatusChange(task, 'TODO');
+                          setActiveDropdownTaskId(null);
+                        }}
+                        className="w-full text-left px-4 py-1.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                      >
+                        <div className="w-2 h-2 rounded-full bg-blue-400" /> To Do
+                      </button>
+                      <button
+                        onClick={() => {
+                          handleStatusChange(task, 'IN_PROGRESS');
+                          setActiveDropdownTaskId(null);
+                        }}
+                        className="w-full text-left px-4 py-1.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                      >
+                        <div className="w-2 h-2 rounded-full bg-blue-500" /> In Progress
+                      </button>
+                      <button
+                        onClick={() => {
+                          handleStatusChange(task, 'BLOCKED');
+                          setActiveDropdownTaskId(null);
+                        }}
+                        className="w-full text-left px-4 py-1.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                      >
+                        <div className="w-2 h-2 rounded-full bg-red-500" /> Blocked
+                      </button>
+                      <button
+                        onClick={() => {
+                          handleStatusChange(task, 'DONE');
+                          setActiveDropdownTaskId(null);
+                        }}
+                        className="w-full text-left px-4 py-1.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                      >
+                        <div className="w-2 h-2 rounded-full bg-green-500" /> Done
+                      </button>
+                      <div className="border-t border-gray-100 my-1" />
+                      <button
+                        onClick={() => {
+                          handleDeleteTask(task.id);
+                          setActiveDropdownTaskId(null);
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 font-medium"
+                      >
+                        Delete Task
+                      </button>
+                    </div>
+                  )}
                 </td>
               </tr>
             ))}
@@ -213,9 +406,9 @@ export default function ActiveTasksCard() {
 
       {/* Footer */}
       <div className="flex flex-wrap gap-5 text-xs text-gray-500 mt-5 border-t border-gray-100 pt-4">
-        <p>Click a row to view task details</p>
+        <p>Click external link icon to navigate to Kanban board</p>
         <p>Use filters to narrow down tasks</p>
-        <p>Use actions to edit, reassign, or update status</p>
+        <p>Use more icon menu to edit, update status, or delete tasks</p>
       </div>
     </div>
   );

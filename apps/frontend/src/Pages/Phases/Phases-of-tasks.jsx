@@ -1,6 +1,7 @@
 // src/Pages/Phases/Phases-of-tasks.jsx
 import React, { useState } from 'react';
 import { useProjectStore } from '../../store/projectStore';
+import ProjectForm from '../../Components/ProjectForm/ProjectForm';
 
 const statusColor = (status) => {
   switch (status) {
@@ -21,7 +22,8 @@ const statusTextColor = (status) => {
 };
 
 export default function ProjectPhasesGantt() {
-  const { projects = [], activeProject = {}, activeSprint = {} } = useProjectStore((state) => state);
+  const { projects = [], currentProject = {}, activeSprint = {}, fetchProjects } = useProjectStore((state) => state);
+  const [isFormOpen, setIsFormOpen] = useState(false);
 
   // Build phases from projects — each project is a phase row
   const phases = projects.map((project) => {
@@ -30,7 +32,7 @@ export default function ProjectPhasesGantt() {
     return {
       id: project.id,
       project: project.name,
-      client: project.client,
+      client: project.client?.name ?? '—',
       assignee: sprint?.tasks?.[0]?.assignee ?? '—',
       status: project.status,
       progress: project.progress,
@@ -48,10 +50,13 @@ export default function ProjectPhasesGantt() {
       <div className="flex flex-col gap-4 md:flex-row md:justify-between md:items-center mb-6 md:mb-8">
         <div>
           <h1 className="text-xl md:text-2xl font-bold text-gray-800">Phases</h1>
-          <p className="text-xs md:text-sm text-gray-500 mt-1">Track project progress and timelines · Active project: <span className="font-medium text-blue-600">{activeProject.name}</span></p>
+          <p className="text-xs md:text-sm text-gray-500 mt-1">Track project progress and timelines · Active project: <span className="font-medium text-blue-600">{currentProject?.name || "None"}</span></p>
         </div>
-        <button className="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition shadow-sm whitespace-nowrap">
-          + New Phase
+        <button 
+          onClick={() => setIsFormOpen(true)}
+          className="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition shadow-sm whitespace-nowrap"
+        >
+          + New Project
         </button>
       </div>
 
@@ -111,7 +116,7 @@ export default function ProjectPhasesGantt() {
 
       {/* Active Sprint Detail */}
       <div className="mt-4 md:mt-6 bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-5">
-        <h2 className="font-semibold text-gray-800 mb-3 text-base md:text-lg">Active Sprint — {activeProject.name}</h2>
+        <h2 className="font-semibold text-gray-800 mb-3 text-base md:text-lg">Active Sprint — {currentProject?.name || "No Project"}</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 text-sm">
           <div className="bg-gray-50 rounded-lg p-3">
             <p className="text-gray-500 text-xs uppercase tracking-wide mb-1">Sprint</p>
@@ -131,6 +136,13 @@ export default function ProjectPhasesGantt() {
           </div>
         </div>
       </div>
+      <ProjectForm 
+        isOpen={isFormOpen} 
+        onClose={() => setIsFormOpen(false)}
+        onSuccess={() => {
+          fetchProjects();
+        }}
+      />
     </div>
   );
 }

@@ -6,10 +6,21 @@ import { useProjectStore } from "../../store/projectStore";
 
 
 function TeamInsights() {
-  const { activeSprint, activeProject, projects = [] } = useProjectStore((state) => state);
+  const { activeSprint, currentProject, projects = [] } = useProjectStore((state) => state);
+
+  if (!currentProject) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 text-gray-500">
+        <Users size={48} className="mb-4 text-gray-300" />
+        <h2 className="text-xl font-semibold text-gray-700">No Active Project</h2>
+        <p className="text-sm mt-1 text-gray-400">Please select or create a project to view team insights.</p>
+      </div>
+    );
+  }
+
   const metrics = activeSprint?.metrics ?? {};
   const tasks   = activeSprint?.tasks ?? [];
-  const teamMembers = (activeProject?.team || []).map((name, i) => ({
+  const teamMembers = (currentProject?.team || []).map((name, i) => ({
     id: i,
     name: name.split('(')[0]?.trim() || 'Team Member',
     firstName: name.split('(')[0]?.trim().split(' ')[0] || 'Member',
@@ -47,7 +58,9 @@ function TeamInsights() {
       <div className="px-4 sm:px-6 lg:px-8 pb-6 md:pb-8">
         <div className="py-6 md:py-8">
           <h1 className="text-2xl md:text-3xl font-bold text-gray-800 tracking-tight">Team Insights</h1>
-          <p className="text-xs md:text-sm text-gray-500 mt-1">{activeProject.name} · {activeSprint?.name} · {activeSprint?.goal}</p>
+          <p className="text-xs md:text-sm text-gray-500 mt-1">
+            {currentProject?.name || "No Project"} · {activeSprint?.name || "No Active Sprint"} · {activeSprint?.goal || "No Goal Set"}
+          </p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
@@ -57,7 +70,7 @@ function TeamInsights() {
                 <StatBox label="Team Members"    value={teamMembers.length}        bg="bg-blue-50"   icon={<Users size={18} className="text-blue-600" />} />
                 <StatBox label="Avg Velocity"    value={`${metrics.avgVelocity ?? "—"} pts`} bg="bg-purple-50" icon={<Activity size={18} className="text-purple-600" />} />
                 <StatBox label="Completed Tasks" value={metrics.completedTasks ?? "—"}     bg="bg-green-50"  icon={<CheckCircle size={18} className="text-green-600" />} />
-                <StatBox label="Blocked"         value={activeSprint?.blocked?.length ?? 0} bg="bg-orange-50" icon={<Clock size={18} className="text-orange-600" />} />
+                <StatBox label="Blocked"         value={activeSprint?.kanban?.blocked ?? 0} bg="bg-orange-50" icon={<Clock size={18} className="text-orange-600" />} />
               </div>
 
               <div className="rounded-xl overflow-hidden border border-gray-200">
@@ -103,7 +116,7 @@ function TeamInsights() {
                 {[
                   { label: "Completed Tasks", value: metrics.completedTasks ?? "—", icon: <CheckCircle size={16} className="text-green-600" /> },
                   { label: "In Progress",     value: activeSprint?.kanban?.inProgress ?? "—", icon: <Activity size={16} className="text-blue-600" /> },
-                  { label: "Blocked",         value: activeSprint?.blocked?.length ?? 0, icon: <Clock size={16} className="text-orange-600" /> },
+                  { label: "Blocked",         value: activeSprint?.kanban?.blocked ?? 0, icon: <Clock size={16} className="text-orange-600" /> },
                   { label: "Delivery Risk",   value: metrics.deliveryRisk ?? "—", icon: <Clock size={16} className="text-red-500" /> },
                 ].map(({ label, value, icon }) => (
                   <li key={label} className="flex justify-between items-center bg-gray-50 p-3 rounded-lg hover:bg-gray-100 transition">

@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { useProjectStore } from "../../store/projectStore";
+import { useAuthStore } from "../../store/authStore";
 
 export default function SecuritySection() {
-  const { updateUserPassword, addActivityLog } = useProjectStore((state) => state);
+  const { changePassword, addActivityLog } = useAuthStore((state) => state);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
@@ -18,7 +18,7 @@ export default function SecuritySection() {
     setPasswordError("");
   };
 
-  const handlePasswordSubmit = () => {
+  const handlePasswordSubmit = async () => {
     if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
       setPasswordError("All fields are required");
       return;
@@ -34,14 +34,18 @@ export default function SecuritySection() {
       return;
     }
 
-    updateUserPassword(passwordForm.newPassword);
-    addActivityLog("Changed password");
-    setPasswordSuccess(true);
-    setTimeout(() => {
-      setShowPasswordModal(false);
-      setPasswordSuccess(false);
-      setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
-    }, 2000);
+    try {
+      await changePassword(passwordForm.currentPassword, passwordForm.newPassword);
+      await addActivityLog("Changed password", null, "USER");
+      setPasswordSuccess(true);
+      setTimeout(() => {
+        setShowPasswordModal(false);
+        setPasswordSuccess(false);
+        setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+      }, 2000);
+    } catch (err) {
+      setPasswordError(err.response?.data?.message || err.message || "Failed to change password");
+    }
   };
 
   return (

@@ -4,8 +4,21 @@ import { resourceAPI } from "../api/api";
 export const useSprintStore = create((set) => ({
     sprints: [],
     currentSprint: null,
+    burndownData: [],
     isLoading: false,
     error: null,
+
+    fetchSprintBurndown: async (sprintId) => {
+        set({ isLoading: true, error: null });
+        try {
+            const response = await resourceAPI.get(`/sprints/${sprintId}/burndown`);
+            set({ burndownData: response.data.data || [], isLoading: false });
+            return response.data;
+        } catch (error) {
+            set({ error: error.response?.data?.message || 'Error fetching burndown data', isLoading: false });
+            throw error;
+        }
+    },
 
     getSprints: async (filters = {}) => {
         set({ isLoading: true, error: null });

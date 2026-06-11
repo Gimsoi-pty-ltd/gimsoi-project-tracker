@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import React, { useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useTaskStore } from "../../store/taskStore";
 import { useProjectStore } from "../../store/projectStore";
@@ -7,13 +7,40 @@ import BlockedTasks from "./BlockedTasks";
 import PieChart from "../Task-Progress/PieChart";
 import TaskCard from "../Task-Progress/TaskCard";
 
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null, info: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, info) {
+    console.error("ErrorBoundary caught an error", error, info);
+    this.setState({ info });
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="p-8 text-red-500 bg-white min-h-screen">
+          <h1 className="text-2xl font-bold mb-4">TasksPage Crashed</h1>
+          <pre className="whitespace-pre-wrap">{this.state.error?.toString()}</pre>
+          <pre className="whitespace-pre-wrap text-sm mt-4 text-gray-500">{this.state.info?.componentStack}</pre>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 const TABS = [
   { id: "overdue", label: "Overdue Tasks" },
   { id: "blocked", label: "Blocked Tasks" },
   { id: "progress", label: "Task Progress" },
 ];
 
-const normalizeStatus = (status = "") => {
+const normalizeStatus = (status) => {
+  if (!status) return "";
   const value = status.toString().toLowerCase();
   if (value === "in_progress" || value === "inprogress" || value === "in progress") return "in progress";
   if (value === "todo" || value === "backlog") return "todo";
@@ -22,20 +49,31 @@ const normalizeStatus = (status = "") => {
   return value;
 };
 
-export default function TasksPage() {
+function TasksPageContent() {
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get("tab") || "overdue";
   const activeTab = TABS.find((t) => t.id === tabParam) ? tabParam : "overdue";
 
   const { tasks, getTasks } = useTaskStore();
-  const activeSprintTasks = useProjectStore((state) => state.activeSprint?.tasks || []);
+  const EMPTY = [];
+  const activeSprintTasks = useProjectStore((state) => state.activeSprint?.tasks ?? EMPTY);
   const taskSource = activeSprintTasks.length > 0 ? activeSprintTasks : tasks;
 
+  // Load tasks on mount only
   useEffect(() => {
-    if (!activeSprintTasks.length) {
+    if (!tasks || tasks.length === 0) {
       getTasks();
     }
-  }, [getTasks, activeSprintTasks.length]);
+  }, []);
+
+  // Refetch tasks every 5 minutes while the page is open
+  useEffect(() => {
+    const interval = setInterval(() => {
+      getTasks();
+    }, 300000); // 5 minutes in ms
+    return () => clearInterval(interval);
+  }, [getTasks]);
+
 
   const now = Date.now();
   const overdueCount = taskSource.filter(
@@ -143,5 +181,13 @@ export default function TasksPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function TasksPage() {
+  return (
+    <ErrorBoundary>
+      <TasksPageContent />
+    </ErrorBoundary>
   );
 }

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+
 import { AlertCircle } from "lucide-react";
 import { useProjectStore } from "../../store/projectStore";
 import { useTaskStore } from "../../store/taskStore";
@@ -33,19 +33,16 @@ const getAssignee = (task) => {
 };
 
 export default function OverdueTasks() {
-  const activeSprintTasks = useProjectStore((state) => state.activeSprint?.tasks || []);
-  const { tasks, isLoading, error, getTasks } = useTaskStore();
+  const EMPTY = [];
+const activeSprintTasks = useProjectStore((state) => state.activeSprint?.tasks ?? EMPTY);
+  const { tasks, isLoading, error } = useTaskStore();
 
-  useEffect(() => {
-    if (!activeSprintTasks.length) {
-      getTasks({ overdue: true });
-    }
-  }, [getTasks, activeSprintTasks.length]);
+
 
   const taskSource = activeSprintTasks.length > 0 ? activeSprintTasks : tasks;
   const now = Date.now();
   const overdueTasks = taskSource.filter(
-    (t) => t.dueDate && new Date(t.dueDate).getTime() < now && t.status !== "completed" && t.status !== "done"
+    (t) => t.dueDate && new Date(t.dueDate).getTime() < now && t.status?.toLowerCase() !== "completed" && t.status?.toLowerCase() !== "done" && t.status?.toLowerCase() !== "cancelled"
   );
 
   return (

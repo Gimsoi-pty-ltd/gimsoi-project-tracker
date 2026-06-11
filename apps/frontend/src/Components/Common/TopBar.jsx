@@ -78,7 +78,7 @@ export default function TopBar({ onMenuClick }) {
                 key={item.label}
                 to={item.href}
                 className={`px-5 py-2 rounded-lg text-sm no-underline ${
-                  location.pathname === item.href
+                  location.pathname.startsWith(item.href)
                     ? "bg-white text-blue-600 font-bold"
                     : "text-blue-100 hover:bg-white/10 hover:text-white"
                 }`}
@@ -95,7 +95,7 @@ export default function TopBar({ onMenuClick }) {
                 key={item.label}
                 to={item.href}
                 className={`px-4 py-2 rounded-lg text-sm no-underline ${
-                  location.pathname === item.href
+                  location.pathname.startsWith(item.href)
                     ? "bg-white text-blue-600 font-bold"
                     : "text-blue-100 hover:bg-white/10 hover:text-white"
                 }`}
@@ -110,7 +110,7 @@ export default function TopBar({ onMenuClick }) {
             <Link
               to="/dashboard"
               className={`px-4 py-2 rounded-lg text-sm no-underline ${
-                location.pathname === "/dashboard" ? "bg-white text-blue-600 font-bold" : "text-blue-100 hover:bg-white/10 hover:text-white"
+                location.pathname.startsWith("/dashboard") ? "bg-white text-blue-600 font-bold" : "text-blue-100 hover:bg-white/10 hover:text-white"
               }`}
             >
               Dashboard

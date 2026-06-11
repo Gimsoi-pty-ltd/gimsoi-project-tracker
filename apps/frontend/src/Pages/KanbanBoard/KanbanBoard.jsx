@@ -1,5 +1,14 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useProjectStore } from '../../store/projectStore';
+import { useTaskStore } from '../../store/taskStore';
+
+// BLOCKED goes to 'blocked' if we had one, but QA goes to 'review'
+const COLUMN_TO_STATUS = {
+  'todo':        'TODO',
+  'in-progress': 'IN_PROGRESS',
+  'review':      'REVIEW',
+  'done':        'DONE',
+};
 
 // Kanban Cards
 
@@ -135,7 +144,12 @@ const Column = ({
       className="flex flex-col rounded-lg shadow-md min-w-[350px] w-[350px] max-h-[700px]"
       onDragOver={(e) => { e.preventDefault(); setIsOver(true); }}
       onDragLeave={() => setIsOver(false)}
-      onDrop={() => { onDropCard?.(id); setIsOver(false); }}
+      onDrop={(e) => { 
+        e.preventDefault();
+        const dropPromise = onDropCard?.(id);
+        if (dropPromise && dropPromise.catch) dropPromise.catch(() => {});
+        setIsOver(false); 
+      }}
     >
       {/* Header */}
       <div className={`${headerColor} text-white font-bold text-sm px-4 py-3 rounded-t-lg text-center uppercase tracking-wide flex items-center justify-between`}>
@@ -222,15 +236,16 @@ const DEPRECATED_SAMPLE_COLUMNS = [
 
 // Main Kanban Component
 const Kanban = () => {
-  const { activeSprint, activeProject, isLoading, error } = useProjectStore();
+  const { projects, switchProject, activeSprint, currentProject, isLoading, error } = useProjectStore();
   const [selectedCard, setSelectedCard] = useState(null);
   const [draggedCard, setDraggedCard] = useState(null);
+  const [apiError, setApiError] = useState(null);
+  const updateTask = useTaskStore((state) => state.updateTask);
 
   // Build columns from sprint tasks
   const columns = useMemo(() => {
     if (!activeSprint?.tasks || activeSprint.tasks.length === 0) {
       return [
-        { id: 'backlog', title: 'Backlog', headerColor: 'bg-gray-600', cards: [] },
         { id: 'todo', title: 'TO DO', headerColor: 'bg-blue-600', cards: [] },
         { id: 'in-progress', title: 'In Progress', headerColor: 'bg-green-600', cards: [] },
         { id: 'review', title: 'QA / Review', headerColor: 'bg-yellow-500', cards: [] },
@@ -242,11 +257,16 @@ const Kanban = () => {
       'TODO': 'todo',
       'IN_PROGRESS': 'in-progress',
       'DONE': 'done',
-      'BLOCKED': 'review',
+      'REVIEW': 'review',
+      'BLOCKED': 'todo', // Blocked items without a column go back to todo, or we could add a column
+      'todo': 'todo',
+      'inProgress': 'in-progress',
+      'done': 'done',
+      'review': 'review',
+      'blocked': 'todo',
     };
 
     const cardsByStatus = {
-      backlog: [],
       todo: [],
       'in-progress': [],
       review: [],
@@ -255,8 +275,11 @@ const Kanban = () => {
 
     activeSprint.tasks.forEach((task) => {
       const columnId = statusMap[task.status] || 'todo';
-      const priorityLabel = task.priority === 'URGENT' ? 'High' : task.priority === 'HIGH' ? 'High' : task.priority === 'MEDIUM' ? 'Medium' : 'Low';
-      const colors = ['bg-purple-600', 'bg-blue-700', 'bg-orange-400', 'bg-yellow-400', 'bg-green-600'];
+      const priorityLabel = task.priority === 'URGENT' || task.priority === 'Critical' ? 'High' : 
+                            task.priority === 'HIGH' || task.priority === 'High' ? 'High' : 
+                            task.priority === 'MEDIUM' || task.priority === 'Medium' ? 'Medium' : 
+                            'Low';
+      const colors = ['bg-blue-700', 'bg-orange-400', 'bg-yellow-400', 'bg-green-600'];
       
       cardsByStatus[columnId].push({
         id: task.id?.toString() || Math.random().toString(),
@@ -265,11 +288,11 @@ const Kanban = () => {
         assignee: task.assignee || 'Unassigned',
         tags: task.label ? [task.label] : [],
         cardColor: colors[Object.keys(cardsByStatus).findIndex(k => k === columnId) % colors.length],
+        version: task.version,
       });
     });
 
     return [
-      { id: 'backlog', title: 'Backlog', headerColor: 'bg-gray-600', cards: cardsByStatus.backlog },
       { id: 'todo', title: 'TO DO', headerColor: 'bg-blue-600', cards: cardsByStatus.todo },
       { id: 'in-progress', title: 'In Progress', headerColor: 'bg-green-600', cards: cardsByStatus['in-progress'] },
       { id: 'review', title: 'QA / Review', headerColor: 'bg-yellow-500', cards: cardsByStatus.review },
@@ -290,14 +313,20 @@ const Kanban = () => {
   const handleDragStart = (fromColumnId, cardId) => setDraggedCard({ fromColumnId, cardId });
   const handleDragEnd   = () => setDraggedCard(null);
 
-  const handleDrop = (toColumnId) => {
+  const handleDrop = async (toColumnId) => {
     if (!draggedCard) return;
     const { fromColumnId, cardId } = draggedCard;
     if (fromColumnId === toColumnId) { setDraggedCard(null); return; }
 
+    const card = columnState.find((col) => col.id === fromColumnId)?.cards.find((c) => c.id === cardId);
+    if (!card) return;
+
+    setApiError(null);
+
+    // Save previous state to revert if API call fails
+    const previousState = columnState;
+
     setColumnState((prev) => {
-      const card = prev.find((c) => c.id === fromColumnId)?.cards.find((c) => c.id === cardId);
-      if (!card) return prev;
       return prev.map((col) => {
         if (col.id === fromColumnId) return { ...col, cards: col.cards.filter((c) => c.id !== cardId) };
         if (col.id === toColumnId)   return { ...col, cards: [...col.cards, card] };
@@ -305,6 +334,37 @@ const Kanban = () => {
       });
     });
     setDraggedCard(null);
+
+    // Make API call
+    try {
+      const targetStatus = COLUMN_TO_STATUS[toColumnId];
+      if (targetStatus) {
+        const response = await updateTask(cardId, { status: targetStatus, version: card.version });
+        
+        // Update the card's version with the new version from the backend
+        // This prevents Optimistic Locking (P2025) errors if they move the same card again
+        if (response?.data?.version) {
+           setColumnState((prev) => {
+             return prev.map((col) => {
+               if (col.id === toColumnId) {
+                 return {
+                   ...col,
+                   cards: col.cards.map((c) => c.id === cardId ? { ...c, version: response.data.version } : c)
+                 };
+               }
+               return col;
+             });
+           });
+        }
+      }
+    } catch (err) {
+      // Try to extract a useful error message from the backend
+      const errMsg = err?.response?.data?.message || err?.message || 'Unknown error occurred';
+      setApiError(`Failed to update task status: ${errMsg}. Reverting changes.`);
+      // Revert optimistic UI update
+      setColumnState(previousState);
+      throw new Error(`Failed to update task status for card ${cardId}: ${errMsg}`, { cause: err });
+    }
   };
 
   if (isLoading) return <div className="p-8 text-center">Loading Kanban board...</div>;
@@ -320,9 +380,31 @@ const Kanban = () => {
     <div className="bg-gray-200 min-h-screen p-6 text-black" style={{ fontFamily: 'Arial, sans-serif' }}>
       <div className="bg-white rounded-lg shadow-lg p-6">
 
+        {apiError && (
+          <div className="mb-4 p-4 rounded-lg bg-red-50 border border-red-200 text-sm text-red-800">
+            {apiError}
+          </div>
+        )}
+
         {/* HEADER */}
         <div className="pb-6 border-b border-gray-200 mb-6">
-          <h1 className="text-2xl font-bold">Sprint Task-Progress {activeProject?.name && `— ${activeProject.name}`}</h1>
+          <div className="flex justify-between items-center">
+            <h1 className="text-2xl font-bold">Sprint Task-Progress {currentProject?.name && `— ${currentProject.name}`}</h1>
+            {projects && projects.length > 0 && (
+              <select
+                className="bg-white border border-gray-300 text-gray-700 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block px-3 py-2 shadow-sm font-medium"
+                value={currentProject?.id || ''}
+                onChange={(e) => switchProject(e.target.value)}
+              >
+                <option value="" disabled>Select a project</option>
+                {projects.map(p => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} {p.status ? `(${p.status})` : ''}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
 
           <div className="flex items-center justify-between mt-4">
             <div>

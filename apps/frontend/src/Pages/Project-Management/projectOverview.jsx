@@ -179,7 +179,9 @@ export default function ProjectOverview() {
               <h1 className="text-2xl font-bold text-gray-900">{p.name}</h1>
               {p.client && (
                 <p className="text-sm text-gray-400 mt-0.5">
-                  Client: <span className="text-gray-600 font-medium">{p.client}</span>
+                  Client: <span className="text-gray-600 font-medium">
+                    {typeof p.client === "object" ? p.client?.name : p.client}
+                  </span>
                 </p>
               )}
             </div>
