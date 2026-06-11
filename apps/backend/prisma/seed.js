@@ -217,6 +217,9 @@ async function main() {
         // 6. Create Tasks for Project
         // Generate ~40 tasks
         const numTasks = randomInt(30, 50);
+        let completedTasksCount = 0;
+        let blockedTasksCount = 0;
+        let cancelledTasksCount = 0;
         for (let t = 0; t < numTasks; t++) {
             const titleBase = randomElement(taskTitles);
             const title = `${titleBase} - Part ${randomInt(1, 10)}`;
@@ -245,7 +248,7 @@ async function main() {
             // CompletedAt logic
             const completedAt = taskStatus === 'DONE' ? pastDate(randomInt(1, 20)) : null;
 
-            await prisma.task.create({
+            const task = await prisma.task.create({
                 data: {
                     title,
                     description: `Rich dummy content for ${title}. Needs to be robust for testing.`,
@@ -261,7 +264,53 @@ async function main() {
                     isBlocked: taskStatus === 'BLOCKED',
                 }
             });
+
+            // Analytics counters
+            if (taskStatus === 'DONE') completedTasksCount++;
+            if (taskStatus === 'BLOCKED') blockedTasksCount++;
+            if (taskStatus === 'CANCELLED') cancelledTasksCount++;
+
+            // Create Activity Logs
+            const actions = ['CREATED', 'ASSIGNED', 'STATUS_CHANGE'];
+            for (let i = 0; i < randomInt(1, 3); i++) {
+                await prisma.activityLog.create({
+                    data: {
+                        taskId: task.id,
+                        userId: randomElement(allUsers).id,
+                        action: randomElement(actions),
+                        createdAt: pastDate(randomInt(1, 30)),
+                    }
+                });
+            }
+
+            // Create Comments (50% chance)
+            if (Math.random() > 0.5) {
+                for (let i = 0; i < randomInt(1, 2); i++) {
+                    await prisma.comment.create({
+                        data: {
+                            content: `This is a sample comment #${i + 1} for task: ${title}.`,
+                            taskId: task.id,
+                            userId: randomElement(teamUsers).id,
+                            createdAt: pastDate(randomInt(1, 30)),
+                        }
+                    });
+                }
+            }
         }
+
+        // 7. Create Project Analytics
+        await prisma.projectAnalytics.create({
+            data: {
+                projectId: project.id,
+                totalTasks: numTasks,
+                completedTasks: completedTasksCount,
+                blockedTasks: blockedTasksCount,
+                cancelledTasks: cancelledTasksCount,
+                totalSprints: sprints.length,
+                activeSprints: sprints.filter(s => s.status === 'ACTIVE').length,
+            }
+        });
+
         projects.push(project);
     }
 
