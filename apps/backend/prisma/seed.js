@@ -1,10 +1,14 @@
 import prisma from '../lib/prisma.js';
 import bcryptjs from 'bcryptjs';
+import crypto from 'crypto';
 
 // --- Helpers for Randomization ---
-const randomInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
-const randomElement = (arr) => arr[Math.floor(Math.random() * arr.length)];
-const randomDate = (start, end) => new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
+const randomInt = (min, max) => crypto.randomInt(min, max + 1);
+const randomElement = (arr) => arr[crypto.randomInt(0, arr.length)];
+const randomDate = (start, end) => {
+    const diff = end.getTime() - start.getTime();
+    return new Date(start.getTime() + crypto.randomInt(0, diff + 1));
+};
 
 const pastDate = (daysAgo) => {
     const d = new Date();
@@ -284,7 +288,7 @@ async function main() {
             }
 
             // Create Comments (50% chance)
-            if (Math.random() > 0.5) {
+            if (crypto.randomInt(0, 2) === 1) {
                 for (let i = 0; i < randomInt(1, 2); i++) {
                     await prisma.comment.create({
                         data: {
