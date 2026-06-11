@@ -1,10 +1,17 @@
 import React from "react";
 import { Link } from "react-router-dom"; // Import Link
+import { useSprintStore } from "../../store/sprintStore";
 
 const SprintVelocityCard = () => {
-    const velocity = 32;
-    const goal = 40;
-    const progress = (velocity / goal) * 100;
+    const { sprints } = useSprintStore();
+    
+    const completedSprints = sprints.filter(s => s.status === 'COMPLETED');
+    const velocity = completedSprints.length > 0 
+        ? Math.round(completedSprints.reduce((sum, s) => sum + (s.pointsCompleted || 0), 0) / completedSprints.length)
+        : 0;
+        
+    const goal = 40; // Hardcoded goal for mapping the arc visually
+    const progress = Math.min((velocity / goal) * 100, 100);
 
     return (
         // Wrap the whole card in a Link to the detail page

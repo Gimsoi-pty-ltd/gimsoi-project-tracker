@@ -172,10 +172,6 @@ export const createTask = async ({ taskData, context, requestingUser }) => {
  * @param {{ limit?: number, cursor?: string, status?: string, isBlocked?: boolean, isOverdue?: boolean, sortBy?: string }} options
  */
 export const getTasksByProject = async (projectId, requestingUser, { limit = 50, cursor, status, isBlocked, isOverdue, sortBy } = {}) => {
-    if (!projectId && (!requestingUser || ![ROLES.ADMIN, ROLES.PROJECT_MANAGER].includes(requestingUser.role))) {
-        throw new ForbiddenError('projectId is required for non-ADMIN/PM roles.');
-    }
-
     const where = projectId ? { projectId } : {};
 
     // Row-level security: non-admins on global fetch see only their assigned tasks

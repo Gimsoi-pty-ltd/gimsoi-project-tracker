@@ -51,11 +51,23 @@ export const useAuthStore = create((set) => ({
         set({ isLoading: true, error: null });
         try {
             const email = useAuthStore.getState().user?.email;
-            const response = await axios.post("/auth/verify-email", { code, email });
+            const response = await axios.post("/verify-email", { code, email });
             set({ user: response.data.user, isAuthenticated: true, isLoading: false });
             return response.data;
         } catch (error) {
             set({ error: error.response?.data?.message || "Error verifying email", isLoading: false });
+            throw error;
+        }
+    },
+
+    resendVerificationCode: async (email) => {
+        set({ isLoading: true, error: null, message: null });
+        try {
+            const response = await axios.post("/resend-verification", { email });
+            set({ message: response.data.message, isLoading: false });
+            return response.data;
+        } catch (error) {
+            set({ error: error.response?.data?.message || "Error resending verification code", isLoading: false });
             throw error;
         }
     },

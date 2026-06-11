@@ -57,7 +57,7 @@ export const bulkDeleteTasksSchema = z.object({
 });
 
 export const listTasksSchema = z.object({
-  projectId: z.string().uuid('projectId must be a valid UUID'),
+  projectId: z.string().uuid('projectId must be a valid UUID').optional(),
   status: TaskStatusEnum.optional(),
   isBlocked: z.preprocess((val) => val === 'true' ? true : val === 'false' ? false : val, z.boolean().optional()),
   isOverdue: z.preprocess((val) => val === 'true' ? true : val === 'false' ? false : val, z.boolean().optional()),

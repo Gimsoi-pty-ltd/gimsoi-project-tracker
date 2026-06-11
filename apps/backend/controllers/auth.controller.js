@@ -110,6 +110,47 @@ export const verifyEmail = async (req, res) => {
     }
 };
 
+export const resendVerification = async (req, res) => {
+    const { email } = req.body;
+
+    if (!email) {
+        return res.status(400).json({ success: false, message: "Email is required" });
+    }
+
+    try {
+        const user = await prisma.user.findUnique({ where: { email } });
+
+        if (!user || user.isVerified) {
+            return res.status(200).json({
+                success: true,
+                message: "If your email is registered and unverified, a new code has been sent.",
+            });
+        }
+
+        const verificationToken = crypto.randomInt(100000, 999999).toString();
+        const verificationTokenExpiresAt = new Date(Date.now() + 15 * 60 * 1000);
+
+        await prisma.user.update({
+            where: { id: user.id },
+            data: {
+                verificationToken,
+                verificationTokenExpiresAt,
+            },
+        });
+
+        sendVerificationEmail(user.email, verificationToken)
+            .catch(err => console.error("Failed to resend verification email:", err));
+
+        res.status(200).json({
+            success: true,
+            message: "If your email is registered and unverified, a new code has been sent.",
+        });
+    } catch (error) {
+        console.log("Error in resendVerification ", error);
+        res.status(500).json({ success: false, message: "Server error" });
+    }
+};
+
 export const login = async (req, res) => {
     const { email, password } = req.body;
 

@@ -34,14 +34,10 @@ test.describe('Users API Tests', () => {
 
         let adminTempCsrf = await fetchCsrfToken(request, adminSignupData.token);
 
-        const promoteAdminRes = await request.post('/api/testing/promote-role', {
-            headers: { 
-                'x-csrf-token': adminTempCsrf,
-                'Authorization': `Bearer ${adminSignupData.token}`
-            },
-            data: { email: adminEmail, role: 'ADMIN' }
+        await prisma.user.update({
+            where: { email: adminEmail },
+            data: { role: 'ADMIN', isVerified: true }
         });
-        expect(promoteAdminRes.status()).toBe(200);
 
         const adminLoginRes = await request.post('/api/auth/login', {
             data: { email: adminEmail, password }
@@ -59,12 +55,9 @@ test.describe('Users API Tests', () => {
 
         let userTempCsrf = await fetchCsrfToken(request, userSignupData.token);
 
-        await request.post('/api/testing/promote-role', {
-            headers: { 
-                'x-csrf-token': userTempCsrf,
-                'Authorization': `Bearer ${userSignupData.token}`
-            },
-            data: { email: userEmail, role: 'INTERN' }
+        await prisma.user.update({
+            where: { email: userEmail },
+            data: { role: 'INTERN', isVerified: true }
         });
 
         const userLoginRes = await request.post('/api/auth/login', {

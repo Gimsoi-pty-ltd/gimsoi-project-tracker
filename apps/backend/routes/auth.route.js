@@ -4,6 +4,7 @@ import {
     login,
     logout,
     verifyEmail,
+    resendVerification,
     forgotPassword,
     resetPassword,
     checkAuth,
@@ -56,6 +57,11 @@ router.post("/logout", authLimiter, verifyToken, logout);
  * POST /api/auth/verify-email — Verifies email via token
  */
 router.post("/verify-email", loginLimiter, verifyEmail);
+
+/**
+ * POST /api/auth/resend-verification — Resends verification code
+ */
+router.post("/resend-verification", authLimiter, resendVerification);
 
 /**
  * POST /api/auth/forgot-password — Initiates password reset
