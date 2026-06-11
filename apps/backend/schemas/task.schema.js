@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-const TaskStatusEnum = z.enum(['TODO', 'IN_PROGRESS', 'DONE', 'CANCELLED', 'BLOCKED']);
+const TaskStatusEnum = z.enum(['TODO', 'IN_PROGRESS', 'REVIEW', 'DONE', 'CANCELLED', 'BLOCKED']);
 const TaskPriorityEnum = z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']);
 
 export const createTaskSchema = z.object({
@@ -13,6 +13,7 @@ export const createTaskSchema = z.object({
   priority: TaskPriorityEnum.optional().default('MEDIUM'),
   isBlocked: z.boolean().optional().default(false),
   dueDate: z.coerce.date().optional().nullable(),
+  storyPoints: z.number().int().optional().nullable(),
 });
 
 export const updateTaskSchema = z.object({
@@ -25,6 +26,7 @@ export const updateTaskSchema = z.object({
   priority: TaskPriorityEnum.optional(),
   isBlocked: z.boolean().optional(),
   dueDate: z.coerce.date().optional().nullable(),
+  storyPoints: z.number().int().optional().nullable(),
   version: z.number().int().positive('version is required for optimistic locking'),
 }).refine(
   (data) => Object.keys(data).length > 1, // At least one field + version
@@ -46,6 +48,7 @@ export const bulkUpdateTasksSchema = z.object({
     priority: TaskPriorityEnum.optional(),
     isBlocked: z.boolean().optional(),
     dueDate: z.coerce.date().optional().nullable(),
+    storyPoints: z.number().int().optional().nullable(),
   }).refine(
     (data) => Object.keys(data).length > 0,
     { message: 'At least one field must be provided in updateData for bulk update' }
