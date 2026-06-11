@@ -78,12 +78,13 @@ function ProjectRow({ project, onNavigate, onDelete, onStatusChange }) {
     return () => document.removeEventListener("mousedown", h);
   }, []);
 
+  const clientName = typeof project.client === "object" ? project.client?.name : project.client;
   return (
     <div
       className="grid grid-cols-[1fr_1.2fr_1fr_0.8fr_1.4fr_44px] items-center px-6 py-4 hover:bg-slate-50 transition-colors cursor-pointer border-b border-gray-100 last:border-0 group"
       onClick={() => onNavigate(project)}
     >
-      <div className="text-sm font-medium text-gray-700 truncate pr-4">{project.client || "—"}</div>
+      <div className="text-sm font-medium text-gray-700 truncate pr-4">{clientName || "—"}</div>
       <div className="text-sm font-semibold text-gray-900 truncate pr-4">{project.name || "Unnamed Project"}</div>
 
       <div onClick={(e) => e.stopPropagation()}>

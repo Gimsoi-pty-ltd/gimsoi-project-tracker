@@ -41,7 +41,7 @@ export const createProject = async ({ name, clientId, status, description, creat
  * @param {{ limit?: number, cursor?: string }} options
  * limit defaults to 50, max 100. cursor is the id of the last record from the previous page.
  */
-export const getProjects = async ({ limit = 50, cursor, search, status, createdByUserId, includeArchived } = {}) => {
+export const getProjects = async ({ limit = 50, cursor, search, status, createdByUserId, includeArchived, requestingUser } = {}) => {
   const take = Math.min(Number(limit) || 50, 100);
 
   const where = {};
@@ -59,6 +59,15 @@ export const getProjects = async ({ limit = 50, cursor, search, status, createdB
   }
   if (createdByUserId) {
     where.createdByUserId = createdByUserId;
+  }
+
+  // Row-level security: non-admins only see projects they are members of
+  if (requestingUser && ![ROLES.ADMIN, ROLES.PROJECT_MANAGER].includes(requestingUser.role)) {
+    where.members = {
+      some: {
+        userId: requestingUser.id
+      }
+    };
   }
 
   return prisma.project.findMany({

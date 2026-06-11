@@ -1,51 +1,8 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Building2, Briefcase, Users as UsersIcon, ArrowRight } from "lucide-react";
-
-
-
-const SECTIONS = [
-  {
-    id: "users",
-    label: "Users",
-    description: "Manage user accounts, roles, and permissions",
-    icon: UsersIcon,
-    route: "/users-list", 
-    stats: [
-      { label: "Total Users", value: "156" },
-      { label: "Active", value: "142" },
-      { label: "Pending", value: "8" },
-    ],
-    color: "green",
-  },
-  {
-    id: "clients",
-    label: "Clients",
-    description: "Manage client companies, contacts, and relationships",
-    icon: Building2,
-    route: "/clients",
-    stats: [
-      { label: "Total Clients", value: "24" },
-      { label: "Active", value: "18" },
-      { label: "Onboarding", value: "3" },
-    ],
-    color: "blue",
-  },
-  {
-    id: "teams",
-    label: "Teams",
-    description: "Organize project teams, assignments, and workflows",
-    icon: Briefcase,
-    route: "/teams", 
-    stats: [
-      { label: "Total Teams", value: "12" },
-      { label: "Active Projects", value: "8" },
-      { label: "On Hold", value: "2" },
-    ],
-    color: "purple",
-  },
-  
-];
+import { resourceAPI } from "../../api/api";
+import { useAuthStore } from "../../store/authStore";
 
 
 const SectionCard = ({ section }) => {
@@ -103,6 +60,82 @@ const SectionCard = ({ section }) => {
 };
 
 export default function UserManagement() {
+  const [usersCount, setUsersCount] = useState(0);
+  const [clientsCount, setClientsCount] = useState(0);
+  const [activeProjects, setActiveProjects] = useState(0);
+  const [onHoldProjects, setOnHoldProjects] = useState(0);
+  const { userActivities = [], fetchActivities } = useAuthStore((state) => state);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [usersRes, clientsRes, projectsRes] = await Promise.all([
+          resourceAPI.get('/users').catch(() => ({ data: { data: [] } })),
+          resourceAPI.get('/clients').catch(() => ({ data: { data: [] } })),
+          resourceAPI.get('/projects').catch(() => ({ data: { data: [] } }))
+        ]);
+        
+        const users = usersRes.data?.data || usersRes.data?.users || [];
+        setUsersCount(users.length);
+
+        const clients = clientsRes.data?.data || clientsRes.data?.clients || [];
+        setClientsCount(clients.length);
+
+        const projects = projectsRes.data?.data || projectsRes.data?.projects || [];
+        setActiveProjects(projects.filter(p => p.status === 'ACTIVE').length);
+        setOnHoldProjects(projects.filter(p => p.status === 'ON_HOLD').length);
+
+        fetchActivities();
+
+      } catch (error) {
+        console.error("Failed to load user management stats", error);
+      }
+    };
+    fetchData();
+  }, [fetchActivities]);
+
+  const SECTIONS = [
+    {
+      id: "users",
+      label: "Users",
+      description: "Manage user accounts, roles, and permissions",
+      icon: UsersIcon,
+      route: "/users-list", 
+      stats: [
+        { label: "Total Users", value: usersCount },
+        { label: "Active", value: usersCount },
+        { label: "Pending", value: "0" },
+      ],
+      color: "green",
+    },
+    {
+      id: "clients",
+      label: "Clients",
+      description: "Manage client companies, contacts, and relationships",
+      icon: Building2,
+      route: "/clients",
+      stats: [
+        { label: "Total Clients", value: clientsCount },
+        { label: "Active", value: clientsCount },
+        { label: "Onboarding", value: "0" },
+      ],
+      color: "blue",
+    },
+    {
+      id: "teams",
+      label: "Teams",
+      description: "Organize project teams, assignments, and workflows",
+      icon: Briefcase,
+      route: "/teams", 
+      stats: [
+        { label: "Total Teams", value: "0" },
+        { label: "Active Projects", value: activeProjects },
+        { label: "On Hold", value: onHoldProjects },
+      ],
+      color: "purple",
+    },
+  ];
+
   return (
     <div className="bg-gray-50 min-h-screen p-4 md:p-8">
       <div className=" mx-auto">
@@ -119,13 +152,22 @@ export default function UserManagement() {
 
         {/* Quick Actions Bar */}
         <div className="flex flex-wrap gap-3 mb-8">
-          <button className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
+          <button 
+            onClick={() => alert("Add New action triggered - this would open the user creation modal.")}
+            className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+          >
             + Add New
           </button>
-          <button className="px-4 py-2 border text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors">
+          <button 
+            onClick={() => alert("Import Data action triggered - this would open the CSV upload interface.")}
+            className="px-4 py-2 border text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
+          >
             Import Data
           </button>
-          <button className="px-4 py-2 border text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors">
+          <button 
+            onClick={() => alert("Export Report action triggered - this generates and downloads a CSV report.")}
+            className="px-4 py-2 border text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
+          >
             Export Report
           </button>
         </div>
@@ -141,9 +183,15 @@ export default function UserManagement() {
         <div className="mt-12 bg-white border rounded-2xl p-6">
           <h3 className="font-semibold text-gray-800 mb-4">Recent Activity</h3>
           <div className="space-y-3 text-sm text-gray-600">
-            <p>• Client "Acme Corp" was updated by Sarah Chen</p>
-            <p>• New user "jane@company.co" pending approval</p>
-            <p>• Team "Alpha" completed Project Ares milestone</p>
+            {userActivities && userActivities.length > 0 ? (
+              userActivities.slice(0, 5).map((act, i) => (
+                <p key={i}>
+                  • {act.action} - <span className="text-gray-400 text-xs">{new Date(act.timestamp).toLocaleString()}</span>
+                </p>
+              ))
+            ) : (
+              <p className="text-gray-400">No recent activities logged.</p>
+            )}
           </div>
         </div>
 

@@ -28,24 +28,35 @@ const resourceAPI = axios.create({
 const axiosInstance = authAPI; // Default export for backward compatibility
 
 let csrfToken = null;
+let csrfTokenPromise = null;
 
 // 1. Fetch CSRF token on initialization
-const fetchCsrfToken = async () => {
-    try {
-        const response = await authAPI.get("/csrf-token");
-        csrfToken = response.data.csrfToken;
-        console.log("CSRF Token initialized");
-    } catch (error) {
-        console.error("Failed to fetch CSRF token:", error);
-    }
+const fetchCsrfToken = () => {
+    csrfTokenPromise = authAPI.get("/csrf-token")
+        .then((response) => {
+            csrfToken = response.data.csrfToken;
+            console.log("CSRF Token initialized");
+            return csrfToken;
+        })
+        .catch((error) => {
+            console.error("Failed to fetch CSRF token:", error);
+            csrfToken = null;
+            return null;
+        });
+    return csrfTokenPromise;
 };
 
 fetchCsrfToken();
 
 // 2. Request Interceptor: Attach CSRF token to both APIs
-const requestInterceptor = (config) => {
-    if (["post", "put", "delete", "patch"].includes(config.method?.toLowerCase()) && csrfToken) {
-        config.headers["x-csrf-token"] = csrfToken;
+const requestInterceptor = async (config) => {
+    if (["post", "put", "delete", "patch"].includes(config.method?.toLowerCase())) {
+        if (!csrfToken && csrfTokenPromise) {
+            await csrfTokenPromise;
+        }
+        if (csrfToken) {
+            config.headers["x-csrf-token"] = csrfToken;
+        }
     }
     return config;
 };
@@ -59,7 +70,7 @@ const responseErrorInterceptor = async (error) => {
 
     if (
         error.response?.status === 403 &&
-        error.response?.data?.message === "Invalid CSRF token" &&
+        error.response?.data?.message?.toLowerCase().includes("csrf token") &&
         !originalRequest._retry
     ) {
         originalRequest._retry = true;
