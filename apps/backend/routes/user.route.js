@@ -10,9 +10,10 @@ import {
   updateProfile,
   updateAvatar,
 } from '../controllers/user.controller.js';
+import { changePassword } from '../controllers/auth.controller.js';
 import { upload } from '../utils/upload.js';
 import { validate } from "../middleware/validate.middleware.js";
-import { adminCreateUserSchema, updateProfileSchema, updateUserRoleSchema } from "../schemas/user.schema.js";
+import { adminCreateUserSchema, updateProfileSchema, updateUserRoleSchema, changePasswordSchema } from "../schemas/user.schema.js";
 
 const router = express.Router();
 
@@ -35,6 +36,9 @@ router.patch('/:id/role', writeLimiter, verifyToken, authorize('MANAGE_USERS'), 
 
 // Update own profile
 router.patch('/me', writeLimiter, verifyToken, requireCSRF, validate(updateProfileSchema), updateProfile);
+
+// Change own password
+router.patch('/me/password', writeLimiter, verifyToken, requireCSRF, validate(changePasswordSchema), changePassword);
 
 // Upload own avatar
 router.post('/me/avatar', writeLimiter, verifyToken, requireCSRF, upload.single('avatar'), updateAvatar);
