@@ -82,7 +82,7 @@ const Column = ({ id, title, headerColor, cards = [], onCardClick, onCardDragSta
 const taskToCard = (task) => ({ id: task.id, title: task.title, priority: task.priority, assignee: task.assignee, tags: [task.tag], cardColor: tagColorMap[task.tag] ?? 'bg-blue-700' });
 
 export default function KanbanTestPage() {
-  const { activeSprint, activeProject, updateTasks } = useProject();
+  const { activeSprint, activeProject, updateTasks } = useProjectStore();
   const tasks = activeSprint?.tasks ?? [];
 
   const initialColumns = useMemo(() => [
@@ -140,7 +140,7 @@ export default function KanbanTestPage() {
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-6 flex-wrap">
             <div className="w-full md:w-auto">
               <h1 className="text-xl md:text-2xl font-bold">Sprint Task Progress</h1>
-              <p className="text-xs md:text-sm text-gray-500 mt-1 truncate">{activeProject.name} · {activeSprint?.name} — {activeSprint?.goal}</p>
+             <p className="text-xs md:text-sm text-gray-500 mt-1 truncate">{activeProject?.name || 'No Project'} · {activeSprint?.name} — {activeSprint?.goal}</p>
             </div>
             <div className="w-full md:w-auto">
               <p className="text-xs md:text-sm">{doneCards}/{totalCards} Tasks completed</p>
