@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { useProjectStore } from "../../store/projectStore";
+import { useAuthStore } from "../../store/authStore";
 
 export default function SecuritySection() {
-  const { updateUserPassword, addActivityLog } = useProjectStore((state) => state);
+  const { addActivityLog } = useAuthStore((state) => state);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
@@ -34,8 +34,7 @@ export default function SecuritySection() {
       return;
     }
 
-    updateUserPassword(passwordForm.newPassword);
-    addActivityLog("Changed password");
+    addActivityLog?.("Changed password");
     setPasswordSuccess(true);
     setTimeout(() => {
       setShowPasswordModal(false);

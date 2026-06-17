@@ -92,18 +92,18 @@ const DashboardCards = () => {
         </div>
 
         <div className="grid grid-cols-12 gap-4">
-          <div className="col-span-12 sm:col-span-6 lg:col-span-3">
+          <div className="col-span-12 lg:col-span-3">
             <BurnDownCard />
           </div>
-          <div className="col-span-12 sm:col-span-6 lg:col-span-3">
+          <div className="col-span-12  lg:col-span-3">
             <TaskDistributionCard />
           </div>
-          <div className="col-span-12 sm:col-span-6 lg:col-span-4">
+          <div className="col-span-12 sm:col-span-7 lg:col-span-4">
             <div className="min-h-[256px] overflow-hidden">
               <PriorityHeatmap sprintId={activeSprint?.id} />
             </div>
           </div>
-          <div className="col-span-12 sm:col-span-6 lg:col-span-2">
+          <div className="col-span-12 sm:col-span-5 lg:col-span-2">
             <KanbanSummary sprintId={activeSprint?.id} />
           </div>
         </div>

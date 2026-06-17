@@ -22,16 +22,16 @@ const getAssignee = (task) => {
 };
 
 export default function BlockedTasks() {
-  const activeSprintTasks = useProjectStore((state) => state.activeSprint?.tasks || []);
+const activeSprintTasks = useProjectStore((state) => state.activeSprint?.tasks ?? null);
   const { tasks, isLoading, error, getTasks } = useTaskStore();
 
   useEffect(() => {
-    if (!activeSprintTasks.length) {
+    if (!activeSprintTasks?.length) {
       getTasks({ status: "blocked" });
     }
-  }, [getTasks, activeSprintTasks.length]);
+  }, [getTasks, activeSprintTasks?.length]);
 
-  const taskSource = activeSprintTasks.length > 0 ? activeSprintTasks : tasks;
+  const taskSource = activeSprintTasks?.length > 0 ? activeSprintTasks : tasks;
   const blockedTasks = taskSource.filter((t) => (t.status || "").toString().toLowerCase() === "blocked");
 
   return (

@@ -33,16 +33,11 @@ const getAssignee = (task) => {
 };
 
 export default function OverdueTasks() {
-  const activeSprintTasks = useProjectStore((state) => state.activeSprint?.tasks || []);
-  const { tasks, isLoading, error, getTasks } = useTaskStore();
+ const activeSprintTasks = useProjectStore((state) => state.activeSprint?.tasks ?? null);
+const { tasks, isLoading, error } = useTaskStore();  
 
-  useEffect(() => {
-    if (!activeSprintTasks.length) {
-      getTasks({ overdue: true });
-    }
-  }, [getTasks, activeSprintTasks.length]);
 
-  const taskSource = activeSprintTasks.length > 0 ? activeSprintTasks : tasks;
+  const taskSource = activeSprintTasks?.length > 0 ? activeSprintTasks : tasks;
   const now = Date.now();
   const overdueTasks = taskSource.filter(
     (t) => t.dueDate && new Date(t.dueDate).getTime() < now && t.status !== "completed" && t.status !== "done"

@@ -181,6 +181,7 @@ const applySprintSelection = async (sprint, projectTasks, projectSprints) => {
 export const useProjectStore = create((set, get) => ({
     projects: [],
     currentProject: null,
+    activeProject: null,
     projectProgress: null,
     isLoading: false,
     error: null,
@@ -216,7 +217,7 @@ export const useProjectStore = create((set, get) => ({
 
             const project = get().projects.find((p) => p.id === pid);
             if (project) {
-                set({ currentProject: project });
+                set({ currentProject: project, activeProject: project });
             } else if (get().currentProject?.id !== pid) {
                 await get().getProjectById(pid);
             }
@@ -232,6 +233,7 @@ export const useProjectStore = create((set, get) => ({
             if (!defaultSprint) {
                 set({
                     currentProject: get().currentProject || { id: pid },
+                    activeProject: get().currentProject || { id: pid },
                     projectSprints,
                     projectTasks,
                     activeSprint: null,
@@ -311,7 +313,8 @@ export const useProjectStore = create((set, get) => ({
         set({ isLoading: true, error: null });
         try {
             const response = await resourceAPI.get(`/projects/${id}`);
-            set({ currentProject: response.data.project || response.data, isLoading: false });
+            const project = response.data.project || response.data;
+            set({ currentProject: project, activeProject: project, isLoading: false });
             return response.data;
         } catch (error) {
             set({ error: error.response?.data?.message || "Error fetching project", isLoading: false });
@@ -338,9 +341,11 @@ export const useProjectStore = create((set, get) => ({
         set({ isLoading: true, error: null });
         try {
             const response = await resourceAPI.patch(`/projects/${id}`, projectData);
+            const project = response.data.project || response.data;
             set((state) => ({
-                projects: state.projects.map((project) => (project.id === id ? response.data.project || response.data : project)),
-                currentProject: response.data.project || response.data,
+                projects: state.projects.map((existingProject) => (existingProject.id === id ? project : existingProject)),
+                currentProject: project,
+                activeProject: project,
                 isLoading: false,
             }));
             return response.data;
@@ -378,17 +383,17 @@ export const useProjectStore = create((set, get) => ({
         }
     },
 
-    setCurrentProject: (project) => set({ currentProject: project }),
+    setCurrentProject: (project) => set({ currentProject: project, activeProject: project }),
 
     switchProject: async (projectId) => {
         const project = get().projects.find((p) => p.id === projectId);
         if (project) {
-            set({ currentProject: project });
+            set({ currentProject: project, activeProject: project });
         }
         await get().fetchDashboard(projectId);
     },
 
-    clearCurrentProject: () => set({ currentProject: null }),
+    clearCurrentProject: () => set({ currentProject: null, activeProject: null }),
     clearError: () => set({ error: null }),
     clearDashboardError: () => set({ dashboardError: null }),
 }));

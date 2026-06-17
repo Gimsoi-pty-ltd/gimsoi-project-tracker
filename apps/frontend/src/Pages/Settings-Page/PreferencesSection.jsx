@@ -1,13 +1,15 @@
 import { useState } from "react";
-import { useProjectStore } from "../../store/projectStore";
+import { useAuthStore } from "../../store/authStore";
 import ToggleSwitch from "./ToggleSwitch";
 
 export default function PreferencesSection() {
-  const { theme, preferences, toggleDarkMode, addActivityLog } = useProjectStore((state) => state);
+  const { addActivityLog } = useAuthStore((state) => state);
+  const [darkMode, setDarkMode] = useState(false);
 
   const handleThemeChange = () => {
-    toggleDarkMode();
-    addActivityLog(`Changed theme to ${theme.mode === 'light' ? 'dark' : 'light'} mode`);
+    const nextMode = !darkMode;
+    setDarkMode(nextMode);
+    addActivityLog?.(`Changed theme to ${nextMode ? "dark" : "light"} mode`);
   };
 
   return (
@@ -26,12 +28,12 @@ export default function PreferencesSection() {
         <button
           onClick={handleThemeChange}
           className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-            preferences.darkMode ? 'bg-orange-500' : 'bg-gray-300'
+            darkMode ? 'bg-orange-500' : 'bg-gray-300'
           }`}
         >
           <span
             className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-              preferences.darkMode ? 'translate-x-6' : 'translate-x-1'
+              darkMode ? 'translate-x-6' : 'translate-x-1'
             }`}
           />
         </button>

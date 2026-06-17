@@ -28,14 +28,14 @@ export default function TasksPage() {
   const activeTab = TABS.find((t) => t.id === tabParam) ? tabParam : "overdue";
 
   const { tasks, getTasks } = useTaskStore();
-  const activeSprintTasks = useProjectStore((state) => state.activeSprint?.tasks || []);
-  const taskSource = activeSprintTasks.length > 0 ? activeSprintTasks : tasks;
+ const activeSprintTasks = useProjectStore((state) => state.activeSprint?.tasks ?? null);
+const taskSource = activeSprintTasks?.length > 0 ? activeSprintTasks : tasks;
 
-  useEffect(() => {
-    if (!activeSprintTasks.length) {
-      getTasks();
-    }
-  }, [getTasks, activeSprintTasks.length]);
+useEffect(() => {
+  if (!activeSprintTasks?.length) {
+    getTasks();
+  }
+}, [getTasks, activeSprintTasks?.length]);
 
   const now = Date.now();
   const overdueCount = taskSource.filter(

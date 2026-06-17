@@ -83,7 +83,13 @@ function ProjectRow({ project, onNavigate, onDelete, onStatusChange }) {
       className="grid grid-cols-[1fr_1.2fr_1fr_0.8fr_1.4fr_44px] items-center px-6 py-4 hover:bg-slate-50 transition-colors cursor-pointer border-b border-gray-100 last:border-0 group"
       onClick={() => onNavigate(project)}
     >
-      <div className="text-sm font-medium text-gray-700 truncate pr-4">{project.client || "—"}</div>
+      <div className="text-sm font-medium text-gray-700 truncate pr-4">
+        {typeof project.client === 'object'
+          ?project.client?.name || "—"
+          :project.client || "—"
+        }
+
+      </div>
       <div className="text-sm font-semibold text-gray-900 truncate pr-4">{project.name || "Unnamed Project"}</div>
 
       <div onClick={(e) => e.stopPropagation()}>
@@ -163,10 +169,15 @@ export default function Projects() {
 
   useEffect(() => { fetchProjects(); }, [fetchProjects]);
 
-  const filteredProjects = projects.filter((p) =>
-    (p.name?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
-    (p.client?.toLowerCase() || "").includes(searchTerm.toLowerCase())
-  );
+  const filteredProjects = projects.filter ((p) => {
+    const clientName = typeof p.client === 'object'
+    ? p.client?.name || " "
+    : p.client || " ";
+    return (
+        (p.name?.toLowerCase() || " ").includes(searchTerm.toLowerCase()) ||
+        clientName.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  })
 
   const handleNavigate = (project) => {
     useProjectStore.getState().setCurrentProject(project);

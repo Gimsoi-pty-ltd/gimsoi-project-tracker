@@ -6,23 +6,37 @@ import { useProjectStore } from "../../store/projectStore";
 
 
 function TeamInsights() {
-  const { activeSprint, activeProject, projects = [] } = useProjectStore((state) => state);
+  const activeSprint  = useProjectStore((state) => state.activeSprint);
+  const activeProject = useProjectStore((state) => state.activeProject ?? state.currentProject);
   const metrics = activeSprint?.metrics ?? {};
   const tasks   = activeSprint?.tasks ?? [];
-  const teamMembers = (activeProject?.team || []).map((name, i) => ({
-    id: i,
-    name: name.split('(')[0]?.trim() || 'Team Member',
-    firstName: name.split('(')[0]?.trim().split(' ')[0] || 'Member',
-    initials: name.split('(')[0]?.trim().split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || '?',
-    jobTitle: name.includes('(') ? name.match(/\(([^)]+)\)/)?.[1] || 'Developer' : 'Developer',
-  }));
+  const rawTeam = activeProject?.team ?? activeProject?.teamMembers ?? [];
+
+  const teamMembers = Array.isArray(rawTeam)
+    ? rawTeam.map((item, i) => {
+        const name = typeof item === 'string' ? item : item?.fullName || item?.name || 'Team Member';
+        const displayName = name.split('(')[0]?.trim() || 'Team Member';
+        const firstName = displayName.split(' ')[0] || 'Member';
+        return {
+          id: i,
+          name: displayName,
+          firstName,
+          initials: displayName.split(' ').map((n) => n[0] || '').join('').toUpperCase().slice(0, 2) || '?',
+          jobTitle: typeof item === 'string'
+            ? item.includes('(')
+              ? item.match(/\(([^)]+)\)/)?.[1] || 'Developer'
+              : 'Developer'
+            : item?.role || item?.jobTitle || 'Developer',
+        };
+      })
+    : [];
 
   const memberStats = teamMembers.map((member) => {
     const firstName      = member.name.split(" ")[0];
-    const memberTasks    = tasks.filter((t) => t.assignee === firstName);
-    const completed      = memberTasks.filter((t) => t.status === "done").length;
-    const velocity       = memberTasks.filter((t) => t.status === "done").reduce((sum, t) => sum + t.storyPoints, 0);
-    const active         = memberTasks.filter((t) => t.status !== "done").length;
+    const memberTasks    = tasks.filter((t) => (t.assignee || "").split(" ")[0] === firstName);
+    const completed      = memberTasks.filter((t) => (t.status || "").toUpperCase() === "DONE").length;
+    const velocity       = memberTasks.filter((t) => (t.status || "").toUpperCase() === "DONE").reduce((sum, t) => sum + (t.storyPoints || 0), 0);
+    const active         = memberTasks.filter((t) => (t.status || "").toUpperCase() !== "DONE").length;
     return { ...member, firstName, velocity, completed, active };
   });
 
@@ -47,7 +61,7 @@ function TeamInsights() {
       <div className="px-4 sm:px-6 lg:px-8 pb-6 md:pb-8">
         <div className="py-6 md:py-8">
           <h1 className="text-2xl md:text-3xl font-bold text-gray-800 tracking-tight">Team Insights</h1>
-          <p className="text-xs md:text-sm text-gray-500 mt-1">{activeProject.name} · {activeSprint?.name} · {activeSprint?.goal}</p>
+          <p className="text-xs md:text-sm text-gray-500 mt-1">{activeProject?.name} · {activeSprint?.name} · {activeSprint?.goal}</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
@@ -57,7 +71,7 @@ function TeamInsights() {
                 <StatBox label="Team Members"    value={teamMembers.length}        bg="bg-blue-50"   icon={<Users size={18} className="text-blue-600" />} />
                 <StatBox label="Avg Velocity"    value={`${metrics.avgVelocity ?? "—"} pts`} bg="bg-purple-50" icon={<Activity size={18} className="text-purple-600" />} />
                 <StatBox label="Completed Tasks" value={metrics.completedTasks ?? "—"}     bg="bg-green-50"  icon={<CheckCircle size={18} className="text-green-600" />} />
-                <StatBox label="Blocked"         value={activeSprint?.blocked?.length ?? 0} bg="bg-orange-50" icon={<Clock size={18} className="text-orange-600" />} />
+                <StatBox label="Blocked"         value={activeSprint?.kanban?.blocked ?? 0} bg="bg-orange-50" icon={<Clock size={18} className="text-orange-600" />} />
               </div>
 
               <div className="rounded-xl overflow-hidden border border-gray-200">
