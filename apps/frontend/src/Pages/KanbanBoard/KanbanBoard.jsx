@@ -1,6 +1,6 @@
 // src/Pages/Kanban/KanbanBoard.jsx
 import React, { useState, useMemo } from 'react';
-import { useProject } from '../../Context/ProjectContext';
+import { useProjectStore } from '../../store/projectStore';
 
 const DARK_CARD_COLORS = ['bg-blue-700','bg-purple-600','bg-teal-600','bg-orange-600','bg-yellow-700','bg-green-700'];
 
