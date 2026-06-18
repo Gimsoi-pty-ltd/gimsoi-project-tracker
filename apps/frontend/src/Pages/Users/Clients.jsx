@@ -117,11 +117,13 @@ const Clients = () => {
                   </span>
                 </td>
                 <td>{client.location || "—"}</td>
-                <td className="flex items-center gap-2 py-4">
+                <td className="py-4">
+                  <div className="flex items-center gap-2">
                   <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center text-xs font-bold text-white">
                     {(client.contactPerson || client.contact || "?").charAt(0).toUpperCase()}
                   </div>
                   {client.contactPerson || client.contact || "—"}
+                  </div>
                 </td>
                 <td>{client.email || "—"}</td>
                 <td>

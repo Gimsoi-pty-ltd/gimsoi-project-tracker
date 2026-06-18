@@ -188,9 +188,9 @@ const handleChange = (e) => {
           <tbody>
             {users
               .filter((u) =>
-                u.name.toLowerCase().includes(search.toLowerCase()) ||
-                u.email.toLowerCase().includes(search.toLowerCase()) ||
-                u.role.toLowerCase().includes(search.toLowerCase())
+                (u.name ?? '').toLowerCase().includes(search.toLowerCase()) ||
+                (u.email ?? '').toLowerCase().includes(search.toLowerCase()) ||
+                (u.role ?? '').toLowerCase().includes(search.toLowerCase())
               )
               .map((user) => (
               <tr
@@ -261,6 +261,9 @@ const handleChange = (e) => {
       )}
 
       {/* Pagination */}
+      {!loading && users.length > 0 && (
+
+      
           <div className="flex gap-2">
         {[...Array(totalPages)].map((_, i) => (
           <button
@@ -272,6 +275,7 @@ const handleChange = (e) => {
           </button>
         ))}
       </div>
+      )}
 
 
 
