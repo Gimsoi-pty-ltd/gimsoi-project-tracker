@@ -104,6 +104,7 @@ app.use("/api/search", searchRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/comments", commentRoutes);
 app.use("/api/labels", labelRoutes);
+app.use("/api/zoho", zohoRoutes);
 
 // CSRF error handler — must be after routes
 app.use(csrfErrorHandler);
