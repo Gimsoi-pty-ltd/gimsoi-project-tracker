@@ -29,7 +29,11 @@ export function transformZohoProjects(projects = []) {
   return projects.map(transformZohoProject);
 }
 
-function normalizeProjectStatus(status = "") {
+function normalizeProjectStatus(status) {
+  if (typeof status !== "string" || !status.trim()) {
+    return "UNKNOWN";
+  }
+
   const normalized = status.toUpperCase().trim();
 
   const statusMap = {
