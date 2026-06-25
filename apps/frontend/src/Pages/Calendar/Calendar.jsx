@@ -77,7 +77,7 @@ const Calendar = () => {
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold text-blue-700">
+            <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-6">
               {months[currentMonth]} {currentYear}
             </h1>
             <p className="text-sm text-gray-500 mt-1">

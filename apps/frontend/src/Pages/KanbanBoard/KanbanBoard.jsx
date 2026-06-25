@@ -139,7 +139,7 @@ export default function KanbanTestPage() {
         <div className="pb-4 md:pb-6 border-b border-gray-200 mb-4 md:mb-6">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-6 flex-wrap">
             <div className="w-full md:w-auto">
-              <h1 className="text-xl md:text-2xl font-bold">Sprint Task Progress</h1>
+              <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-6">Sprint Task Progress</h1>
              <p className="text-xs md:text-sm text-gray-500 mt-1 truncate">{activeProject?.name || 'No Project'} · {activeSprint?.name} — {activeSprint?.goal}</p>
             </div>
             <div className="w-full md:w-auto">

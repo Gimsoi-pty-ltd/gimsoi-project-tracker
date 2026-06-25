@@ -76,7 +76,7 @@ export default function SearchPage() {
         {/* Header & Search Bar */}
         <div className="bg-white rounded-2xl shadow-sm p-5 md:p-6 space-y-5 md:space-y-6">
           <div className="flex items-center space-x-4">
-            <h1 className="text-2xl font-bold text-gray-800 tracking-tight">Search</h1>
+            <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-6">Search</h1>
           </div>
 
           <div className="relative group">
