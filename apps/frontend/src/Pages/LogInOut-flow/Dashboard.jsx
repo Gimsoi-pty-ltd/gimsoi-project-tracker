@@ -5,9 +5,7 @@ import DashboardLayout from "../../Layouts/DashboardLayout";
 
 const Dashboard = () => {
     return (
-            
-            <DashboardCards />
-
+        <DashboardCards />
     );
 };
 
