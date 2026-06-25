@@ -45,7 +45,7 @@ const { tasks, isLoading, error } = useTaskStore();
 
   return (
     <div className="max-w-7xl mx-auto">
-      <div className="bg-white rounded-2xl shadow-lg p-6">
+      
         {isLoading && (
           <div className="text-center py-12 text-gray-400">Loading overdue tasks...</div>
         )}
@@ -64,7 +64,7 @@ const { tasks, isLoading, error } = useTaskStore();
               <tr>
                 <th className="text-left py-3">Feature</th>
                 <th className="text-left py-3">Progress</th>
-                <th className="text-left py-3">Urgency</th>
+                <th className="text-left py-3">Priority</th>
                 <th className="text-left py-3">Assigned to</th>
               </tr>
             </thead>
@@ -98,7 +98,7 @@ const { tasks, isLoading, error } = useTaskStore();
             </tbody>
           </table>
         )}
-      </div>
+      
     </div>
   );
 }

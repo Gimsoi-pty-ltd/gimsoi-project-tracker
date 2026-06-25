@@ -30,7 +30,7 @@ export default function TaskDistributionCard() {
     <div className="min-h-[390px] bg-white p-5 border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-all">
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <h3 className="text-sm font-bold text-blue-400 uppercase">Task Distribution</h3>
+          <h3 className="text-sm font-bold text-sky-500 uppercase">Task Distribution</h3>
           <Info
             className="w-4 h-4 text-slate-400 hover:text-slate-600 cursor-pointer"
             onClick={(e) => {

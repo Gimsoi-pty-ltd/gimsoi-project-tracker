@@ -106,7 +106,7 @@ const DocumentsPage = () => {
         {/* Header */}
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6 md:mb-8">
           <div>
-            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-blue-700">Documents</h1>
+            <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-6">Documents</h1>
             <div className="flex flex-wrap gap-3 md:gap-6 mt-3 text-xs md:text-sm text-gray-600">
               <button onClick={() => setFilterType('All')} className={`cursor-pointer hover:text-blue-600 ${filterType === 'All' ? 'text-blue-600 font-medium' : ''}`}>
                 Filter: {filterType}

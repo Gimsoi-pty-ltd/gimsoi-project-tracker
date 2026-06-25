@@ -64,7 +64,7 @@ export default function ActiveTasksCard() {
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 w-full">
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
-        <h3 className="text-sm font-bold text-blue-400 uppercase">Active Tasks</h3>
+        <h3 className="text-sm font-bold text-sky-500 uppercase">Active Tasks</h3>
         <div className="flex items-center gap-3">
           <select
             value={dueDateSort}
@@ -74,12 +74,12 @@ export default function ActiveTasksCard() {
             <option value="Earliest">Due Date: Earliest</option>
             <option value="Latest">Due Date: Latest</option>
           </select>
-          <button className="border border-gray-200 rounded-lg px-4 py-2 text-sm font-medium hover:bg-gray-50 transition">
+          {/* <button className="border border-gray-200 rounded-lg px-4 py-2 text-sm font-medium hover:bg-gray-50 transition">
             Export
           </button>
           <button className="bg-blue-900 hover:bg-blue-700 text-white rounded-lg px-4 py-2 text-sm font-medium transition">
             + Add Task
-          </button>
+          </button> */}
         </div>
       </div>
 

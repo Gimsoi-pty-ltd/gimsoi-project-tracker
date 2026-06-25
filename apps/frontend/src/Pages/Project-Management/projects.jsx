@@ -210,7 +210,7 @@ export default function Projects() {
         {/* ── Header ── */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Projects</h1>
+            <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-6">Projects</h1>
             <p className="text-gray-400 text-sm mt-0.5">Manage and track your ongoing projects</p>
           </div>
           <div className="flex items-center gap-3">
