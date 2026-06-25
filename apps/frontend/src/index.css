@@ -13,28 +13,3 @@ body {
   min-width: 320px;
   min-height: 100vh;
 }
-
-body button:not(.calendar-page button) {
-  background-color: #003b7a;
-  border-color: #003b7a;
-  color: #ffffff;
-}
-
-body button:not(.calendar-page button):hover {
-  background-color: #002d62;
-  border-color: #002d62;
-  color: #ffffff;
-}
-
-body button:not(.calendar-page button):active,
-body button:not(.calendar-page button)[aria-pressed="true"],
-body button:not(.calendar-page button)[aria-current="page"] {
-  background-color: #001f44;
-  border-color: #001f44;
-  color: #ffffff;
-}
-
-body button:not(.calendar-page button):disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}

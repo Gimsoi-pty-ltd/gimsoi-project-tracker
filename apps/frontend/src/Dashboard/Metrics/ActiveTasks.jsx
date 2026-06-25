@@ -64,7 +64,7 @@ export default function ActiveTasksCard() {
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 w-full">
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
-        <h3 className="text-sm font-bold text-blue-400 uppercase">Active Tasks</h3>
+        <h3 className="text-sm font-bold text-sky-500 uppercase">Active Tasks</h3>
         <div className="flex items-center gap-3">
           <select
             value={dueDateSort}
