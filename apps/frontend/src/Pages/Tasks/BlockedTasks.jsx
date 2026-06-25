@@ -37,17 +37,10 @@ const activeSprintTasks = useProjectStore((state) => state.activeSprint?.tasks ?
   return (
     <div className="bg-gray-50 min-h-screen p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-6">Blocked Work Items</h1>
 
-        <div className="bg-white rounded-2xl shadow-lg p-6">
+        <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-6">Blocked Work Items</h1>   
           <div className="flex gap-6 mb-6">
-            <span className="text-gray-600 font-medium">Overview</span>
-            <span className="bg-gray-200 px-5 py-2 rounded text-sm font-medium flex items-center gap-3">
-              Blocked Tasks
-              <span className="bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full">
-                {blockedTasks.length}
-              </span>
-            </span>
+           
           </div>
 
           {isLoading && (
@@ -96,7 +89,7 @@ const activeSprintTasks = useProjectStore((state) => state.activeSprint?.tasks ?
               </tbody>
             </table>
           )}
-        </div>
+        
       </div>
     </div>
   );

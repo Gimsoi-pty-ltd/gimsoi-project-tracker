@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { resourceAPI } from "../api/api";
+import { useProjectStore, fetchAllProjectTasks } from "./projectStore"
 
 export const useTaskStore = create((set) => ({
     tasks: [],
@@ -9,18 +10,29 @@ export const useTaskStore = create((set) => ({
 
     getTasks: async (filters = {}) => {
         set({ isLoading: true, error: null });
-        setTimeout(() => {
-            set({ 
-                tasks: [
-                    { id: 101, title: "Design Homepage", status: "completed", priority: "high" },
-                    { id: 102, title: "Setup Database", status: "in_progress", priority: "critical" },
-                    { id: 103, title: "Write API Docs", status: "blocked", priority: "medium" },
-                    { id: 104, title: "Fix Login Bug", status: "blocked", priority: "high", dueDate: new Date(Date.now() - 86400000).toISOString() },
-                    { id: 105, title: "Update Dependencies", status: "todo", priority: "low", dueDate: new Date(Date.now() + 86400000).toISOString() }
-                ], 
-                isLoading: false 
-            });
-        }, 500);
+        try {
+            let projects = useProjectStore.getState().projects;
+            if (!projects.length) {
+                await useProjectStore.getState().fetchProjects({ limit: 50 });
+                projects = useProjectStore.getState().projects;
+            }
+
+            const allTasksPerProject = await Promise.all(
+                projects.map((p) => fetchAllProjectTasks(p.id))
+            );
+            let tasks = allTasksPerProject.flat();
+
+            if (filters.status) {
+                const targetStatus = filters.status.toUpperCase();
+                tasks = tasks.filter((t) => t.status === targetStatus);
+            }
+
+            set({ tasks, isLoading: false });
+            return tasks;
+        } catch (error) {
+            set({ error: error.response?.data?.message || "Error fetching tasks", isLoading: false });
+            throw error;
+        }
     },
 
     getTaskById: async (id) => {
@@ -34,6 +46,8 @@ export const useTaskStore = create((set) => ({
             throw error;
         }
     },
+
+ 
 
     createTask: async (taskData) => {
         set({ isLoading: true, error: null });
