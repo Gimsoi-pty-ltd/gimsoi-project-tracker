@@ -115,7 +115,7 @@ const handleChange = (e) => {
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6 md:mb-8">
 
        <div>
-              <h2 className="text-xl md:text-2xl font-bold text-slate-900">Manage Users</h2>
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-6">Manage Users</h2>
               <nav className="flex mt-1 text-xs md:text-sm text-gray-500">
                 <Link to="/users" >
                 <span className="text-slate-900 hover:text-slate-600 cursor-pointer">User Management</span>
