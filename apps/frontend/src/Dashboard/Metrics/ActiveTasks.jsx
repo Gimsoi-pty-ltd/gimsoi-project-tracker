@@ -74,12 +74,12 @@ export default function ActiveTasksCard() {
             <option value="Earliest">Due Date: Earliest</option>
             <option value="Latest">Due Date: Latest</option>
           </select>
-          <button className="border border-gray-200 rounded-lg px-4 py-2 text-sm font-medium hover:bg-gray-50 transition">
+          {/* <button className="border border-gray-200 rounded-lg px-4 py-2 text-sm font-medium hover:bg-gray-50 transition">
             Export
           </button>
           <button className="bg-blue-900 hover:bg-blue-700 text-white rounded-lg px-4 py-2 text-sm font-medium transition">
             + Add Task
-          </button>
+          </button> */}
         </div>
       </div>
 
