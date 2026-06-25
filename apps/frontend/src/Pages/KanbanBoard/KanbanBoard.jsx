@@ -55,7 +55,7 @@ const Column = ({ id, title, headerColor, cards = [], onCardClick, onCardDragSta
   const [isOver, setIsOver] = useState(false);
   const isDragTarget = draggedCard && draggedCard.fromColumnId !== id;
   return (
-    <div className="flex flex-col rounded-lg shadow-md min-w-[280px] sm:min-w-[300px] w-[280px] sm:w-[300px] max-h-[600px] sm:max-h-[700px]"
+    <div className="flex flex-col rounded-lg shadow-md w-full sm:w-[300px] max-h-[600px] sm:max-h-[700px]"
       onDragOver={(e) => { e.preventDefault(); setIsOver(true); }}
       onDragLeave={() => setIsOver(false)}
       onDrop={() => { onDropCard?.(id); setIsOver(false); }}>
@@ -158,7 +158,7 @@ export default function KanbanTestPage() {
         </div>
         {selectedCard && <div className="mb-4 p-2 md:p-3 bg-green-50 border border-green-300 rounded text-xs md:text-sm text-green-800">Selected: <strong>{selectedCard.title}</strong></div>}
         <h2 className="text-base md:text-lg font-semibold text-gray-700 mb-3 md:mb-4">Kanban board</h2>
-        <div className="flex gap-3 md:gap-4 overflow-x-auto pb-2">
+        <div className="flex flex-col md:flex-row md:overflow-x-auto gap-3 md:gap-4 pb-2">
           {columns.map((col) => (
             <Column key={col.id} {...col} onCardClick={setSelectedCard} onCardDragStart={handleDragStart} onCardDragEnd={handleDragEnd} onDropCard={handleDrop} draggedCard={draggedCard} />
           ))}
