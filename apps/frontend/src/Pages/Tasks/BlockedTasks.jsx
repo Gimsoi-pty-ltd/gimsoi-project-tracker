@@ -1,14 +1,10 @@
-const BLOCKED_TASKS = [
-  { id: "b1", title: "Waiting on Data from Backend", severity: "high", assignee: "John Doe" },
-  { id: "b2", title: "Security Review", severity: "medium", assignee: "Jane Doe" },
-  { id: "b3", title: "Priority Conflict", severity: "medium", assignee: "Mike Smith" },
-  { id: "b4", title: "Dependency on External API", severity: "high", assignee: "Sarah Lee" },
-  { id: "b5", title: "Awaiting Design Approval", severity: "low", assignee: "Tom Wilson" },
-  { id: "b6", title: "Resource Unavailable", severity: "high", assignee: "Alex Brown" },
-];
+import { useEffect } from "react";
+import { useProjectStore } from "../../store/projectStore";
+import { useTaskStore } from "../../store/taskStore";
 
-const urgencyStyle = (severity) => {
-  switch (severity) {
+const urgencyStyle = (priority) => {
+  switch ((priority || "").toLowerCase()) {
+    case "critical":
     case "high":
       return "text-red-500";
     case "medium":
@@ -20,7 +16,24 @@ const urgencyStyle = (severity) => {
   }
 };
 
+const getAssignee = (task) => {
+  if (typeof task.assignee === "string") return task.assignee;
+  return task.assignee?.fullName || task.assignedTo?.fullName || "Unassigned";
+};
+
 export default function BlockedTasks() {
+const activeSprintTasks = useProjectStore((state) => state.activeSprint?.tasks ?? null);
+  const { tasks, isLoading, error, getTasks } = useTaskStore();
+
+  useEffect(() => {
+    if (!activeSprintTasks?.length) {
+      getTasks({ status: "blocked" });
+    }
+  }, [getTasks, activeSprintTasks?.length]);
+
+  const taskSource = activeSprintTasks?.length > 0 ? activeSprintTasks : tasks;
+  const blockedTasks = taskSource.filter((t) => (t.status || "").toString().toLowerCase() === "blocked");
+
   return (
     <div className="bg-gray-50 min-h-screen p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
@@ -32,43 +45,57 @@ export default function BlockedTasks() {
             <span className="bg-gray-200 px-5 py-2 rounded text-sm font-medium flex items-center gap-3">
               Blocked Tasks
               <span className="bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full">
-                {BLOCKED_TASKS.length}
+                {blockedTasks.length}
               </span>
             </span>
           </div>
 
-          <table className="w-full text-sm">
-            <thead className="text-gray-400 border-b">
-              <tr>
-                <th className="text-left py-3">Feature</th>
-                <th className="text-left py-3">Status</th>
-                <th className="text-left py-3">Severity</th>
-                <th className="text-left py-3">Assigned to</th>
-              </tr>
-            </thead>
-            <tbody>
-              {BLOCKED_TASKS.map((task) => (
-                <tr key={task.id} className="border-b last:border-b-0 hover:bg-gray-50 transition">
-                  <td className="py-5">
-                    <div className="flex items-center gap-3">
-                      <input type="checkbox" className="w-5 h-5 rounded-full accent-blue-600" />
-                      <span className="text-gray-400 text-sm">{task.id}</span>
-                      <span className="text-sm font-medium text-gray-800">{task.title}</span>
-                    </div>
-                  </td>
-                  <td className="py-5">
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-sm font-medium bg-amber-100 text-amber-800">
-                      Blocked
-                    </span>
-                  </td>
-                  <td className={`py-5 text-sm font-medium capitalize ${urgencyStyle(task.severity)}`}>
-                    {task.severity}
-                  </td>
-                  <td className="py-5 text-sm text-gray-600">{task.assignee}</td>
+          {isLoading && (
+            <div className="text-center py-12 text-gray-400">Loading blocked tasks...</div>
+          )}
+
+          {error && !isLoading && (
+            <div className="text-center py-12 text-red-500">{error}</div>
+          )}
+
+          {!isLoading && !error && blockedTasks.length === 0 && (
+            <div className="text-center py-12 text-gray-400">No blocked tasks — great work! 🎉</div>
+          )}
+
+          {!isLoading && blockedTasks.length > 0 && (
+            <table className="w-full text-sm">
+              <thead className="text-gray-400 border-b">
+                <tr>
+                  <th className="text-left py-3">Feature</th>
+                  <th className="text-left py-3">Status</th>
+                  <th className="text-left py-3">Priority</th>
+                  <th className="text-left py-3">Assigned to</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {blockedTasks.map((task) => (
+                  <tr key={task.id} className="border-b last:border-b-0 hover:bg-gray-50 transition">
+                    <td className="py-5">
+                      <div className="flex items-center gap-3">
+                        <input type="checkbox" className="w-5 h-5 rounded-full accent-blue-600" readOnly />
+                        <span className="text-gray-400 text-sm">{task.id}</span>
+                        <span className="text-sm font-medium text-gray-800">{task.title}</span>
+                      </div>
+                    </td>
+                    <td className="py-5">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-sm font-medium bg-amber-100 text-amber-800">
+                        Blocked
+                      </span>
+                    </td>
+                    <td className={`py-5 text-sm font-medium capitalize ${urgencyStyle(task.priority)}`}>
+                      {task.priority || "—"}
+                    </td>
+                    <td className="py-5 text-sm text-gray-600">{getAssignee(task)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
     </div>

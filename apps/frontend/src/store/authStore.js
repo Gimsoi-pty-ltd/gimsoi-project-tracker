@@ -97,4 +97,40 @@ export const useAuthStore = create((set) => ({
             throw error;
         }
     },
+
+    updateUserProfile: (profileUpdates) => {
+        set((state) => ({
+            user: {
+                ...state.user,
+                ...profileUpdates,
+                initials: profileUpdates.fullName
+                    ? profileUpdates.fullName
+                          .split(" ")
+                          .map((part) => part[0])
+                          .join("")
+                          .slice(0, 2)
+                          .toUpperCase()
+                    : state.user?.initials,
+            },
+        }));
+    },
+
+    addActivityLog: (action) => {
+        set((state) => ({
+            user: {
+                ...state.user,
+                activityLog: [
+                    ...(state.user?.activityLog || []),
+                    {
+                        date: new Date().toLocaleDateString("en-US", {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                        }),
+                        action,
+                    },
+                ],
+            },
+        }));
+    },
 }));

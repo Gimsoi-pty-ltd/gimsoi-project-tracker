@@ -3,39 +3,24 @@ import { Outlet } from "react-router-dom";
 import Sidebar from "../Components/Common/SideBar";
 import TopBar from "../Components/Common/TopBar";
 
-console.log('DashboardLayout component loading...');
-
 const DashboardLayout = ({ children }) => {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  
-  console.log('DashboardLayout rendering...');
+    const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  return (
-    <div className="min-h-screen bg-[#F8FAFC]" style={{ fontFamily: 'Arial, sans-serif' }}>
-      {/* Top Bar */}
-      <TopBar onMenuClick={() => setSidebarOpen(true)} />
+    return (
+        <div className="min-h-screen bg-[#F8FAFC]" style={{ fontFamily: "Arial, sans-serif" }}>
+            <TopBar onMenuClick={() => setSidebarOpen(true)} />
 
-      {/* Sidebar Overlay/Drawer */}
-      {sidebarOpen && (
-        <div className="fixed inset-0 z-[100] flex">
-          {/* Backdrop */}
-          <div
-            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity"
-            onClick={() => setSidebarOpen(false)}
-          />
-          {/* Drawer */}
-          <div className="relative w-[280px] h-full shadow-2xl animate-in slide-in-from-left duration-300">
-            <Sidebar onClose={() => setSidebarOpen(false)} />
-          </div>
+            <Sidebar
+                isOpen={sidebarOpen}
+                onClose={() => setSidebarOpen(false)}
+            />
+
+         
+            <div className="pt-[60px] min-h-screen overflow-x-hidden">
+                {children || <Outlet />}
+            </div>
         </div>
-      )}
-
-      {/* Main Content Area */}
-      {children || <Outlet />}
-    </div>
-  );
+    );
 };
-
-console.log('DashboardLayout component defined');
 
 export default DashboardLayout;

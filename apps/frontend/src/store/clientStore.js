@@ -13,7 +13,8 @@ export const useClientStore = create((set) => ({
             const params = new URLSearchParams(filters).toString();
             const url = params ? `/clients?${params}` : "/clients";
             const response = await resourceAPI.get(url);
-            set({ clients: response.data.clients || response.data, isLoading: false });
+            const raw = response.data.clients ?? response.data;
+            set({ clients: Array.isArray(raw) ? raw : [], isLoading: false });
             return response.data;
         } catch (error) {
             set({ error: error.response?.data?.message || "Error fetching clients", isLoading: false });
@@ -38,7 +39,7 @@ export const useClientStore = create((set) => ({
         try {
             const response = await resourceAPI.post("/clients", clientData);
             set((state) => ({
-                clients: [...state.clients, response.data.client || response.data],
+                clients: [...state(Array.isArray(state.clients) ? state.clients : []), response.data.client || response.data],
                 isLoading: false,
             }));
             return response.data;
