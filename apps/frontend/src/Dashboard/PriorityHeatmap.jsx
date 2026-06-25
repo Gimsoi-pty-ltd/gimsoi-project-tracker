@@ -36,7 +36,7 @@ const PriorityHeatmap = () => {
                 
                 {/* Header */}
                 <div className="flex items-center gap-2 mb-1">
-                    <h3 className="text-sm font-bold text-blue-400 uppercase">
+                    <h3 className="text-sm font-bold text-sky-500 uppercase">
                         Priority Heatmap
                     </h3>
 
