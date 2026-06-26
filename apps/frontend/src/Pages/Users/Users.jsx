@@ -148,7 +148,7 @@ const handleChange = (e) => {
               setFormData({ name: "", email: "", role: "", team: "", department: "", phone: "", notes: "" });
               setShowModal(true);
             }}
-            className="bg-blue-600 text-white px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium hover:bg-blue-700 whitespace-nowrap"
+            className="bg-[#002D62] text-white px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium hover:bg-[#001f44] whitespace-nowrap"
           >
             + Add User
           </button>
@@ -383,13 +383,12 @@ const handleChange = (e) => {
                 Cancel
               </button>
 
-              <button
-                onClick={handleSaveUser}
-                disabled={saving || !formData.name}
-                className="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50"
-              >
-                {saving ? "Saving..." : "Save User"}
-              </button>
+            <button
+            onClick={handleSaveUser}
+            className="px-4 py-2 bg-blue-600 text-white rounded"
+          >
+            Save User
+          </button>
 
             </div>
 

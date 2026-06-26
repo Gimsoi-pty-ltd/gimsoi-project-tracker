@@ -127,12 +127,13 @@ export default function Teams() {
             />
           </div>
 
+
           {/*  ADD TEAM BUTTON */}
           <button
             onClick={() => setShowModal(true)}
-            className="bg-blue-600 text-white px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium hover:bg-blue-700 whitespace-nowrap"
+            className="flex items-center gap-2 bg-[#002D62] text-white px-3 md:px-4 py-2 rounded-lg hover:bg-[#001f44] text-sm"
           >
-            + Add Team
+            <Plus size={15} /> Add Team
           </button>
 
           {/*  IMPORT BUTTON */}

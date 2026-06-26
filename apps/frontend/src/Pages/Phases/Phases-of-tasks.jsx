@@ -105,12 +105,17 @@ export default function ProjectPhasesGantt() {
     <div className="p-4 md:p-6 lg:p-8 bg-gray-50 min-h-screen font-sans">
 
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Phases</h1>
-
+      <div className="flex flex-col gap-4 md:flex-row md:justify-between md:items-center mb-6 md:mb-8">
+        <div>
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-6">Phases</h1>
+          <p className="text-xs md:text-sm text-gray-500 mt-1">
+            Track project progress and timelines · Active project:{' '}
+            <span className="font-medium text-blue-600">{activeProject?.name ?? '—'}</span>
+          </p>
+        </div>
         <button
           onClick={() => setShowModal(true)}
-          className="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800"
+          className="bg-[#002D62] text-white px-4 py-2 rounded-lg hover:bg-[#001f44] transition shadow-sm whitespace-nowrap"
         >
           + New Phase
         </button>
