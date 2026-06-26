@@ -49,7 +49,7 @@ const activeSprint  = useProjectStore((state) => state.activeSprint ?? null);
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:justify-between md:items-center mb-6 md:mb-8">
         <div>
-          <h1 className="text-xl md:text-2xl font-bold text-gray-800">Phases</h1>
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-6">Phases</h1>
            <p className="text-xs md:text-sm text-gray-500 mt-1">
             Track project progress and timelines · Active project:{' '}
             <span className="font-medium text-blue-600">{activeProject?.name ?? '—'}</span>

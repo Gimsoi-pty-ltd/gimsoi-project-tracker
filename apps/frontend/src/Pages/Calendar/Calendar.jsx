@@ -80,18 +80,19 @@ const Calendar = () => {
   const upcomingMeetings = calendarEvents.filter(e => e.type === 'meeting').slice(0, 8);
 
   return (
-    <div className="h-screen flex flex-col bg-gray-50 p-4 md:p-6 overflow-hidden">
-
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4 flex-shrink-0">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-blue-700">
-            {months[currentMonth]} {currentYear}
-          </h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Tasks & Meetings Overview
-          </p>
-        </div>
+    <div className="bg-gray-50 min-h-screen p-4 md:p-8">
+      <div className="max-w-7xl mx-auto space-y-6">
+        
+        {/* Header */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+          <div>
+            <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-6">
+              {months[currentMonth]} {currentYear}
+            </h1>
+            <p className="text-sm text-gray-500 mt-1">
+              Tasks & Meetings Overview
+            </p>
+          </div>
 
         <div className="flex flex-wrap items-center gap-2 md:gap-3">
           <button
@@ -317,6 +318,7 @@ const Calendar = () => {
           </div>
         </div>
       )}
+    </div>
     </div>
   );
 };
