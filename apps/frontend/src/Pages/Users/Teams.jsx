@@ -63,7 +63,7 @@ export default function Teams() {
             <Search size={15} className="text-gray-400 mr-2 flex-shrink-0" />
             <input className="outline-none w-full text-sm" placeholder="Search teams..." value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
-          <button onClick={() => setOpenModal(true)} className="flex items-center gap-2 bg-blue-600 text-white px-3 md:px-4 py-2 rounded-lg hover:bg-blue-700 text-sm">
+          <button onClick={() => setOpenModal(true)} className="flex items-center gap-2 bg-[#002D62] text-white px-3 md:px-4 py-2 rounded-lg hover:bg-[#001f44] text-sm">
             <Plus size={15} /> Add Team
           </button>
           <button className="flex items-center gap-1.5 border px-3 py-2 rounded-lg bg-white text-sm"><Download size={15} /> Import</button>

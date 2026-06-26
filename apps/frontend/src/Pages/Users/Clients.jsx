@@ -67,7 +67,7 @@ const Clients = () => {
           />
           <button
             onClick={() => setShowModal(true)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition"
+            className="bg-[#002D62] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#001f44] transition"
           >
             + Add Client
           </button>
@@ -219,7 +219,7 @@ const Clients = () => {
               <button
                 onClick={handleSave}
                 disabled={saving || !form.name}
-                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition disabled:opacity-50"
+                className="bg-[#002D62] text-white px-4 py-2 rounded hover:bg-[#001f44] transition disabled:opacity-50"
               >
                 {saving ? "Saving..." : "Save Client"}
               </button>

@@ -55,7 +55,7 @@ const activeSprint  = useProjectStore((state) => state.activeSprint ?? null);
             <span className="font-medium text-blue-600">{activeProject?.name ?? '—'}</span>
           </p>
         </div>
-        <button className="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition shadow-sm whitespace-nowrap">
+        <button className="bg-[#002D62] text-white px-4 py-2 rounded-lg hover:bg-[#001f44] transition shadow-sm whitespace-nowrap">
           + New Phase
         </button>
       </div>

@@ -141,7 +141,7 @@ const handleChange = (e) => {
               setFormData({ name: "", email: "", role: "", team: "", department: "", phone: "", notes: "" });
               setShowModal(true);
             }}
-            className="bg-blue-600 text-white px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium hover:bg-blue-700 whitespace-nowrap"
+            className="bg-[#002D62] text-white px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium hover:bg-[#001f44] whitespace-nowrap"
           >
             + Add User
           </button>
@@ -373,7 +373,7 @@ const handleChange = (e) => {
 
             <button
             onClick={handleSaveUser}
-            className="px-4 py-2 bg-blue-600 text-white rounded"
+            className="px-4 py-2 bg-[#002D62] text-white rounded hover:bg-[#001f44] transition"
           >
             Save User
           </button>

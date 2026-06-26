@@ -150,7 +150,7 @@ export default function UserManagement() {
         <div className="flex flex-wrap gap-3 mb-8">
           <button 
             onClick={() => alert("Add New action triggered - this would open the user creation modal.")}
-            className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+            className="px-4 py-2 bg-[#002D62] text-white text-sm font-medium rounded-lg hover:bg-[#001f44] transition-colors flex items-center gap-2"
           >
             + Add New
           </button>
