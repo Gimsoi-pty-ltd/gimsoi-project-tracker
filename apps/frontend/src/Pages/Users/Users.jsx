@@ -4,6 +4,7 @@ import EmptyState from "../../Components/EmptyState";
 
 const Users = () => {
   const [showModal, setShowModal] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [users, setUsers] = useState([]);
   const [search, setSearch] = useState("");
   const [formData, setFormData] = useState({
@@ -48,33 +49,39 @@ const Users = () => {
       return "bg-red-100 text-red-700";
   };
 
-  const handleSaveUser = async () => {
-    try {
-      if (formData.id) {
-        // Edit existing user
-        const res = await fetch(`/api/users/${formData.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(formData),
-        });
-        const updatedUser = await res.json();
-        setUsers(users.map((u) => (u.id === formData.id ? updatedUser : u)));
-      } else {
-        // Add new user
-        const res = await fetch("/api/users", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(formData),
-        });
-        const savedUser = await res.json();
-        setUsers([...users, savedUser]);
-      }
-      setShowModal(false);
-      setFormData({ name: "", email: "", role: "", team: "", department: "", phone: "", notes: "" });
-    } catch (err) {
-      console.error("Error saving user:", err);
-    }
-  };
+const handleSaveUser = async () => {
+  if (!formData.name) return;
+
+  setSaving(true);
+
+  try {
+    await fetch("/api/users", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(formData),
+    });
+
+    setShowModal(false);
+
+    setFormData({
+      name: "",
+      email: "",
+      role: "",
+      team: "",
+      department: "",
+      phone: "",
+      notes: "",
+    });
+
+    // optional UX refresh (same pattern as clients usually rely on re-fetch)
+    setPage(1);
+
+  } catch (err) {
+    console.error("Error saving user:", err);
+  } finally {
+    setSaving(false);
+  }
+};
 
 const handleEditUser = async (id, updatedData) => {
   try {
@@ -146,12 +153,17 @@ const handleChange = (e) => {
             + Add User
           </button>
 
-          <button className="border px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm bg-white hidden sm:block">
-            Import
+          <button 
+            onClick={() => alert("Import Data action triggered - this would open the CSV upload interface.")}
+            className="px-4 py-2 border text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            Import Data
           </button>
-
-          <button className="border px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm bg-white hidden sm:block">
-            Export
+          <button 
+            onClick={() => alert("Export Report action triggered - this generates and downloads a CSV report.")}
+            className="px-4 py-2 border text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            Export Report
           </button>
 
         </div>
@@ -371,12 +383,13 @@ const handleChange = (e) => {
                 Cancel
               </button>
 
-            <button
-            onClick={handleSaveUser}
-            className="px-4 py-2 bg-blue-600 text-white rounded"
-          >
-            Save User
-          </button>
+              <button
+                onClick={handleSaveUser}
+                disabled={saving || !formData.name}
+                className="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50"
+              >
+                {saving ? "Saving..." : "Save User"}
+              </button>
 
             </div>
 

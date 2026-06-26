@@ -192,11 +192,15 @@ const DocumentsPage = () => {
                 Organize and share project documents with your team
               </p>
               <div className="space-y-2">
-                <button className="w-full flex items-center justify-center gap-2 bg-white/20 hover:bg-white/30 text-white px-3 py-2 rounded-lg text-sm font-medium transition">
+                <button 
+                onClick={() => alert("Import Data action triggered - this would open the CSV upload interface.")}
+                className="w-full flex items-center justify-center gap-2 bg-white/20 hover:bg-white/30 text-white px-3 py-2 rounded-lg text-sm font-medium transition">
                   <Download size={16} />
                   Export All
                 </button>
-                <button className="w-full flex items-center justify-center gap-2 bg-white/20 hover:bg-white/30 text-white px-3 py-2 rounded-lg text-sm font-medium transition">
+                <button 
+                onClick={() => alert("Share Folder action triggered.")}
+                className="w-full flex items-center justify-center gap-2 bg-white/20 hover:bg-white/30 text-white px-3 py-2 rounded-lg text-sm font-medium transition">
                   <Share2 size={16} />
                   Share Folder
                 </button>

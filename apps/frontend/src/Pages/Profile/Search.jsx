@@ -3,12 +3,7 @@ import { Search as SearchIcon, Filter, Clock, FileText, User, Folder, CheckCircl
 import { useProjectStore } from "../../store/projectStore";
 
 export default function SearchPage() {
-
   const { searchableItems } = useProjectStore((state) => state);
-
-
-  const { searchableItems = [] } = useProjectStore((state) => state);
-
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('All');
   const [recentSearches, setRecentSearches] = useState([
@@ -17,14 +12,12 @@ export default function SearchPage() {
 
   const filters = ['All', 'project', 'task', 'team-member', 'document', 'client'];
 
-  // SAFE SEARCH (prevents blank screen crashes)
+  // Search and filter results
   const filteredResults = useMemo(() => {
     if (!searchQuery.trim()) return [];
-    if (!Array.isArray(searchableItems)) return [];
 
     const query = searchQuery.toLowerCase();
-
-    let results = searchableItems?.filter(item => {
+    let results = searchableItems.filter(item => {
       const matchesQuery = 
         item.title.toLowerCase().includes(query) ||
         item.keywords?.some(k => k.toLowerCase().includes(query));
@@ -32,35 +25,14 @@ export default function SearchPage() {
       const matchesFilter = activeFilter === 'All' || item.type === activeFilter;
       
       return matchesQuery && matchesFilter;
-    }) || [] ;
+    });
 
-
-    return searchableItems
-      .filter((item) => {
-        const title = (item?.title || "").toLowerCase();
-        const description = (item?.description || "").toLowerCase();
-
-        const keywords = Array.isArray(item?.keywords)
-          ? item.keywords
-          : [];
-
-        const matchesQuery =
-          title.includes(query) ||
-          description.includes(query) ||
-          keywords.some((k) =>
-            (k || "").toLowerCase().includes(query)
-          );
-
-        const matchesFilter =
-          activeFilter === 'All' || item?.type === activeFilter;
-
-        return matchesQuery && matchesFilter;
-      })
-      .slice(0, 15);
+    return results.slice(0, 15); // Limit to 15 results
   }, [searchQuery, activeFilter, searchableItems]);
 
   const handleSearch = (e) => {
-    setSearchQuery(e.target.value || '');
+    const value = e.target.value;
+    setSearchQuery(value);
   };
 
   const handleAddRecent = () => {
@@ -104,14 +76,13 @@ export default function SearchPage() {
         {/* Header & Search Bar */}
         <div className="bg-white rounded-2xl shadow-sm p-5 md:p-6 space-y-5 md:space-y-6">
           <div className="flex items-center space-x-4">
-            <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-6">Search</h1>
+            <h1 className="text-2xl font-bold text-gray-800 tracking-tight">Search</h1>
           </div>
 
           <div className="relative group">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
               <SearchIcon className="h-6 w-6 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
             </div>
-
             <input
               type="text"
               className="block w-full pl-12 pr-12 py-3.5 md:py-4 bg-gray-50 border border-gray-200 rounded-xl leading-5 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-lg transition-all shadow-sm"
@@ -120,7 +91,6 @@ export default function SearchPage() {
               onChange={handleSearch}
               onBlur={handleAddRecent}
             />
-
             <div className="absolute inset-y-0 right-0 pr-2 flex items-center">
               <button className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors">
                 <Filter className="h-5 w-5" />
@@ -138,7 +108,7 @@ export default function SearchPage() {
                   px-3 py-1.5 rounded-lg text-sm font-medium transition-all
                   ${
                     activeFilter === filter
-                      ? 'bg-[#002D62] text-white'
+                      ? 'bg-[#002D62] text-white' 
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }
                 `}
@@ -151,12 +121,12 @@ export default function SearchPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
 
-          {/* Results */}
+          {/* Main Results Area */}
           <div className="lg:col-span-2 space-y-5 md:space-y-6">
             <h2 className="text-xl font-semibold text-gray-800">
               {searchQuery ? `Results for "${searchQuery}"` : 'Enter a search term'}
             </h2>
-
+            
             {filteredResults.length > 0 ? (
               <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
                 <ul className="divide-y divide-gray-50">
@@ -167,25 +137,23 @@ export default function SearchPage() {
                     >
                       <div className="flex items-start space-x-4">
                         <div className="bg-gray-50 p-3 rounded-xl group-hover:bg-white transition-colors shadow-sm shrink-0">
-                          {getTypeIcon(result?.type)}
+                          {getTypeIcon(result.type)}
                         </div>
-
                         <div className="flex-1 min-w-0">
-                          <p className="text-base font-semibold text-gray-900 truncate">
-                            {result?.title || 'Untitled'}
-                          </p>
-
+                          <div className="flex items-center justify-between gap-4">
+                            <p className="text-base font-semibold text-gray-900 truncate">
+                              {result.title}
+                            </p>
+                          </div>
                           <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs md:text-sm text-gray-500">
                             <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-gray-100 text-gray-600">
-                              {getTypeLabel(result?.type)}
+                              {getTypeLabel(result.type)}
                             </span>
 
-                            {result?.description && (
+                            {result.description && (
                               <>
                                 <span className="hidden md:inline text-gray-300">•</span>
-                                <span className="truncate max-w-[300px]">
-                                  {result.description}
-                                </span>
+                                <span className="truncate max-w-[300px]">{result.description}</span>
                               </>
                             )}
                           </div>
@@ -199,6 +167,7 @@ export default function SearchPage() {
               <div className="bg-white rounded-2xl shadow-sm p-8 text-center">
                 <SearchIcon className="w-12 h-12 text-gray-300 mx-auto mb-3" />
                 <p className="text-gray-500">No results found for "{searchQuery}"</p>
+                <p className="text-gray-400 text-sm mt-2">Try searching for a different term</p>
               </div>
             ) : (
               <div className="bg-white rounded-2xl shadow-sm p-8 text-center">
@@ -208,18 +177,16 @@ export default function SearchPage() {
             )}
           </div>
 
-          {/* Sidebar */}
+          {/* Sidebar Area */}
           <div className="space-y-5 md:space-y-6">
-
             <div className="bg-white rounded-2xl shadow-sm p-6">
               <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">
                 Recent Searches
               </h3>
-
               <ul className="space-y-3">
                 {recentSearches.map((search, idx) => (
-                  <li
-                    key={idx}
+                  <li 
+                    key={idx} 
                     className="flex items-center space-x-3 text-gray-600 hover:text-blue-600 cursor-pointer transition-colors"
                     onClick={() => setSearchQuery(search)}
                   >
@@ -240,8 +207,6 @@ export default function SearchPage() {
                 View Examples
               </button>
             </div>
-          
-
           </div>
 
         </div>
