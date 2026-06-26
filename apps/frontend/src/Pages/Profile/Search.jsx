@@ -3,7 +3,7 @@ import { Search as SearchIcon, Filter, Clock, FileText, User, Folder, CheckCircl
 import { useProjectStore } from "../../store/projectStore";
 
 export default function SearchPage() {
-  const { searchableItems } = useProjectStore((state) => state);
+  const { searchableItems = [] } = useProjectStore((state) => state);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('All');
   const [recentSearches, setRecentSearches] = useState([
@@ -17,7 +17,7 @@ export default function SearchPage() {
     if (!searchQuery.trim()) return [];
 
     const query = searchQuery.toLowerCase();
-    let results = searchableItems.filter(item => {
+    let results = searchableItems?.filter(item => {
       const matchesQuery = 
         item.title.toLowerCase().includes(query) ||
         item.keywords?.some(k => k.toLowerCase().includes(query));
@@ -25,7 +25,7 @@ export default function SearchPage() {
       const matchesFilter = activeFilter === 'All' || item.type === activeFilter;
       
       return matchesQuery && matchesFilter;
-    });
+    }) || [] ;
 
     return results.slice(0, 15); // Limit to 15 results
   }, [searchQuery, activeFilter, searchableItems]);
