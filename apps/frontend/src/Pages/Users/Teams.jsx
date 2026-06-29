@@ -259,7 +259,7 @@ export default function Teams() {
               <button
                 onClick={handleSaveTeam}
                 disabled={saving || !form.name}
-                className="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50"
+                className="px-4 py-2 bg-[#002D62]  text-white rounded disabled:opacity-50"
               >
                 {saving ? "Saving..." : "Save Team"}
               </button>
