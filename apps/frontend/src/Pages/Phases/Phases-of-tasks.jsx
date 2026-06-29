@@ -301,7 +301,7 @@ export default function ProjectPhasesGantt() {
 
               <button
                 onClick={handleSave}
-                className="px-3 py-1 bg-black text-white rounded"
+                className="px-3 py-1 bg-[#002D62] text-white rounded"
               >
                 Save
               </button>
