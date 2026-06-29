@@ -385,7 +385,7 @@ const handleChange = (e) => {
 
             <button
             onClick={handleSaveUser}
-            className="px-4 py-2 bg-blue-600 text-white rounded"
+            className="px-4 py-2 bg-[#002D62]  text-white rounded"
           >
             Save User
           </button>
