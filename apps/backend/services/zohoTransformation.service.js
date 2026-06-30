@@ -1,23 +1,61 @@
 import { calculateProjectHealth } from "../utils/projectHealth.util.js";
 
-export function transformZohoProject(project) {
+const UNKNOWN_STATUS = "UNKNOWN";
+
+export function transformZohoProject(project = {}) {
+  const percentComplete = getNumberValue(
+    project.percentComplete,
+    project.completion_percent,
+    project.percentageComplete,
+    project.percentage_complete,
+    0
+  );
+
+  const openTasks = getNumberValue(
+    project.openTasks,
+    project.open_tasks,
+    0
+  );
+
+  const closedTasks = getNumberValue(
+    project.closedTasks,
+    project.closed_tasks,
+    0
+  );
+
+  const openIssues = getNumberValue(
+    project.openIssues,
+    project.open_issues,
+    0
+  );
+
+  const plannedEndDate = getValue(
+    project.endDate,
+    project.plannedEndDate,
+    project.planned_end_date,
+    project.end_date,
+    null
+  );
+
   const health = calculateProjectHealth({
-    percentComplete: project.percentComplete,
-    plannedEndDate: project.endDate,
-    openTasks: project.openTasks,
-    closedTasks: project.closedTasks,
+    percentComplete,
+    plannedEndDate,
+    openTasks,
+    closedTasks,
   });
 
   return {
-    externalProjectId: project.id,
-    name: project.name,
-    owner: project.owner,
-    status: normalizeProjectStatus(project.status),
-    percentComplete: Number(project.percentComplete || 0),
-    openTasks: Number(project.openTasks || 0),
-    closedTasks: Number(project.closedTasks || 0),
-    openIssues: Number(project.openIssues || 0),
-    plannedEndDate: project.endDate || null,
+    externalProjectId: getValue(project.id, project.project_id, project.projectId, null),
+    name: getValue(project.name, project.project_name, project.projectName, "Untitled Project"),
+    owner: getValue(project.owner, project.owner_name, project.ownerName, null),
+    status: normalizeProjectStatus(
+      getValue(project.status, project.project_status, project.projectStatus, null)
+    ),
+    percentComplete,
+    openTasks,
+    closedTasks,
+    openIssues,
+    plannedEndDate,
     healthScore: health.score,
     healthStatus: health.status,
     taskCompletionRate: health.taskCompletionRate,
@@ -26,12 +64,16 @@ export function transformZohoProject(project) {
 }
 
 export function transformZohoProjects(projects = []) {
+  if (!Array.isArray(projects)) {
+    return [];
+  }
+
   return projects.map(transformZohoProject);
 }
 
-function normalizeProjectStatus(status) {
+export function normalizeProjectStatus(status) {
   if (typeof status !== "string" || !status.trim()) {
-    return "UNKNOWN";
+    return UNKNOWN_STATUS;
   }
 
   const normalized = status.toUpperCase().trim();
@@ -44,5 +86,21 @@ function normalizeProjectStatus(status) {
     DRAFT: "DRAFT",
   };
 
-  return statusMap[normalized] || "UNKNOWN";
+  return statusMap[normalized] || UNKNOWN_STATUS;
+}
+
+function getValue(...values) {
+  return values.find((value) => value !== undefined && value !== null) ?? null;
+}
+
+function getNumberValue(...values) {
+  const value = getValue(...values);
+
+  if (value === null) {
+    return 0;
+  }
+
+  const numberValue = Number(value);
+
+  return Number.isFinite(numberValue) ? numberValue : 0;
 }
