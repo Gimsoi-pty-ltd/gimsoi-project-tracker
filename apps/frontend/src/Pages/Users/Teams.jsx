@@ -18,10 +18,16 @@ const buildTeams = (projects = []) =>
       name: name.split('(')[0]?.trim() || 'Team Member',
       initials: name.split('(')[0]?.trim().split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || '?',
     }));
+
+    const clientName = 
+    typeof project.client === 'object' && project.client !== null 
+    ? project.client.name ?? 'N/A'
+    : project.client || 'N/A';
+    
     return {
       name:    `${project.name} Team`,
       project: project.name,
-      client:  project.client || 'N/A',
+      client:  clientName,
       dept:    "Engineering",
       lead:    teamMembers[0]?.name || 'Unassigned',
       members: teamMembers.length,

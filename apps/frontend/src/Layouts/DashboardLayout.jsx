@@ -15,7 +15,10 @@ const DashboardLayout = ({ children }) => {
                 onClose={() => setSidebarOpen(false)}
             />
 
-            {children || <Outlet />}
+         
+            <div className="pt-[60px] min-h-screen overflow-x-hidden">
+                {children || <Outlet />}
+            </div>
         </div>
     );
 };
