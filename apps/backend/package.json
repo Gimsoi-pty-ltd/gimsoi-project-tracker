@@ -5,6 +5,7 @@
   "main": "server.js",
   "scripts": {
     "postinstall": "prisma generate",
+    "dev": "nodemon server.js",
     "server": "nodemon server.js",
     "start": "node server.js",
     "test:api": "cross-env CSRF_SECRET=mocked_test_secret npx playwright test --workers=6",

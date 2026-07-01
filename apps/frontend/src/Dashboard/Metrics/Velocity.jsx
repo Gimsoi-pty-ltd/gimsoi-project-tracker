@@ -57,7 +57,7 @@ const VelocityCard = () => {
             {velocity}
           </h2>
           <span className="text-sm sm:text-base text-gray-500 mb-1">
-            tasks done
+            story points done
           </span>
         </div>
 
@@ -80,7 +80,7 @@ const VelocityCard = () => {
       {/* Footer */}
       <div className="mt-6 flex items-center justify-between">
         <p className="text-[11px] sm:text-xs text-gray-400 max-w-[80%]">
-          Completed tasks in {sprintName}
+          Completed story points in {sprintName}
         </p>
        
       </div>

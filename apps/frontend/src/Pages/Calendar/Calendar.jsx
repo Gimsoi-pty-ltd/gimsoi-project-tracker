@@ -5,8 +5,8 @@ const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
 const Calendar = () => {
-  const { calendarEvents = [] } = useProjectStore((state) => state);
-  const [currentDate, setCurrentDate] = useState(new Date(2026, 4, 21)); // May 21, 2026
+  const { calendarEvents = [], addCalendarEvent } = useProjectStore((state) => state);
+  const [currentDate, setCurrentDate] = useState(new Date()); // Default to today
   const [showEventModal, setShowEventModal] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
   const [newEvent, setNewEvent] = useState({ title: "", type: "task", time: "" });
@@ -44,8 +44,16 @@ const Calendar = () => {
 
   const handleAddEvent = () => {
     if (selectedDate && newEvent.title) {
-      // In a real app, this would save to the context
-      console.log("Event added:", { ...newEvent, date: selectedDate });
+      let dateStr = selectedDate;
+      if (selectedDate instanceof Date) {
+        dateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
+      }
+      addCalendarEvent({
+        title: newEvent.title,
+        type: newEvent.type,
+        time: newEvent.time,
+        date: dateStr
+      });
       setShowEventModal(false);
       setNewEvent({ title: "", type: "task", time: "" });
     }

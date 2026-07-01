@@ -49,12 +49,19 @@ export default function Sidebar({ isOpen, onClose }) {
 
     useEffect(() => {
         const initProjects = async () => {
-            if (!useProjectStore.getState().projects.length) {
-                await fetchProjects({ limit: 50 });
-            }
-            const { currentProject, projects: list } = useProjectStore.getState();
-            if (!currentProject && list[0]) {
-                await switchProject(list[0].id);
+            try {
+                if (!useProjectStore.getState().projects.length) {
+                    await fetchProjects({ limit: 50 });
+                }
+                const { currentProject, projects: list } = useProjectStore.getState();
+                const exists = currentProject && list.some((p) => p.id === currentProject.id);
+                if ((!currentProject || !exists) && list.length > 0) {
+                    const savedPid = localStorage.getItem('gimsoi_active_project_id');
+                    const targetId = (savedPid && list.some(p => p.id === savedPid)) ? savedPid : list[0].id;
+                    await switchProject(targetId);
+                }
+            } catch (err) {
+                throw new Error("Sidebar initProjects failed: " + err.message);
             }
         };
         initProjects().catch(() => {});

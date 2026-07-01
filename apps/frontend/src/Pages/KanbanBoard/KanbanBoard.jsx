@@ -1,15 +1,60 @@
-// src/Pages/Kanban/KanbanBoard.jsx
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useProjectStore } from '../../store/projectStore';
+import { useTaskStore } from '../../store/taskStore';
 
-const DARK_CARD_COLORS = ['bg-blue-700','bg-purple-600','bg-teal-600','bg-orange-600','bg-yellow-700','bg-green-700'];
+// BLOCKED goes to 'blocked' if we had one, but QA goes to 'review'
+const COLUMN_TO_STATUS = {
+  'todo':        'TODO',
+  'in-progress': 'IN_PROGRESS',
+  'review':      'REVIEW',
+  'done':        'DONE',
+};
+
+// Kanban Cards
+
+const DARK_CARD_COLORS = [
+  'bg-gray-600', 'bg-gray-700', 'bg-gray-800', 'bg-gray-900',
+  'bg-blue-500', 'bg-blue-600', 'bg-blue-700', 'bg-blue-800',
+  'bg-green-500', 'bg-green-600', 'bg-green-700', 'bg-green-800',
+  'bg-red-500', 'bg-red-600', 'bg-red-700', 'bg-red-800',
+  'bg-purple-500', 'bg-purple-600', 'bg-purple-700', 'bg-purple-800',
+  'bg-pink-500', 'bg-pink-600', 'bg-pink-700', 'bg-pink-800',
+  'bg-orange-500', 'bg-orange-600', 'bg-orange-700', 'bg-orange-800',
+  'bg-yellow-600', 'bg-yellow-700', 'bg-yellow-800',
+  'bg-teal-500', 'bg-teal-600', 'bg-teal-700',
+  'bg-indigo-500', 'bg-indigo-600', 'bg-indigo-700',
+  'bg-black',
+];
 
 const getTextColors = (cardColor = 'bg-white') => {
   const isDark = DARK_CARD_COLORS.includes(cardColor);
   return isDark
-    ? { title:'text-white', sub:'text-white/75', tag:'bg-white/20 text-white', border:'border-white/25', priorityHigh:'text-orange-200 border-orange-200/60', priorityMedium:'text-yellow-200 border-yellow-200/60', priorityLow:'text-blue-200 border-blue-200/60', priorityDefault:'text-white/60 border-white/30', columnIdReview:'text-purple-200 border-purple-200/60', columnIdDone:'text-green-200 border-green-200/60' }
-    : { title:'text-gray-800', sub:'text-gray-600', tag:'bg-blue-100 text-blue-700', border:'border-gray-200', priorityHigh:'text-orange-600 border-orange-300', priorityMedium:'text-yellow-600 border-yellow-300', priorityLow:'text-blue-600 border-blue-300', priorityDefault:'text-gray-600 border-gray-300', columnIdReview:'text-purple-700 border-purple-300', columnIdDone:'text-green-700 border-green-300' };
+    ? {
+        title:          'text-white',
+        sub:            'text-white/75',
+        tag:            'bg-white/20 text-white',
+        border:         'border-white/25',
+        priorityHigh:   'text-orange-200 border-orange-200/60',
+        priorityMedium: 'text-yellow-200 border-yellow-200/60',
+        priorityLow:    'text-blue-200   border-blue-200/60',
+        priorityDefault:'text-white/60   border-white/30',
+        columnIdReview:   'text-purple-200 border-purple-200/60',
+        columnIdDone:     'text-green-200  border-green-200/60',
+      }
+    : {
+        title:          'text-gray-800',
+        sub:            'text-gray-600',
+        tag:            'bg-blue-100 text-blue-700',
+        border:         'border-gray-200',
+        priorityHigh:   'text-orange-600 border-orange-300',
+        priorityMedium: 'text-yellow-600 border-yellow-300',
+        priorityLow:    'text-blue-600   border-blue-300',
+        priorityDefault:'text-gray-600   border-gray-300',
+        columnIdReview:   'text-purple-700 border-purple-300',
+        columnIdDone:     'text-green-700  border-green-300',
+      };
 };
+
 
 const getPriorityLabel = (priority, columnId) => {
   if (columnId === 'review') return 'QA Review';
@@ -17,33 +62,61 @@ const getPriorityLabel = (priority, columnId) => {
   return priority;
 };
 
-const tagColorMap = { Backend:'bg-blue-700', Frontend:'bg-purple-600', DevOps:'bg-teal-600', Testing:'bg-orange-600', Docs:'bg-yellow-700' };
-
-const KanbanCard = ({ title, priority, assignee, tags = [], cardColor = 'bg-white', columnId, onClick, onDragStart, onDragEnd, isDragging }) => {
+const KanbanCard = ({
+  title,
+  priority,
+  assignee,
+  tags = [],
+  cardColor = 'bg-white',
+  columnId,             
+  onClick,
+  onDragStart,
+  onDragEnd,
+  isDragging,
+}) => {
   const textColor = getTextColors(cardColor);
   const priorityLabel = getPriorityLabel(priority, columnId);
+
   const getPriorityColor = (label) => {
     switch (label) {
-      case 'High': case 'Critical': return textColor.priorityHigh;
-      case 'Medium': return textColor.priorityMedium;
-      case 'Low':    return textColor.priorityLow;
-      case 'QA Review':   return textColor.columnIdReview;
+      case 'High':        return textColor.priorityHigh;
+      case 'Medium':      return textColor.priorityMedium;
+      case 'Low':         return textColor.priorityLow;
+      case 'QA Review':   return textColor.columnIdReview;  
       case 'QA Approved': return textColor.columnIdDone;
-      default: return textColor.priorityDefault;
+      default:            return textColor.priorityDefault;
     }
   };
+
   return (
-    <div draggable onDragStart={onDragStart} onDragEnd={onDragEnd} onClick={onClick}
-      className={`${cardColor} rounded-md p-3 cursor-grab active:cursor-grabbing hover:shadow-md transition-all duration-200 border ${textColor.border} ${isDragging ? 'opacity-40 scale-95' : ''}`}>
+    <div
+      draggable
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+      onClick={onClick}
+      className={`${cardColor} rounded-md p-3 cursor-grab active:cursor-grabbing hover:shadow-md transition-all duration-200 border ${textColor.border} ${isDragging ? 'opacity-40 scale-95' : ''}`}
+    >
       <div className="flex justify-between items-start mb-2">
         <h3 className={`font-semibold text-sm flex-1 pr-2 ${textColor.title}`}>{title}</h3>
-        {priorityLabel && <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${getPriorityColor(priorityLabel)}`}>{priorityLabel}</span>}
+
+        
+        {priorityLabel && (
+          <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${getPriorityColor(priorityLabel)}`}>
+            {priorityLabel}
+          </span>
+        )}
       </div>
+
       {tags.length > 0 && (
         <div className="flex flex-wrap gap-1 mb-2">
-          {tags.map((tag, i) => <span key={i} className={`text-xs px-2 py-0.5 rounded font-medium ${textColor.tag}`}>{tag}</span>)}
+          {tags.map((tag, i) => (
+            <span key={i} className={`text-xs px-2 py-0.5 rounded font-medium ${textColor.tag}`}>
+              {tag}
+            </span>
+          ))}
         </div>
       )}
+
       <div className={`mt-3 pt-2 border-t ${textColor.border}`}>
         <span className={`text-xs font-medium ${textColor.sub}`}>{assignee}</span>
       </div>
@@ -51,27 +124,59 @@ const KanbanCard = ({ title, priority, assignee, tags = [], cardColor = 'bg-whit
   );
 };
 
-const Column = ({ id, title, headerColor, cards = [], onCardClick, onCardDragStart, onCardDragEnd, onDropCard, draggedCard }) => {
+// Kanban Column
+const Column = ({
+  id,
+  title,
+  headerColor,
+  cards = [],
+  onCardClick,
+  onCardDragStart,
+  onCardDragEnd,
+  onDropCard,
+  draggedCard,
+}) => {
   const [isOver, setIsOver] = useState(false);
   const isDragTarget = draggedCard && draggedCard.fromColumnId !== id;
+
   return (
-    <div className="flex flex-col rounded-lg shadow-md w-full sm:w-[300px] max-h-[600px] sm:max-h-[700px]"
+    <div
+      className="flex flex-col rounded-lg shadow-md min-w-[350px] w-[350px] max-h-[700px]"
       onDragOver={(e) => { e.preventDefault(); setIsOver(true); }}
       onDragLeave={() => setIsOver(false)}
-      onDrop={() => { onDropCard?.(id); setIsOver(false); }}>
-      <div className={`${headerColor} text-white font-bold text-xs sm:text-sm px-3 md:px-4 py-2 md:py-3 rounded-t-lg uppercase tracking-wide flex items-center justify-between`}>
-        <span className="truncate">{title}</span>
-        <span className="bg-white/20 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0 ml-2">{cards.length}</span>
+      onDrop={(e) => { 
+        e.preventDefault();
+        const dropPromise = onDropCard?.(id);
+        if (dropPromise && dropPromise.catch) dropPromise.catch(() => {});
+        setIsOver(false); 
+      }}
+    >
+      {/* Header */}
+      <div className={`${headerColor} text-white font-bold text-sm px-4 py-3 rounded-t-lg text-center uppercase tracking-wide flex items-center justify-between`}>
+        <span>{title}</span>
+        <span className="bg-white/20 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+          {cards.length}
+        </span>
       </div>
-      <div className={`bg-gray-50 p-2 sm:p-3 rounded-b-lg flex-1 space-y-2 sm:space-y-3 overflow-y-auto transition-colors ${isOver && isDragTarget ? 'bg-blue-50' : ''}`}>
+
+      {/* Cards */}
+      <div className={`bg-gray-50 p-3 rounded-b-lg flex-1 space-y-3 overflow-y-auto transition-colors duration-200 ${isOver && isDragTarget ? 'bg-blue-50' : ''}`}>
         {cards.map((card) => (
-          <KanbanCard key={card.id} {...card} columnId={id}
+          <KanbanCard
+            key={card.id}
+            {...card}
+            columnId={id}
             isDragging={draggedCard?.cardId === card.id && draggedCard?.fromColumnId === id}
             onClick={() => onCardClick?.(card)}
             onDragStart={() => onCardDragStart?.(id, card.id)}
-            onDragEnd={onCardDragEnd} />
+            onDragEnd={onCardDragEnd}
+          />
         ))}
-        <div className={`border-2 border-dashed rounded-lg p-3 sm:p-4 text-center text-xs transition-all ${isOver && isDragTarget ? 'border-blue-400 bg-blue-50 text-blue-500' : 'border-gray-300 bg-white text-gray-400'}`}>
+
+        <div className={`border-2 border-dashed rounded-lg p-4 text-center text-xs transition-all duration-200
+          ${isOver && isDragTarget
+            ? 'border-blue-400 bg-blue-50 text-blue-500 scale-105'
+            : 'border-gray-300 bg-white text-gray-400'}`}>
           {isOver && isDragTarget ? '📥 Drop here' : 'Drag cards here'}
         </div>
       </div>
@@ -79,91 +184,297 @@ const Column = ({ id, title, headerColor, cards = [], onCardClick, onCardDragSta
   );
 };
 
-const taskToCard = (task) => ({ id: task.id, title: task.title, priority: task.priority, assignee: task.assignee, tags: [task.tag], cardColor: tagColorMap[task.tag] ?? 'bg-blue-700' });
+// Sample data for testing
+const DEPRECATED_SAMPLE_COLUMNS = [
+  {
+    id: 'backlog',
+    title: 'Backlog',
+    headerColor: 'bg-gray-600',
+    cards: [
+      { id: '1', title: 'Implement login page',      priority: 'High',   assignee: 'DevOps',        tags: ['New Feature'], cardColor: 'bg-purple-600' },
+      { id: '2', title: 'Duplicate Entries',         priority: 'High',   assignee: 'Backend Team',  tags: ['Bug Fix'],     cardColor: 'bg-orange-400' },
+      { id: '3', title: 'Implement dark theme mode', priority: 'Low',    assignee: 'Frontend Team', tags: ['Improvement'], cardColor: 'bg-yellow-400' },
+    ],
+  },
+  {
+    id: 'todo',
+    title: 'TO DO',
+    headerColor: 'bg-blue-600',
+    cards: [
+      { id: '1', title: 'Build Dashboard Charts', priority: 'High',   assignee: 'Dave',  tags: ['Technical Task'], cardColor: 'bg-blue-700'   },
+      { id: '2', title: 'Advanced Filtering',     priority: 'Low',    assignee: 'Frank', tags: ['Improvement'],    cardColor: 'bg-yellow-400' },
+      { id: '3', title: 'Bulk Actions',           priority: 'Medium', assignee: 'Carol', tags: ['New Feature'],    cardColor: 'bg-purple-600' },
+    ],
+  },
+  {
+    id: 'in-progress',
+    title: 'In Progress',
+    headerColor: 'bg-green-600',
+    cards: [
+      { id: '1', title: 'Set up CI/CD pipeline',    priority: 'High',   assignee: 'Frank', tags: ['Technical Task'], cardColor: 'bg-blue-700'   },
+      { id: '2', title: 'User management page',     priority: 'Medium', assignee: 'Dave',  tags: ['Technical Task'], cardColor: 'bg-blue-700'   },
+      { id: '3', title: 'Users cannot log emails.', priority: 'High',   assignee: 'John',  tags: ['Bug Fix'],        cardColor: 'bg-orange-400' },
+    ],
+  },
+  {
+    id: 'review',
+    title: 'QA / Review',
+    headerColor: 'bg-yellow-500',
+    cards: [
+      { id: '1', title: 'AI-Driven Scheduling.',        priority: 'High',   assignee: 'Alice', tags: ['New Feature'],    cardColor: 'bg-purple-600' },
+      { id: '2', title: 'Email Notification Fix.',      priority: 'Medium', assignee: 'John',  tags: ['Bug Fix'],        cardColor: 'bg-orange-400' },
+      { id: '3', title: 'Environment Variable Cleanup', priority: 'Low',    assignee: 'Ace',   tags: ['Technical Task'], cardColor: 'bg-blue-700'   },
+    ],
+  },
+  {
+    id: 'done',
+    title: 'Done',
+    headerColor: 'bg-green-800',
+    cards: [],
+  },
+];
 
-export default function KanbanTestPage() {
-  const { activeSprint, activeProject, updateTasks } = useProjectStore();
-  const tasks = activeSprint?.tasks ?? [];
-
-  const initialColumns = useMemo(() => [
-    { id: 'todo',       title: 'TO DO',       headerColor: 'bg-blue-600',   cards: tasks.filter(t => t.status === 'todo').map(taskToCard) },
-    { id: 'inProgress', title: 'In Progress', headerColor: 'bg-blue-400',   cards: tasks.filter(t => t.status === 'inProgress').map(taskToCard) },
-    { id: 'review',     title: 'QA / Review', headerColor: 'bg-orange-400', cards: tasks.filter(t => t.status === 'review').map(taskToCard) },
-    { id: 'blocked',    title: 'Blocked',     headerColor: 'bg-red-500',    cards: tasks.filter(t => t.status === 'blocked').map(taskToCard) },
-    { id: 'done',       title: 'Done',        headerColor: 'bg-green-500',  cards: tasks.filter(t => t.status === 'done').map(taskToCard) },
-  ], [tasks]);
-
-  const [columns, setColumns]           = useState(initialColumns);
+// Main Kanban Component
+const Kanban = () => {
+  const { projects, switchProject, activeSprint, currentProject, isLoading, error } = useProjectStore();
   const [selectedCard, setSelectedCard] = useState(null);
-  const [draggedCard, setDraggedCard]   = useState(null);
+  const [draggedCard, setDraggedCard] = useState(null);
+  const [apiError, setApiError] = useState(null);
+  const updateTask = useTaskStore((state) => state.updateTask);
 
-  const totalCards  = columns.reduce((sum, col) => sum + col.cards.length, 0);
-  const doneCards   = columns.find((c) => c.id === 'done')?.cards.length ?? 0;
+  // Build columns from sprint tasks
+  const columns = useMemo(() => {
+    if (!activeSprint?.tasks || activeSprint.tasks.length === 0) {
+      return [
+        { id: 'todo', title: 'TO DO', headerColor: 'bg-blue-600', cards: [] },
+        { id: 'in-progress', title: 'In Progress', headerColor: 'bg-green-600', cards: [] },
+        { id: 'review', title: 'QA / Review', headerColor: 'bg-yellow-500', cards: [] },
+        { id: 'done', title: 'Done', headerColor: 'bg-green-800', cards: [] },
+      ];
+    }
+
+    const statusMap = {
+      'TODO': 'todo',
+      'IN_PROGRESS': 'in-progress',
+      'DONE': 'done',
+      'REVIEW': 'review',
+      'BLOCKED': 'todo', // Blocked items without a column go back to todo, or we could add a column
+      'todo': 'todo',
+      'inProgress': 'in-progress',
+      'done': 'done',
+      'review': 'review',
+      'blocked': 'todo',
+    };
+
+    const cardsByStatus = {
+      todo: [],
+      'in-progress': [],
+      review: [],
+      done: [],
+    };
+
+    activeSprint.tasks.forEach((task) => {
+      const columnId = statusMap[task.status] || 'todo';
+      const priorityLabel = task.priority === 'URGENT' || task.priority === 'Critical' ? 'High' : 
+                            task.priority === 'HIGH' || task.priority === 'High' ? 'High' : 
+                            task.priority === 'MEDIUM' || task.priority === 'Medium' ? 'Medium' : 
+                            'Low';
+      const colors = ['bg-blue-700', 'bg-orange-400', 'bg-yellow-400', 'bg-green-600'];
+      
+      cardsByStatus[columnId].push({
+        id: task.id?.toString() || Math.random().toString(),
+        title: task.title || '—',
+        priority: priorityLabel,
+        assignee: task.assignee || 'Unassigned',
+        tags: task.label ? [task.label] : [],
+        cardColor: colors[Object.keys(cardsByStatus).findIndex(k => k === columnId) % colors.length],
+        version: task.version,
+      });
+    });
+
+    return [
+      { id: 'todo', title: 'TO DO', headerColor: 'bg-blue-600', cards: cardsByStatus.todo },
+      { id: 'in-progress', title: 'In Progress', headerColor: 'bg-green-600', cards: cardsByStatus['in-progress'] },
+      { id: 'review', title: 'QA / Review', headerColor: 'bg-yellow-500', cards: cardsByStatus.review },
+      { id: 'done', title: 'Done', headerColor: 'bg-green-800', cards: cardsByStatus.done },
+    ];
+  }, [activeSprint?.tasks]);
+
+  const [columnState, setColumnState] = useState(columns);
+
+  useEffect(() => {
+    setColumnState(columns);
+  }, [columns]);
+
+  const totalCards  = columnState.reduce((sum, col) => sum + col.cards.length, 0);
+  const doneCards   = columnState.find((c) => c.id === 'done')?.cards.length ?? 0;
   const progressPct = totalCards ? Math.round((doneCards / totalCards) * 100) : 0;
 
   const handleDragStart = (fromColumnId, cardId) => setDraggedCard({ fromColumnId, cardId });
   const handleDragEnd   = () => setDraggedCard(null);
-  
-  const handleDrop = (toColumnId) => {
+
+  const handleDrop = async (toColumnId) => {
     if (!draggedCard) return;
     const { fromColumnId, cardId } = draggedCard;
     if (fromColumnId === toColumnId) { setDraggedCard(null); return; }
-    
-    setColumns((prev) => {
-      const card = prev.find((c) => c.id === fromColumnId)?.cards.find((c) => c.id === cardId);
-      if (!card) return prev;
-      
-      const updatedColumns = prev.map((col) => {
+
+    const card = columnState.find((col) => col.id === fromColumnId)?.cards.find((c) => c.id === cardId);
+    if (!card) return;
+
+    setApiError(null);
+
+    // Save previous state to revert if API call fails
+    const previousState = columnState;
+
+    setColumnState((prev) => {
+      return prev.map((col) => {
         if (col.id === fromColumnId) return { ...col, cards: col.cards.filter((c) => c.id !== cardId) };
         if (col.id === toColumnId)   return { ...col, cards: [...col.cards, card] };
         return col;
       });
-      
-      // Convert column format back to task format and persist to context
-      const updatedTasks = tasks.map(task => {
-        const columnId = updatedColumns.find(col => 
-          col.cards.some(c => c.id === task.id)
-        )?.id;
-        return columnId ? { ...task, status: columnId } : task;
-      });
-      updateTasks(updatedTasks);
-      
-      return updatedColumns;
     });
     setDraggedCard(null);
+
+    // Make API call
+    try {
+      const targetStatus = COLUMN_TO_STATUS[toColumnId];
+      if (targetStatus) {
+        const response = await updateTask(cardId, { status: targetStatus, version: card.version });
+        
+        // Update the card's version with the new version from the backend
+        // This prevents Optimistic Locking (P2025) errors if they move the same card again
+        if (response?.data?.version) {
+           setColumnState((prev) => {
+             return prev.map((col) => {
+               if (col.id === toColumnId) {
+                 return {
+                   ...col,
+                   cards: col.cards.map((c) => c.id === cardId ? { ...c, version: response.data.version } : c)
+                 };
+               }
+               return col;
+             });
+           });
+        }
+      }
+    } catch (err) {
+      // Try to extract a useful error message from the backend
+      const errMsg = err?.response?.data?.message || err?.message || 'Unknown error occurred';
+      setApiError(`Failed to update task status: ${errMsg}. Reverting changes.`);
+      // Revert optimistic UI update
+      setColumnState(previousState);
+      throw new Error(`Failed to update task status for card ${cardId}: ${errMsg}`, { cause: err });
+    }
   };
 
+  if (isLoading) return <div className="p-8 text-center">Loading Kanban board...</div>;
+  if (error) return <div className="p-8 text-center text-red-600">Error: {error}</div>;
+
+  const boardMessage = !activeSprint
+    ? "No active sprint selected. Create or select a sprint to begin tracking tasks."
+    : activeSprint.tasks.length === 0
+      ? "This sprint has no tasks yet. Add work items to populate the Kanban board."
+      : null;
+
   return (
-    <div className="bg-gray-200 min-h-screen p-3 md:p-6">
-      <div className="bg-white rounded-lg shadow-lg p-4 md:p-6">
-        <div className="pb-4 md:pb-6 border-b border-gray-200 mb-4 md:mb-6">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-6 flex-wrap">
-            <div className="w-full md:w-auto">
-              <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-6">Sprint Task Progress</h1>
-             <p className="text-xs md:text-sm text-gray-500 mt-1 truncate">{activeProject?.name || 'No Project'} · {activeSprint?.name} — {activeSprint?.goal}</p>
-            </div>
-            <div className="w-full md:w-auto">
-              <p className="text-xs md:text-sm">{doneCards}/{totalCards} Tasks completed</p>
-              <div className="w-full md:w-64 bg-gray-300 rounded-full h-2 md:h-3 mt-2 relative">
-                <div className="bg-blue-500 h-2 md:h-3 rounded-full transition-all duration-500" style={{ width: `${progressPct}%` }} />
-                <span className="absolute right-0 -top-5 text-xs md:text-sm font-semibold">{progressPct}%</span>
+    <div className="bg-gray-200 min-h-screen p-6 text-black" style={{ fontFamily: 'Arial, sans-serif' }}>
+      <div className="bg-white rounded-lg shadow-lg p-6">
+
+        {apiError && (
+          <div className="mb-4 p-4 rounded-lg bg-red-50 border border-red-200 text-sm text-red-800">
+            {apiError}
+          </div>
+        )}
+
+        {/* HEADER */}
+        <div className="pb-6 border-b border-gray-200 mb-6">
+          <div className="flex justify-between items-center">
+            <h1 className="text-2xl font-bold">Sprint Task-Progress {currentProject?.name && `— ${currentProject.name}`}</h1>
+            {projects && projects.length > 0 && (
+              <select
+                className="bg-white border border-gray-300 text-gray-700 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block px-3 py-2 shadow-sm font-medium"
+                value={currentProject?.id || ''}
+                onChange={(e) => switchProject(e.target.value)}
+              >
+                <option value="" disabled>Select a project</option>
+                {projects.map(p => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} {p.status ? `(${p.status})` : ''}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+
+          <div className="flex items-center justify-between mt-4">
+            <div>
+              <p className="text-sm">{doneCards}/{totalCards} Tasks completed</p>
+              <div className="w-64 bg-gray-300 rounded-full h-3 mt-2 relative">
+                <div
+                  className="bg-blue-500 h-3 rounded-full transition-all duration-500"
+                  style={{ width: `${progressPct}%` }}
+                />
+                <span className="absolute right-2 top-[-20px] text-sm font-semibold">{progressPct}%</span>
               </div>
             </div>
+
+            <div className="text-xs text-gray-600 flex gap-6">
+              <p><span className="font-semibold">High</span> – Critical feature / urgent fix</p>
+              <p><span className="font-semibold">Medium</span> – Important improvement</p>
+              <p><span className="font-semibold">Low</span> – Optional enhancement</p>
+            </div>
           </div>
-          <div className="flex items-center justify-start gap-2 md:gap-4 mt-4 text-xs flex-wrap">
-            {[{ color:'bg-purple-600', label:'Frontend' }, { color:'bg-blue-700', label:'Backend' }, { color:'bg-teal-600', label:'DevOps' }, { color:'bg-orange-600', label:'Testing' }].map(({ color, label }) => (
-              <div key={label} className="flex items-center gap-1"><span className={`w-3 md:w-4 h-3 md:h-4 ${color} rounded-full`} /><span className="hidden sm:inline">{label}</span></div>
+
+          <div className="flex items-center justify-end gap-4 mt-4 text-xs">
+            {[
+              { color: 'bg-purple-600', label: 'New Feature' },
+              { color: 'bg-blue-600',   label: 'Technical Task' },
+              { color: 'bg-yellow-400', label: 'Improvement' },
+              { color: 'bg-orange-400', label: 'Bug Fix' },
+            ].map(({ color, label }) => (
+              <div key={label} className="flex items-center gap-1">
+                <span className={`w-4 h-4 ${color} rounded-full`} />
+                {label}
+              </div>
             ))}
           </div>
         </div>
-        {selectedCard && <div className="mb-4 p-2 md:p-3 bg-green-50 border border-green-300 rounded text-xs md:text-sm text-green-800">Selected: <strong>{selectedCard.title}</strong></div>}
-        <h2 className="text-base md:text-lg font-semibold text-gray-700 mb-3 md:mb-4">Kanban board</h2>
-        <div className="flex flex-col md:flex-row md:overflow-x-auto gap-3 md:gap-4 pb-2">
-          {columns.map((col) => (
-            <Column key={col.id} {...col} onCardClick={setSelectedCard} onCardDragStart={handleDragStart} onCardDragEnd={handleDragEnd} onDropCard={handleDrop} draggedCard={draggedCard} />
+
+        {/* Card click feedback */}
+        {selectedCard && (
+          <div className="mb-4 p-3 bg-green-50 border border-green-300 rounded text-sm text-green-800">
+            Card clicked: <strong>{selectedCard.title}</strong> (id: {selectedCard.id})
+          </div>
+        )}
+
+        <h2 className="text-lg font-semibold text-gray-700 mb-3">Kanban board</h2>
+
+        {boardMessage && (
+          <div className="mb-4 rounded-2xl bg-yellow-50 border border-yellow-200 p-4 text-sm text-yellow-800">
+            {boardMessage}
+          </div>
+        )}
+
+        <div className="flex gap-4 overflow-x-auto pb-2">
+          {columnState.map((col) => (
+            <Column
+              key={col.id}
+              id={col.id}
+              title={col.title}
+              headerColor={col.headerColor}
+              cards={col.cards}
+              onCardClick={setSelectedCard}
+              onCardDragStart={handleDragStart}
+              onCardDragEnd={handleDragEnd}
+              onDropCard={handleDrop}
+              draggedCard={draggedCard}
+            />
           ))}
         </div>
+
       </div>
     </div>
   );
-}
+};
+
+export default Kanban;

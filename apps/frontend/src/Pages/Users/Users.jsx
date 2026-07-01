@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import EmptyState from "../../Components/EmptyState";
+import { resourceAPI } from "../../api/api";
 
 const Users = () => {
   const [showModal, setShowModal] = useState(false);
@@ -20,13 +21,13 @@ const Users = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
 
-   
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     setLoading(true);
-    fetch(`/api/users?page=${page}&limit=6`)
-    .then((res) => res.json())
-    .then((data) => {
+    resourceAPI.get(`/users?page=${page}&limit=6`)
+    .then((res) => {
+      const data = res.data;
       setUsers(data.users || []);
       setTotalPages(data.totalPages || 1);
       setLoading(false);
@@ -49,62 +50,117 @@ const Users = () => {
       return "bg-red-100 text-red-700";
   };
 
-const handleSaveUser = async () => {
-  if (!formData.name) return;
-
-  setSaving(true);
-
-  try {
-    await fetch("/api/users", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(formData),
-    });
-
-    setShowModal(false);
-
-    setFormData({
-      name: "",
-      email: "",
-      role: "",
-      team: "",
-      department: "",
-      phone: "",
-      notes: "",
-    });
-
-    // optional UX refresh (same pattern as clients usually rely on re-fetch)
-    setPage(1);
-
-  } catch (err) {
-    console.error("Error saving user:", err);
-  } finally {
-    setSaving(false);
-  }
-};
+  const handleSaveUser = async () => {
+    try {
+      if (formData.id) {
+        // Edit existing user
+        const res = await resourceAPI.put(`/users/${formData.id}`, formData);
+        const updatedUser = res.data;
+        setUsers(users.map((u) => (u.id === formData.id ? updatedUser : u)));
+      } else {
+        // Add new user
+        const res = await resourceAPI.post("/users", formData);
+        const savedUser = res.data;
+        setUsers([...users, savedUser]);
+      }
+      setShowModal(false);
+      setFormData({ name: "", email: "", role: "", team: "", department: "", phone: "", notes: "" });
+    } catch (err) {
+      console.error("Error saving user:", err);
+      alert("Failed to save user. Please try again.");
+    }
+  };
 
 const handleEditUser = async (id, updatedData) => {
   try {
-    const res = await fetch(`/api/users/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(updatedData),
-    });
-    const updatedUser = await res.json();
+    const res = await resourceAPI.put(`/users/${id}`, updatedData);
+    const updatedUser = res.data;
     setUsers(users.map((u) => (u.id === id ? updatedUser : u)));
   } catch (err) {
     console.error("Error editing user:", err);
+    alert("Failed to edit user. Please try again.");
   }
 };
 
 
 const handleDeactivate = async (id) => {
   try {
-    await fetch(`/api/users/${id}`, { method: "DELETE" });
+    await resourceAPI.delete(`/users/${id}`);
     setUsers(users.filter((u) => u.id !== id));
   } catch (err) {
     console.error("Error deactivating user:", err);
+    alert("Failed to deactivate user. Please try again.");
   }
+};
+
+const handleExport = () => {
+  if (users.length === 0) {
+    alert("No users to export.");
+    return;
+  }
+  const headers = ["Name", "Email", "Role", "Team", "Status"];
+  const rows = users.map(u => [u.name, u.email, u.role, u.team, u.status]);
+  const csvContent = "data:text/csv;charset=utf-8," 
+    + [headers.join(","), ...rows.map(e => e.map(val => `"${val || ''}"`).join(","))].join("\n");
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement("a");
+  link.setAttribute("href", encodedUri);
+  link.setAttribute("download", `users_export_${new Date().toISOString().slice(0,10)}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
+const handleImportClick = () => {
+  fileInputRef.current?.click();
+};
+
+const handleImport = (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = async (event) => {
+    try {
+      const text = event.target.result;
+      let importedList = [];
+      if (file.name.endsWith(".json")) {
+        importedList = JSON.parse(text);
+      } else if (file.name.endsWith(".csv")) {
+        const lines = text.split("\n").filter(Boolean);
+        const headers = lines[0].split(",").map(h => h.trim().replace(/^"|"$/g, ''));
+        importedList = lines.slice(1).map(line => {
+          const values = line.split(",").map(v => v.trim().replace(/^"|"$/g, ''));
+          const item = {};
+          headers.forEach((header, idx) => {
+            const key = header.toLowerCase();
+            item[key] = values[idx];
+          });
+          return item;
+        });
+      } else {
+        alert("Please upload a .json or .csv file.");
+        return;
+      }
+
+      const processed = importedList.map((item, index) => ({
+        id: item.id || `imported-${Date.now()}-${index}`,
+        name: item.name || item.fullName || "Imported User",
+        email: item.email || `imported-${index}@example.com`,
+        role: item.role || "MEMBER",
+        team: item.team || "Engineering",
+        status: item.status || "Active",
+      }));
+
+      setUsers(prev => [...processed, ...prev]);
+      alert(`Successfully imported ${processed.length} users!`);
+    } catch (err) {
+      console.error("Failed to parse file:", err);
+      alert("Error parsing file. Ensure it is valid JSON or CSV.");
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
 };
 
 const handleChange = (e) => {
@@ -153,17 +209,26 @@ const handleChange = (e) => {
             + Add User
           </button>
 
-          <button 
-            onClick={() => alert("Import Data action triggered - this would open the CSV upload interface.")}
-            className="px-4 py-2 border text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleImport}
+            accept=".json,.csv"
+            style={{ display: "none" }}
+          />
+
+          <button
+            onClick={handleImportClick}
+            className="border px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm bg-white hidden sm:block hover:bg-gray-50"
           >
-            Import Data
+            Import
           </button>
-          <button 
-            onClick={() => alert("Export Report action triggered - this generates and downloads a CSV report.")}
-            className="px-4 py-2 border text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
+
+          <button
+            onClick={handleExport}
+            className="border px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm bg-white hidden sm:block hover:bg-gray-50"
           >
-            Export Report
+            Export
           </button>
 
         </div>

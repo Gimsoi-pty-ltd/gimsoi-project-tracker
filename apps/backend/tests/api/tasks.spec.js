@@ -8,13 +8,15 @@ test.describe('Task Management - Core CRUD & Pipeline', () => {
             data: {
                 title: "Deploy AI DB Update",
                 projectId: testProject.id,
-                sprintId: testSprint.id
+                sprintId: testSprint.id,
+                storyPoints: 5
             }
         });
 
         expect(response.status()).toBe(201);
         const json = await response.json();
         expect(json.data.status).toBe('TODO');
+        expect(json.data.storyPoints).toBe(5);
     });
 
     test('PM Completes Task lifecycle', async ({ pmApi, testProject, testSprint }) => {
@@ -45,7 +47,7 @@ test.describe('Task Management - Core CRUD & Pipeline', () => {
         expect((await finishRes.json()).data.status).toBe('DONE');
     });
 
-    test('Partial update: send a PATCH request with only the priority field', async ({ pmApi, testProject, testSprint }) => {
+    test('Partial update: send a PATCH request with storyPoints', async ({ pmApi, testProject, testSprint }) => {
         const taskRes = await pmApi.post('/api/tasks', {
             data: { title: 'Baseline Title', projectId: testProject.id, sprintId: testSprint.id }
         });
@@ -53,12 +55,12 @@ test.describe('Task Management - Core CRUD & Pipeline', () => {
         const taskId = task.id;
 
         const patchRes = await pmApi.patch(`/api/tasks/${taskId}`, {
-            data: { priority: 'HIGH', version: task.version }
+            data: { storyPoints: 8, version: task.version }
         });
         expect(patchRes.status()).toBe(200);
 
         const body = await patchRes.json();
-        expect(body.data.priority).toBe('HIGH');
+        expect(body.data.storyPoints).toBe(8);
         expect(body.data.title).toBe('Baseline Title');
     });
 

@@ -17,12 +17,33 @@ const PriorityHeatmap = () => {
     };
 
    
-    const heatmap = useProjectStore((state) => state.dashboardData?.charts?.heatmap ?? []);
+    const heatmapRaw = useProjectStore((state) => state.dashboardData?.charts?.heatmap);
+    const heatmap = heatmapRaw ?? [];
+
+    const getCellClass = (value, index) => {
+        if (value === 0) return "bg-slate-50 text-slate-300 border border-slate-100";
+        if (index === 4) { // Blocked
+            return "bg-red-500 text-white font-bold border border-red-600 shadow-sm";
+        }
+        if (index === 3) { // Done
+            return "bg-green-500 text-white font-bold border border-green-600 shadow-sm";
+        }
+        if (index === 2) { // Review
+            return "bg-orange-400 text-white font-bold border border-orange-500 shadow-sm";
+        }
+        // Todo & In Progress
+        if (value <= 2) {
+            return "bg-blue-100 text-blue-800 border border-blue-200 font-medium";
+        }
+        if (value <= 5) {
+            return "bg-blue-300 text-blue-900 border border-blue-400 font-semibold";
+        }
+        return "bg-blue-600 text-white border border-blue-700 font-bold shadow-sm";
+    };
 
     const heatmapData = heatmap.map((row) => ({
-        priority: row.priorityLabel || row.priority.charAt(0).toUpperCase() + row.priority.slice(1),
+        priority: row.priorityLabel || (row.priority ? row.priority.charAt(0).toUpperCase() + row.priority.slice(1) : "Medium"),
         values: row.values ?? Array(5).fill(row.count ?? 0),
-        colors: COLOR_MAP[row.priority] ?? Array(5).fill('bg-slate-200'),
     }));
 
     const isEmpty = heatmap.length === 0 || isHeatmapEmpty(heatmap);
@@ -62,8 +83,8 @@ const PriorityHeatmap = () => {
 
                     {columns.map((column) => (
                         <div
-                            key={column}
-                            className="text-xs font-medium text-slate-600 text-center"
+                             key={column}
+                             className="text-xs font-medium text-slate-600 text-center"
                         >
                             {column}
                         </div>
@@ -95,8 +116,8 @@ const PriorityHeatmap = () => {
                                     key={index}
                                     className={`
                                         h-10 rounded-lg flex items-center justify-center
-                                        text-sm font-bold text-slate-900
-                                        ${row.colors[index]}
+                                        text-sm
+                                        ${getCellClass(value, index)}
                                     `}
                                 >
                                     {value}

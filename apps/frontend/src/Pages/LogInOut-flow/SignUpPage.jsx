@@ -10,14 +10,16 @@ function SignUpPage() {
     const [fullName, setFullName] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [formError, setFormError] = useState('');
     const navigate = useNavigate();
 
     const { signup, error, isLoading } = useAuthStore();
 
     const handleSignUp = async (e) => {
         e.preventDefault();
+        setFormError('');
         if (password !== confirmPassword) {
-            alert("Passwords do not match!");
+            setFormError("Passwords do not match!");
             return;
         }
 
@@ -117,6 +119,7 @@ function SignUpPage() {
                             <Lock size={18} className="absolute right-4 top-3.5 text-gray-400 group-focus-within:text-[#002D62] transition-colors" />
                         </div>
 
+                        {formError && <p className="text-red-500 font-semibold mt-2 text-center text-sm">{formError}</p>}
                         {error && <p className="text-red-500 font-semibold mt-2 text-center text-sm">{error}</p>}
 
                         <NavyButton

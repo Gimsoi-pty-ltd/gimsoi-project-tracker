@@ -27,6 +27,7 @@ enum SprintStatus {
 enum TaskStatus {
   TODO
   IN_PROGRESS
+  REVIEW
   DONE
   CANCELLED
   BLOCKED
@@ -78,6 +79,8 @@ model User {
 
   version                    Int       @default(1)
   isDeleted                  Boolean   @default(false)
+  jobTitle                   String?
+  phone                      String?
 
   assignedTasks Task[] @relation("TaskAssignee")
   reportedTasks Task[] @relation("TaskReporter")
@@ -126,6 +129,7 @@ model Project {
 model Sprint {
   id              String       @id @default(uuid())
   name            String
+  goal            String?
   status          SprintStatus @default(PLANNING)
   startDate       DateTime?
   endDate         DateTime?
@@ -146,6 +150,7 @@ model Task {
   title       String
   description String?
   status      TaskStatus @default(TODO)
+  storyPoints Int?
 
   sprintId String?
   sprint   Sprint? @relation(fields: [sprintId], references: [id], onDelete: SetNull)
@@ -267,15 +272,17 @@ model ProjectMember {
   @@index([userId])
 }
 model ActivityLog {
-  id        String   @id @default(uuid())
-  taskId    String
-  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  action    String   // e.g., "STATUS_CHANGE", "ASSIGNED", "CREATED", "UPDATED"
-  oldValue  String?  // Stringified JSON or simple value
-  newValue  String?  // Stringified JSON or simple value
-  createdAt DateTime @default(now())
+  id         String   @id @default(uuid())
+  taskId     String?
+  task       Task?    @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action     String   // e.g., "STATUS_CHANGE", "ASSIGNED", "CREATED", "UPDATED"
+  entityId   String?
+  entityType String?
+  oldValue   String?  // Stringified JSON or simple value
+  newValue   String?  // Stringified JSON or simple value
+  createdAt  DateTime @default(now())
 
   @@index([taskId])
   @@index([userId])
