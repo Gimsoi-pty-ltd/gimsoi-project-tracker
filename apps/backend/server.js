@@ -17,6 +17,7 @@ import reportRoutes from "./routes/report.route.js";
 import searchRoutes from "./routes/search.route.js";
 import commentRoutes from "./routes/comment.route.js";
 import labelRoutes from "./routes/label.route.js";
+import activityRoutes from "./routes/activity.route.js";
 import zohoRoutes from "./routes/zoho.route.js";
 
 import { swaggerSpec } from "./lib/swagger.js";
@@ -104,6 +105,7 @@ app.use("/api/search", searchRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/comments", commentRoutes);
 app.use("/api/labels", labelRoutes);
+app.use("/api/activity", activityRoutes);
 app.use("/api/zoho", zohoRoutes);
 
 // CSRF error handler — must be after routes

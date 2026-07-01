@@ -6,9 +6,10 @@ const COLORS = ["#2563eb", "#f97316", "#6d28d9", "#3b82f6"];
 
 export default function TaskDistributionCard() {
   const [showInfo, setShowInfo] = useState(false);
-  const distribution = useProjectStore(
-    (state) => state.dashboardData?.charts?.distribution ?? []
+  const distributionRaw = useProjectStore(
+    (state) => state.dashboardData?.charts?.distribution
   );
+  const distribution = distributionRaw ?? [];
 
   const total = distribution.reduce((sum, d) => sum + d.value, 0);
 
@@ -24,7 +25,6 @@ export default function TaskDistributionCard() {
   const radius = 58;
   const stroke = 24;
   const circumference = radius * 2 * Math.PI;
-  let offset = 0;
 
   return (
     <div className="min-h-[390px] bg-white p-5 border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-all">
@@ -58,26 +58,29 @@ export default function TaskDistributionCard() {
         <div className="flex items-center gap-8">
           <svg width="190" height="190" viewBox="0 0 190 190">
             <g transform="rotate(-90 95 95)">
-              {data.map((item, i) => {
-                const dash = (item.percent / 100) * circumference;
-                const gap = circumference - dash;
-                const circle = (
-                  <circle
-                    key={i}
-                    cx="95"
-                    cy="95"
-                    r={radius}
-                    fill="transparent"
-                    stroke={item.color}
-                    strokeWidth={stroke}
-                    strokeDasharray={`${dash} ${gap}`}
-                    strokeDashoffset={-offset}
-                    strokeLinecap="butt"
-                  />
-                );
-                offset += dash;
-                return circle;
-              })}
+              {(() => {
+                let accumulatedOffset = 0;
+                return data.map((item, i) => {
+                  const dash = (item.percent / 100) * circumference;
+                  const gap = circumference - dash;
+                  const currentOffset = accumulatedOffset;
+                  accumulatedOffset += dash;
+                  return (
+                    <circle
+                      key={i}
+                      cx="95"
+                      cy="95"
+                      r={radius}
+                      fill="transparent"
+                      stroke={item.color}
+                      strokeWidth={stroke}
+                      strokeDasharray={`${dash} ${gap}`}
+                      strokeDashoffset={-currentOffset}
+                      strokeLinecap="butt"
+                    />
+                  );
+                });
+              })()}
             </g>
           </svg>
 

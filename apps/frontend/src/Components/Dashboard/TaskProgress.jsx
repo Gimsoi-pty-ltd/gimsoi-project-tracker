@@ -1,7 +1,18 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useTaskStore } from '../../store/taskStore';
 
 const TaskProgress = () => {
+    const { tasks } = useTaskStore();
+    
+    const completedTasks = tasks.filter(t => t.status === 'DONE').length;
+    const totalTasks = tasks.length;
+    const percentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+    
+    // SVG properties
+    const circumference = 263.89; // 2 * pi * 42
+    const strokeDashoffset = circumference - (circumference * percentage) / 100;
+
     return (
         <Link to="/tasks?tab=progress" className="block h-full no-underline">
         <section className="bg-white rounded-[20px] p-6 shadow-sm border border-gray-100 flex flex-col items-center justify-center h-full hover:shadow-md transition-shadow cursor-pointer">
@@ -34,15 +45,16 @@ const TaskProgress = () => {
                         fill="none"
                         stroke="#FF8C00"
                         strokeWidth="10"
-                        strokeDasharray="263.89"
-                        strokeDashoffset="131.95"
+                        strokeDasharray={circumference}
+                        strokeDashoffset={strokeDashoffset}
                         strokeLinecap="round"
+                        className="transition-all duration-700"
                     />
                 </svg>
 
                 {/* Center Text */}
                 <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-3xl font-extrabold text-gray-800">50%</span>
+                    <span className="text-3xl font-extrabold text-gray-800">{percentage}%</span>
                 </div>
             </div>
         </section>

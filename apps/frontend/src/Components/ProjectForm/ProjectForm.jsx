@@ -3,19 +3,7 @@ import { X, AlertCircle, ChevronDown, Check, Calendar } from "lucide-react";
 import NavyButton from "../Buttons";
 import { useProjectStore } from "../../store/projectStore";
 
-// ─── Mock options (replace with real API data as needed) ──────────────────────
-const CLIENT_OPTIONS = [
-  { id: "client-1", name: "Acme Corp" },
-  { id: "client-2", name: "TechStart Inc" },
-  { id: "client-3", name: "Globex Inc" },
-  { id: "client-4", name: "Initech" },
-  { id: "client-5", name: "Umbrella Corp" },
-];
-
-const TEAM_OPTIONS = [
-  "TK", "Samantha", "John Doe", "Jane Smith", "Bob Marley",
-  "Sara Connor", "Mike Ross", "Rachel Zane",
-];
+import { resourceAPI } from "../../api/api";
 
 const STATUS_OPTIONS = [
   { value: "PLANNED",   label: "Planned"   },
@@ -79,7 +67,7 @@ function Dropdown({ label, value, onChange, options, placeholder }) {
 }
 
 // ─── Multi-select Team ────────────────────────────────────────────────────────
-function MultiSelect({ value = [], onChange }) {
+function MultiSelect({ value = [], onChange, teamOptions = [] }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -128,7 +116,7 @@ function MultiSelect({ value = [], onChange }) {
 
       {open && (
         <div className="absolute left-0 right-0 top-full mt-1 z-40 bg-white border border-gray-200 rounded-xl shadow-lg py-1 max-h-52 overflow-y-auto">
-          {TEAM_OPTIONS.map((member) => {
+          {teamOptions.map((member) => {
             const selected = value.includes(member);
             return (
               <button
@@ -166,6 +154,27 @@ export default function ProjectForm({ isOpen, onClose, project = null, onSuccess
 
   const [formData, setFormData] = useState(empty);
   const [formError, setFormError] = useState(null);
+  const [clientOptions, setClientOptions] = useState([]);
+  const [teamOptions, setTeamOptions] = useState([]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const fetchOptions = async () => {
+      try {
+        const [clientsRes, usersRes] = await Promise.all([
+          resourceAPI.get('/clients'),
+          resourceAPI.get('/users')
+        ]);
+        const clients = clientsRes.data.clients || clientsRes.data.data || [];
+        const users = usersRes.data.users || usersRes.data.data || [];
+        setClientOptions(clients);
+        setTeamOptions(users.map(u => u.fullName || u.email || 'Unknown'));
+      } catch (err) {
+        console.error("Failed to fetch form options:", err);
+      }
+    };
+    fetchOptions();
+  }, [isOpen]);
 
   useEffect(() => {
     if (project) {
@@ -262,7 +271,7 @@ export default function ProjectForm({ isOpen, onClose, project = null, onSuccess
             <Dropdown
               value={formData.clientId}
               onChange={(v) => set("clientId", v)}
-              options={CLIENT_OPTIONS}
+              options={clientOptions}
               placeholder="Acme Corp, TechStart Inc..."
             />
           </div>
@@ -320,6 +329,7 @@ export default function ProjectForm({ isOpen, onClose, project = null, onSuccess
             <MultiSelect
               value={formData.team}
               onChange={(v) => set("team", v)}
+              teamOptions={teamOptions}
             />
           </div>
 

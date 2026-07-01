@@ -104,7 +104,7 @@ function App() {
   if (isCheckingAuth) return <div className="loading">Loading...</div>;
 
   return (
-    <Router>
+    <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <Suspense fallback={<div className="min-h-screen grid place-items-center text-slate-600">Loading...</div>}>
         <Routes>
           {/* === AUTH ROUTES  === */}
@@ -145,41 +145,11 @@ function App() {
             <DashboardLayout><Dashboard /></DashboardLayout>
           </ProtectedRoute>
         } />
-        <Route path="/dashboard/cards" element={
-          <ProtectedRoute>
-            <DashboardLayout><DashboardCards /></DashboardLayout>
-          </ProtectedRoute>
-        } />
-        <Route path="/days-remaining" element={
-          <ProtectedRoute>
-            <DashboardLayout><DaysRemainingPage /></DashboardLayout>
-          </ProtectedRoute>
-        } />
-        <Route path="/sprint-overview" element={
-          <ProtectedRoute>
-            <DashboardLayout><SprintOverview /></DashboardLayout>
-          </ProtectedRoute>
-        } />
-        <Route path="/sprint-velocity" element={
-          <ProtectedRoute>
-            <DashboardLayout><SprintVelocityPage /></DashboardLayout>
-          </ProtectedRoute>
-        } />
 
         {/* Tasks Group */}
         <Route path="/tasks" element={
           <ProtectedRoute>
             <DashboardLayout><TasksPage /></DashboardLayout>
-          </ProtectedRoute>
-        } />
-        <Route path="/tasks/blocked" element={
-          <ProtectedRoute>
-            <DashboardLayout><BlockedTasks /></DashboardLayout>
-          </ProtectedRoute>
-        } />
-        <Route path="/tasks/overdue" element={
-          <ProtectedRoute>
-            <DashboardLayout><OverdueTasks /></DashboardLayout>
           </ProtectedRoute>
         } />
         <Route path="/tasks/active-projects" element={
@@ -195,11 +165,6 @@ function App() {
           </ProtectedRoute>
         } />
         <Route path="/projects/:id" element={
-          <ProtectedRoute>
-            <DashboardLayout><ProjectOverview /></DashboardLayout>
-          </ProtectedRoute>
-        } />
-        <Route path="/project-overview" element={
           <ProtectedRoute>
             <DashboardLayout><ProjectOverview /></DashboardLayout>
           </ProtectedRoute>

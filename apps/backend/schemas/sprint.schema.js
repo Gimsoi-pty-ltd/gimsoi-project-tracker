@@ -8,6 +8,7 @@ export const createSprintSchema = z.object({
   startDate: z.coerce.date().optional().nullable(),
   endDate: z.coerce.date().optional().nullable(),
   status: SprintStatusEnum.optional().default('PLANNING'),
+  goal: z.string().max(2000).optional().nullable(),
 });
 
 export const updateSprintSchema = z.object({
@@ -15,6 +16,7 @@ export const updateSprintSchema = z.object({
   startDate: z.coerce.date().optional().nullable(),
   endDate: z.coerce.date().optional().nullable(),
   status: SprintStatusEnum.optional(),
+  goal: z.string().max(2000).optional().nullable(),
   version: z.number().int().positive('version is required for optimistic locking'),
 }).refine(
   (data) => Object.keys(data).length > 1,

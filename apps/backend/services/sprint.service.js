@@ -16,7 +16,7 @@ export const SPRINT_ALLOWED_TRANSITIONS = {
     [SPRINT_STATUS.CLOSED]: []
 };
 
-export const createSprint = async ({ name, projectId, status, startDate, endDate, createdByUserId }) => {
+export const createSprint = async ({ name, goal, projectId, status, startDate, endDate, createdByUserId }) => {
     if (startDate !== undefined && startDate !== null && isNaN(Date.parse(startDate))) {
         throw new StateTransitionError('Invalid startDate format.');
     }
@@ -34,6 +34,7 @@ export const createSprint = async ({ name, projectId, status, startDate, endDate
     return prisma.sprint.create({
         data: {
             name,
+            goal,
             projectId,
             status: status || SPRINT_STATUS.PLANNING,
             startDate: startDate ? new Date(startDate) : null,
@@ -152,6 +153,7 @@ export const updateSprint = async (id, data, userId, userRole) => {
             where: { id: String(id), version: data.version },
             data: {
                 name: data.name !== undefined ? data.name : sprint.name,
+                goal: data.goal !== undefined ? data.goal : sprint.goal,
                 startDate: data.startDate !== undefined
                     ? (data.startDate === null ? null : new Date(data.startDate))
                     : sprint.startDate,
@@ -171,16 +173,83 @@ export const updateSprint = async (id, data, userId, userRole) => {
 
 /**
  * Calculates velocity for a specific sprint.
- * Velocity = total tasks with status 'DONE' in the sprint.
+ * Velocity = sum of storyPoints for tasks with status 'DONE' in the sprint.
  */
 export const getSprintVelocity = async (id) => {
     const sprint = await prisma.sprint.findUnique({ where: { id: String(id) } });
     if (!sprint) throw new NotFoundError(`Sprint ${id} not found`);
 
-    const velocity = await getTaskCountBySprintId(id, { status: TASK_STATUS.DONE });
+    const doneTasks = await prisma.task.findMany({
+        where: { sprintId: String(id), status: TASK_STATUS.DONE },
+        select: { storyPoints: true }
+    });
+
+    const velocity = doneTasks.reduce((sum, task) => sum + (task.storyPoints || 0), 0);
 
     return {
         sprintId: id,
         velocity
     };
 };
+
+export const getSprintBurndown = async (id) => {
+    const sprint = await prisma.sprint.findUnique({
+        where: { id: String(id) },
+        include: {
+            tasks: {
+                where: { isDeleted: false }
+            }
+        }
+    });
+    if (!sprint) throw new NotFoundError(`Sprint ${id} not found`);
+
+    const startDate = sprint.startDate ? new Date(sprint.startDate) : new Date(sprint.createdAt);
+    const endDate = sprint.endDate ? new Date(sprint.endDate) : new Date(startDate.getTime() + 14 * 24 * 60 * 60 * 1000);
+
+    if (startDate > endDate) {
+        throw new StateTransitionError("Sprint start date must be before end date.");
+    }
+
+    const days = [];
+    const current = new Date(startDate);
+    const formatDate = (d) => d.toISOString().split('T')[0];
+
+    while (current <= endDate) {
+        days.push(new Date(current));
+        current.setDate(current.getDate() + 1);
+    }
+
+    if (days.length === 0) {
+        days.push(new Date(startDate));
+    }
+
+    const tasks = sprint.tasks;
+    const taskPoints = tasks.map(t => t.storyPoints && t.storyPoints > 0 ? t.storyPoints : 1);
+    const totalPoints = taskPoints.reduce((sum, pts) => sum + pts, 0);
+
+    const burndownData = [];
+    const totalDays = days.length - 1 || 1;
+
+    days.forEach((day, index) => {
+        const dayStr = formatDate(day);
+        const dayEnd = new Date(day);
+        dayEnd.setHours(23, 59, 59, 999);
+
+        const ideal = Math.max(0, parseFloat((totalPoints - (index / totalDays) * totalPoints).toFixed(2)));
+
+        const completedPoints = tasks
+            .filter(t => t.status === TASK_STATUS.DONE && t.completedAt && new Date(t.completedAt) <= dayEnd)
+            .reduce((sum, t) => sum + (t.storyPoints && t.storyPoints > 0 ? t.storyPoints : 1), 0);
+        
+        const actual = Math.max(0, totalPoints - completedPoints);
+
+        burndownData.push({
+            day: dayStr,
+            ideal,
+            actual
+        });
+    });
+
+    return burndownData;
+};
+

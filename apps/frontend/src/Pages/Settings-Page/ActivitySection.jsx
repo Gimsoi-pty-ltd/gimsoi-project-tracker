@@ -1,9 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuthStore } from "../../store/authStore";
 
 export default function ActivitySection() {
-  const user = useAuthStore((state) => state.user) || {};
+  const { userActivities = [], fetchActivities } = useAuthStore((state) => state);
   const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      fetchActivities();
+    }
+  }, [open, fetchActivities]);
 
   return (
     <div className="space-y-4 rounded-lg border border-gray-200 bg-white p-4 md:p-5">
@@ -25,15 +31,19 @@ export default function ActivitySection() {
       </div>
 
       {open && (
-        <div className="mt-2 space-y-3">
-          {(user.activityLog || []).map((entry, i) => (
-            <div key={i} className="bg-gray-50 border border-gray-200 border-l-4 border-l-orange-500 p-3 rounded">
-              <p className="text-sm font-medium">{entry.action}</p>
-              <p className="text-xs text-gray-500">{entry.date}</p>
-            </div>
-          ))}
+        <div className="mt-2 space-y-3 max-h-60 overflow-y-auto">
+          {userActivities.length > 0 ? (
+            userActivities.map((entry, i) => (
+              <div key={i} className="bg-gray-50 border border-gray-200 border-l-4 border-l-orange-500 p-3 rounded">
+                <p className="text-sm font-medium">{entry.action}</p>
+                <p className="text-xs text-gray-500">{new Date(entry.createdAt).toLocaleString()}</p>
+              </div>
+            ))
+          ) : (
+            <p className="text-sm text-gray-500 p-3 text-center">No activities logged yet.</p>
+          )}
         </div>
       )}
     </div>
   );
-}
+}
