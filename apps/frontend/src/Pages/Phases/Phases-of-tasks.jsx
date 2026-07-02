@@ -40,7 +40,7 @@ export default function ProjectPhasesGantt() {
 
   const [localPhases, setLocalPhases] = useState([]);
 
-  const phases = [
+  const phaseRow = [
     ...projects.map((project) => {
       const sprints = project.sprints || [];
       const sprint =
@@ -134,7 +134,7 @@ export default function ProjectPhasesGantt() {
         </div>
 
         {/* Phase Rows */}
-        {phases.map((phase) => (
+        {phaseRow.map((phase) => (
           <div key={phase.id} className="grid grid-cols-6 md:grid-cols-7 min-w-full border-b border-gray-100 hover:bg-gray-50 transition items-center">
             {/* Project Info */}
             <div className="col-span-2 md:col-span-2 p-3 md:p-4 border-r border-gray-200">
