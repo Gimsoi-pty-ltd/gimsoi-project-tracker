@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import { useSprintStore } from "../../store/sprintStore";
+import { useProjectStore } from "../../store/projectStore";
 import { Download, TrendingUp, CheckCircle2, AlertCircle, LineChart } from "lucide-react";
+import EmptyState from "../../Components/EmptyState";
 
 export const sprintReports = [
   {
@@ -30,11 +31,12 @@ export const sprintReports = [
 ];
 
 const SprintReport = () => {
-  const { activeSprint, projects, projectSprints } = useSprintStore((state) => state);
+  const { activeSprint, projects, projectSprints } = useProjectStore((state) => state);
   const [activeTab, setActiveTab] = useState("Overview");
   const [selectedSprintId, setSelectedSprintId] = useState(activeSprint?.id);
 
   const selectedSprint = projectSprints.find(s => s.id === selectedSprintId) || activeSprint;
+  const sprintMetrics = selectedSprint?.metrics ?? {};
   
   const getStatusColor = (status) => {
     switch (status) {
@@ -58,7 +60,16 @@ const SprintReport = () => {
   };
 
   if (!selectedSprint) {
-    return <div className="p-8 text-center">No sprint data available</div>;
+    return (
+      <div className="p-6 md:p-8">
+        <EmptyState
+          title="No sprints found"
+          message="There are no sprints in this project yet. Please create a sprint on the Kanban Board or Dashboard to view sprint reports."
+          actionLabel="Go to Dashboard"
+          onAction={() => window.location.replace('/dashboard')}
+        />
+      </div>
+    );
   }
 
   return (
@@ -70,7 +81,10 @@ const SprintReport = () => {
           <h1 className="text-2xl md:text-3xl font-bold text-blue-900">Sprint Report</h1>
           <p className="text-sm text-slate-500 mt-1">{selectedSprint.name}</p>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-[#002D62] hover:bg-[#001f44] text-white rounded-lg font-medium transition-colors">
+        <button 
+          onClick={() => window.print()}
+          className="flex items-center gap-2 px-4 py-2 bg-[#002D62] hover:bg-[#001f44] text-white rounded-lg font-medium transition-colors"
+        >
           <Download size={18} />
           Download PDF
         </button>
@@ -119,7 +133,7 @@ const SprintReport = () => {
               </div>
               <div>
                 <p className="text-xs md:text-sm font-medium text-slate-500 uppercase">Velocity</p>
-                <p className="text-xl md:text-2xl font-bold text-blue-900">{selectedSprint.metrics.velocity}</p>
+                <p className="text-xl md:text-2xl font-bold text-blue-900">{sprintMetrics.velocity ?? 0}</p>
               </div>
             </div>
 
@@ -129,14 +143,14 @@ const SprintReport = () => {
               </div>
               <div>
                 <p className="text-xs md:text-sm font-medium text-slate-500 uppercase">Completion</p>
-                <p className="text-xl md:text-2xl font-bold text-emerald-900">{selectedSprint.metrics.completionPercentage}%</p>
+                <p className="text-xl md:text-2xl font-bold text-emerald-900">{sprintMetrics.completionPercentage ?? 0}%</p>
               </div>
             </div>
 
             <div className="bg-white p-5 md:p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4 hover:border-blue-200 transition-colors">
               <div className={`w-12 h-12 md:w-14 md:h-14 rounded-2xl flex items-center justify-center flex-shrink-0 ${
-                selectedSprint.metrics.deliveryRisk === 'Low' ? 'bg-green-50 text-green-900' :
-                selectedSprint.metrics.deliveryRisk === 'Medium' ? 'bg-yellow-50 text-yellow-900' :
+                sprintMetrics.deliveryRisk === 'Low' ? 'bg-green-50 text-green-900' :
+                sprintMetrics.deliveryRisk === 'Medium' ? 'bg-yellow-50 text-yellow-900' :
                 'bg-red-50 text-red-900'
               }`}>
                 <AlertCircle size={28} />
@@ -144,10 +158,10 @@ const SprintReport = () => {
               <div>
                 <p className="text-xs md:text-sm font-medium text-slate-500 uppercase">Risk</p>
                 <p className={`text-xl md:text-2xl font-bold ${
-                  selectedSprint.metrics.deliveryRisk === 'Low' ? 'text-green-900' :
-                  selectedSprint.metrics.deliveryRisk === 'Medium' ? 'text-yellow-900' :
+                  sprintMetrics.deliveryRisk === 'Low' ? 'text-green-900' :
+                  sprintMetrics.deliveryRisk === 'Medium' ? 'text-yellow-900' :
                   'text-red-900'
-                }`}>{selectedSprint.metrics.deliveryRisk}</p>
+                }`}>{sprintMetrics.deliveryRisk ?? 'Low'}</p>
               </div>
             </div>
           </div>
@@ -170,8 +184,8 @@ const SprintReport = () => {
             <h2 className="text-lg font-bold text-blue-900 mb-4">Task Summary</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
-                { label: "Total", value: selectedSprint.metrics.totalTasks, color: "bg-blue-50 text-blue-900" },
-                { label: "Completed", value: selectedSprint.metrics.completedTasks, color: "bg-emerald-50 text-emerald-900" },
+                { label: "Total", value: sprintMetrics.totalTasks ?? 0, color: "bg-blue-50 text-blue-900" },
+                { label: "Completed", value: sprintMetrics.completedTasks ?? 0, color: "bg-emerald-50 text-emerald-900" },
                 { label: "In Progress", value: selectedSprint.kanban?.inProgress || 0, color: "bg-orange-50 text-orange-900" },
                 { label: "Blocked", value: selectedSprint.kanban?.blocked || 0, color: "bg-red-50 text-red-900" },
               ].map(item => (

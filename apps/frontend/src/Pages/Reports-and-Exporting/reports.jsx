@@ -6,9 +6,9 @@ import { useProjectStore } from "../../store/projectStore";
 import EmptyState from "../../Components/EmptyState";
 
 export default function ReportsHub() {
-  const { activeSprint, activeProject } = useProjectStore((state) => state);
+  const { activeSprint, currentProject } = useProjectStore((state) => state);
 
-  if (!activeProject || !activeSprint) {
+  if (!currentProject || !activeSprint) {
     return (
       <div className="p-6 md:p-8">
         <EmptyState
@@ -33,8 +33,8 @@ export default function ReportsHub() {
     {
       name: "Project Report",
       velocity: `${metrics.avgVelocity ?? "—"} pts avg`,
-      completion: `${activeProject.progress ?? "—"}%`,
-      contribution: activeProject.status,
+      completion: `${currentProject.progress ?? "—"}%`,
+      contribution: currentProject.status,
       path: "/reports/project-report",
     },
     {
@@ -49,8 +49,8 @@ export default function ReportsHub() {
   return (
     <div className="p-4 md:p-8 space-y-6 md:space-y-8">
       <div>
-        <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-6">Reports Hub</h1>
-        <p className="text-sm text-gray-500 mt-1">{activeProject.name} · {activeSprint?.name}</p>
+        <h1 className="text-2xl md:text-3xl font-bold text-slate-900">Reports Hub</h1>
+        <p className="text-sm text-gray-500 mt-1">{currentProject.name} · {activeSprint?.name}</p>
       </div>
 
       {/* Mobile */}

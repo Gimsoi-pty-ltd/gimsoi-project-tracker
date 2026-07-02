@@ -17,6 +17,8 @@ import reportRoutes from "./routes/report.route.js";
 import searchRoutes from "./routes/search.route.js";
 import commentRoutes from "./routes/comment.route.js";
 import labelRoutes from "./routes/label.route.js";
+import activityRoutes from "./routes/activity.route.js";
+import zohoRoutes from "./routes/zoho.route.js";
 
 import { swaggerSpec } from "./lib/swagger.js";
 import swaggerUi from "swagger-ui-express";
@@ -44,7 +46,7 @@ app.set("trust proxy", 1);
 
 // CORS Configuration
 app.use(cors({
-  origin: process.env.Node_ENV === "production"
+  origin: process.env.NODE_ENV === "production"
     ? process.env.CLIENT_URL
     : "http://localhost:5173",
   credentials: true,
@@ -103,6 +105,8 @@ app.use("/api/search", searchRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/comments", commentRoutes);
 app.use("/api/labels", labelRoutes);
+app.use("/api/activity", activityRoutes);
+app.use("/api/zoho", zohoRoutes);
 
 // CSRF error handler — must be after routes
 app.use(csrfErrorHandler);

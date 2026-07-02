@@ -2,36 +2,50 @@ import { create } from "zustand";
 import { resourceAPI } from "../api/api";
 import { useProjectStore, fetchAllProjectTasks } from "./projectStore"
 
-export const useTaskStore = create((set) => ({
+export const useTaskStore = create((set, get) => ({
     tasks: [],
     currentTask: null,
     isLoading: false,
     error: null,
+    lastFetched: 0,
+    lastRateLimit: 0, // epoch ms of last 429 response
 
-    getTasks: async (filters = {}) => {
+    getTasks: async (filters = {}, retryCount = 0) => {
+        const now = Date.now();
+        const state = get();
+        // Skip if recently rate limited
+        if (state.lastRateLimit && now - state.lastRateLimit < 60000) {
+            console.warn('Skipping getTasks due to recent rate limit');
+            set({ error: 'Too many requests. Please try again later.', isLoading: false });
+            return { tasks: [] };
+        }
+        // Recently fetched within 5 minutes, reuse cached tasks
+        if (state.tasks && state.tasks.length > 0 && state.lastFetched && now - state.lastFetched < 300000) {
+          return { tasks: state.tasks };
+        }
         set({ isLoading: true, error: null });
         try {
-            let projects = useProjectStore.getState().projects;
-            if (!projects.length) {
-                await useProjectStore.getState().fetchProjects({ limit: 50 });
-                projects = useProjectStore.getState().projects;
-            }
-
-            const allTasksPerProject = await Promise.all(
-                projects.map((p) => fetchAllProjectTasks(p.id))
-            );
-            let tasks = allTasksPerProject.flat();
-
-            if (filters.status) {
-                const targetStatus = filters.status.toUpperCase();
-                tasks = tasks.filter((t) => t.status === targetStatus);
-            }
-
-            set({ tasks, isLoading: false });
-            return tasks;
+            const params = new URLSearchParams();
+            if (filters.projectId) params.append('projectId', filters.projectId);
+            if (filters.sprintId) params.append('sprintId', filters.sprintId);
+            if (filters.status) params.append('status', filters.status);
+            if (filters.overdue) params.append('overdue', filters.overdue);
+            const response = await resourceAPI.get(`/tasks${params.toString() ? `?${params.toString()}` : ''}`);
+            const now2 = Date.now();
+            set({ tasks: response.data.tasks || response.data.data || [], isLoading: false, lastFetched: now2 });
+            return response.data;
         } catch (error) {
-            set({ error: error.response?.data?.message || "Error fetching tasks", isLoading: false });
-            throw error;
+            if (error.response && error.response.status === 429) {
+                // Record rate limit timestamp
+                set({ lastRateLimit: now });
+            }
+            // Handle rate limiting gracefully without retry loops
+            const friendlyMsg = error.response && error.response.status === 429
+                ? 'Too many requests. Please try again later.'
+                : error.response?.data?.message || 'Error fetching tasks';
+            console.error('getTasks failed:', error);
+            set({ error: friendlyMsg, isLoading: false });
+            return { tasks: [] }; // Return empty list without throwing
         }
     },
 

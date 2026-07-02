@@ -1,6 +1,7 @@
 // src/Pages/Phases/Phases-of-tasks.jsx
 import React, { useState } from 'react';
 import { useProjectStore } from '../../store/projectStore';
+import ProjectForm from '../../Components/ProjectForm/ProjectForm';
 
 const statusColor = (status) => {
   switch (status) {
@@ -21,21 +22,26 @@ const statusTextColor = (status) => {
 };
 
 export default function ProjectPhasesGantt() {
-  const projects = useProjectStore((state) => state.projects ?? []);
-  const activeProject = useProjectStore((state) => state.activeProject ?? null);
-  const activeSprint = useProjectStore((state) => state.activeSprint ?? null);
+  const { projects = [], currentProject = {}, activeSprint = {}, fetchProjects } = useProjectStore((state) => state);
+  const [isFormOpen, setIsFormOpen] = useState(false);
 
-  const [showModal, setShowModal] = useState(false);
-
-  const [form, setForm] = useState({
-    project: '',
-    client: '',
-    sprint: '',
-    start: '',
-    end: '',
-    goal: '',
-    status: 'Active',
-    progress: 0,
+  // Build phases from projects — each project is a phase row
+  const phases = projects.map((project) => {
+    const sprints = project.sprints || [];
+    const sprint = sprints.find((s) => s.id === project.activeSprint) ?? sprints[sprints.length - 1];
+    return {
+      id: project.id,
+      project: project.name,
+      client: project.client?.name ?? '—',
+      assignee: sprint?.tasks?.[0]?.assignee ?? '—',
+      status: project.status,
+      progress: project.progress,
+      color: statusColor(project.status),
+      start: sprint?.startDate ?? '—',
+      end: sprint?.endDate ?? '—',
+      sprint: sprint?.name ?? '—',
+      goal: sprint?.goal ?? '—',
+    };
   });
 
   const [localPhases, setLocalPhases] = useState([]);
@@ -107,17 +113,14 @@ export default function ProjectPhasesGantt() {
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:justify-between md:items-center mb-6 md:mb-8">
         <div>
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-6">Phases</h1>
-          <p className="text-xs md:text-sm text-gray-500 mt-1">
-            Track project progress and timelines · Active project:{' '}
-            <span className="font-medium text-blue-600">{activeProject?.name ?? '—'}</span>
-          </p>
+          <h1 className="text-xl md:text-2xl font-bold text-gray-800">Phases</h1>
+          <p className="text-xs md:text-sm text-gray-500 mt-1">Track project progress and timelines · Active project: <span className="font-medium text-blue-600">{currentProject?.name || "None"}</span></p>
         </div>
-        <button
-          onClick={() => setShowModal(true)}
-          className="bg-[#002D62] text-white px-4 py-2 rounded-lg hover:bg-[#001f44] transition shadow-sm whitespace-nowrap"
+        <button 
+          onClick={() => setIsFormOpen(true)}
+          className="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition shadow-sm whitespace-nowrap"
         >
-          + New Phase
+          + New Project
         </button>
       </div>
 
@@ -177,7 +180,7 @@ export default function ProjectPhasesGantt() {
 
       {/* Table */}
       <div className="mt-4 md:mt-6 bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-5">
-        <h2 className="font-semibold text-gray-800 mb-3 text-base md:text-lg">Active Sprint — {activeProject?.name}</h2>
+        <h2 className="font-semibold text-gray-800 mb-3 text-base md:text-lg">Active Sprint — {currentProject?.name || "No Project"}</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 text-sm">
           <div className="bg-gray-50 rounded-lg p-3">
             <p className="text-gray-500 text-xs uppercase tracking-wide mb-1">Sprint</p>
@@ -231,86 +234,13 @@ export default function ProjectPhasesGantt() {
           </div>
         ))}
       </div>
-
-      {/* MODAL */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center">
-          <div className="bg-white p-6 rounded-xl w-[400px]">
-
-            <h2 className="text-lg font-bold mb-4">Create New Phase</h2>
-
-            <input
-              name="project"
-              placeholder="Project Name"
-              className="w-full border p-2 mb-2"
-              onChange={handleChange}
-            />
-
-            <input
-              name="client"
-              placeholder="Client"
-              className="w-full border p-2 mb-2"
-              onChange={handleChange}
-            />
-
-            <input
-              name="sprint"
-              placeholder="Sprint"
-              className="w-full border p-2 mb-2"
-              onChange={handleChange}
-            />
-
-            <input
-              name="start"
-              type="date"
-              className="w-full border p-2 mb-2"
-              onChange={handleChange}
-            />
-
-            <input
-              name="end"
-              type="date"
-              className="w-full border p-2 mb-2"
-              onChange={handleChange}
-            />
-
-            <input
-              name="goal"
-              placeholder="Goal"
-              className="w-full border p-2 mb-2"
-              onChange={handleChange}
-            />
-
-            <select
-              name="status"
-              className="w-full border p-2 mb-4"
-              onChange={handleChange}
-            >
-              <option>Active</option>
-              <option>Completed</option>
-              <option>On Hold</option>
-            </select>
-
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => setShowModal(false)}
-                className="px-3 py-1 border rounded"
-              >
-                Cancel
-              </button>
-
-              <button
-                onClick={handleSave}
-                className="px-3 py-1 bg-[#002D62] text-white rounded"
-              >
-                Save
-              </button>
-            </div>
-
-          </div>
-        </div>
-      )}
-
+      <ProjectForm 
+        isOpen={isFormOpen} 
+        onClose={() => setIsFormOpen(false)}
+        onSuccess={() => {
+          fetchProjects();
+        }}
+      />
     </div>
   );
 }

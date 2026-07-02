@@ -4,20 +4,35 @@ import { resourceAPI } from "../api/api";
 export const useSprintStore = create((set) => ({
     sprints: [],
     currentSprint: null,
+    burndownData: [],
     isLoading: false,
     error: null,
 
+    fetchSprintBurndown: async (sprintId) => {
+        set({ isLoading: true, error: null });
+        try {
+            const response = await resourceAPI.get(`/sprints/${sprintId}/burndown`);
+            set({ burndownData: response.data.data || [], isLoading: false });
+            return response.data;
+        } catch (error) {
+            set({ error: error.response?.data?.message || 'Error fetching burndown data', isLoading: false });
+            throw error;
+        }
+    },
+
     getSprints: async (filters = {}) => {
         set({ isLoading: true, error: null });
-        setTimeout(() => {
-            set({ 
-                sprints: [
-                    { id: 201, name: "Sprint 4", status: "active", currentPhase: 'Development', phaseProgress: 75, phaseStatus: 'On Track', startDate: new Date(Date.now() - 5*86400000).toISOString(), endDate: new Date(Date.now() + 9*86400000).toISOString(), completedPoints: 12, totalPoints: 40 },
-                    { id: 202, name: "Sprint 3", status: "completed", currentPhase: 'Testing', phaseProgress: 100, phaseStatus: 'Completed', startDate: "2023-09-01", endDate: "2023-09-15", completedPoints: 38, totalPoints: 40 }
-                ], 
-                isLoading: false 
-            });
-        }, 500);
+        try {
+            const params = new URLSearchParams();
+            if (filters.projectId) params.append('projectId', filters.projectId);
+            if (filters.status) params.append('status', filters.status);
+            const response = await resourceAPI.get(`/sprints${params.toString() ? `?${params.toString()}` : ''}`);
+            set({ sprints: response.data.sprints || response.data.data || [], isLoading: false });
+            return response.data;
+        } catch (error) {
+            set({ error: error.response?.data?.message || 'Error fetching sprints', isLoading: false });
+            throw error;
+        }
     },
 
     createSprint: async (sprintData) => {
