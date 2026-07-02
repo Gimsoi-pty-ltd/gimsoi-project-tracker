@@ -4,6 +4,7 @@ import { resourceAPI } from "../api/api";
 const STATUS_UI = {
     TODO: "todo",
     IN_PROGRESS: "inProgress",
+    REVIEW: "review",
     DONE: "done",
     BLOCKED: "blocked",
     CANCELLED: "cancelled",
@@ -123,9 +124,11 @@ function mapTaskForDashboard(task) {
         priority: PRIORITY_UI[task.priority] || task.priority,
         assignee: task.assignee?.fullName || "Unassigned",
         dueDate: task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "—",
-        storyPoints: null,
+        storyPoints: task.storyPoints,
         tag: task.labels?.[0]?.name || "—",
         tagColor: "bg-gray-100 text-gray-600",
+        version: task.version,
+        description: task.description,
     };
 }
 
@@ -141,11 +144,11 @@ function buildActiveSprintView(sprint, projectTasks, velocity, avgVelocity) {
             ...computeSprintMetrics(sprintTasks),
             velocity,
             avgVelocity,
-            sprintGoal: null,
+            sprintGoal: sprint.goal,
         },
         kanban: buildKanbanCounts(sprintTasks),
         tasks: sprintTasks
-            .filter((t) => t.status !== "DONE" && t.status !== "CANCELLED")
+            .filter((t) => t.status !== "CANCELLED")
             .map(mapTaskForDashboard),
     };
 }
@@ -172,16 +175,26 @@ const applySprintSelection = async (sprint, projectTasks, projectSprints) => {
     const avgVelocity = previous ? await fetchSprintVelocity(previous.id) : 0;
     const sprintTasks = projectTasks.filter((t) => t.sprintId === sprint.id);
 
+    const calendarEvents = projectTasks
+        .filter((t) => t.dueDate)
+        .map((t) => ({
+            id: t.id,
+            title: t.title,
+            date: new Date(t.dueDate).toISOString().split("T")[0],
+            type: "task",
+            time: "",
+        }));
+
     return {
         activeSprint: buildActiveSprintView(sprint, projectTasks, velocity, avgVelocity),
         dashboardData: buildDashboardCharts(sprintTasks),
+        calendarEvents,
     };
 };
 
 export const useProjectStore = create((set, get) => ({
     projects: [],
     currentProject: null,
-    activeProject: null,
     projectProgress: null,
     isLoading: false,
     error: null,
@@ -189,27 +202,129 @@ export const useProjectStore = create((set, get) => ({
     activeSprint: null,
     projectSprints: [],
     projectTasks: [],
+    calendarEvents: [],
+    documents: [],
     dashboardData: emptyDashboardData,
     dashboardLoading: false,
     dashboardError: null,
 
+    fetchDocuments: async (projectId) => {
+        set({ isLoading: true, error: null });
+        try {
+            const pid = projectId || get().currentProject?.id;
+            const params = pid ? `?projectId=${pid}` : "";
+            
+            const [aiRes, teamRes] = await Promise.all([
+                resourceAPI.get(`/analytics/ai-context${params}`).catch(() => ({ data: {} })),
+                resourceAPI.get(`/analytics/team`).catch(() => ({ data: {} })),
+            ]);
+
+            const aiData = aiRes.data || {};
+            const teamData = teamRes.data || {};
+
+            const docs = [
+                {
+                    id: "ai-context-doc",
+                    title: `AI Project Analytics Context - ${new Date(aiData.generated_at || Date.now()).toLocaleDateString()}`,
+                    createdBy: "AI Analytics System",
+                    status: "approved",
+                    updatedDate: new Date(aiData.generated_at || Date.now()).toLocaleDateString(),
+                    createdDate: new Date(aiData.generated_at || Date.now()).toLocaleDateString(),
+                    type: "architecture",
+                    content: JSON.stringify(aiData.data || {}, null, 2),
+                },
+                {
+                    id: "team-performance-doc",
+                    title: `Team Velocity & Performance Metrics`,
+                    createdBy: "System Reporter",
+                    status: "approved",
+                    updatedDate: new Date().toLocaleDateString(),
+                    createdDate: new Date().toLocaleDateString(),
+                    type: "api-docs",
+                    content: JSON.stringify(teamData.data || {}, null, 2),
+                },
+                {
+                    id: "arch-blueprint",
+                    title: "System Architecture Blueprint",
+                    createdBy: "Lead Architect",
+                    status: "approved",
+                    updatedDate: "2026-06-01",
+                    createdDate: "2026-06-01",
+                    type: "architecture",
+                    content: "Core microservice topology and layout",
+                },
+                {
+                    id: "db-schema-doc",
+                    title: "Database Schema Documentation",
+                    createdBy: "Database Administrator",
+                    status: "approved",
+                    updatedDate: "2026-06-05",
+                    createdDate: "2026-06-05",
+                    type: "schema",
+                    content: "Prisma schema reference for Gimsoi tracker",
+                }
+            ];
+
+            set({ documents: docs, isLoading: false });
+        } catch (error) {
+            set({ error: "Failed to fetch documents", isLoading: false });
+        }
+    },
+
+    createDocument: async (newDoc) => {
+        set((state) => {
+            const doc = {
+                id: Math.random().toString(36).substring(2, 9),
+                title: newDoc.title,
+                createdBy: "Current User",
+                status: "draft",
+                updatedDate: new Date().toLocaleDateString(),
+                createdDate: new Date().toLocaleDateString(),
+                type: newDoc.type,
+                content: "",
+            };
+            return { documents: [doc, ...state.documents] };
+        });
+    },
+
+    deleteDocument: async (id) => {
+        set((state) => ({
+            documents: state.documents.filter((d) => d.id !== id)
+        }));
+    },
+
     fetchDashboard: async (projectId) => {
         set({ dashboardLoading: true, dashboardError: null });
         try {
+            if (!get().projects.length) {
+                await get().fetchProjects({ limit: 50 });
+            }
+
             let pid = projectId || get().currentProject?.id;
+            
             if (!pid) {
-                if (!get().projects.length) {
-                    await get().fetchProjects({ limit: 50 });
-                }
+                const savedPid = localStorage.getItem('gimsoi_active_project_id');
+                if (savedPid) pid = savedPid;
+            }
+
+            const projectExists = get().projects.some((p) => p.id === pid);
+            if (!pid || !projectExists) {
                 pid = get().projects[0]?.id;
             }
+
+            if (pid) {
+                localStorage.setItem('gimsoi_active_project_id', pid);
+            }
+
             if (!pid) {
                 set({
                     dashboardLoading: false,
-                    dashboardError: "No projects found",
+                    dashboardError: null,
                     activeSprint: null,
+                    currentProject: null,
                     projectSprints: [],
                     projectTasks: [],
+                    calendarEvents: [],
                     dashboardData: emptyDashboardData,
                 });
                 return;
@@ -217,8 +332,8 @@ export const useProjectStore = create((set, get) => ({
 
             const project = get().projects.find((p) => p.id === pid);
             if (project) {
-                set({ currentProject: project, activeProject: project });
-            } else if (get().currentProject?.id !== pid) {
+                set({ currentProject: project });
+            } else {
                 await get().getProjectById(pid);
             }
 
@@ -230,12 +345,22 @@ export const useProjectStore = create((set, get) => ({
             const projectSprints = sprintsRes.data.data || [];
             const defaultSprint = pickDefaultSprint(projectSprints);
 
+            const calendarEventsFallback = projectTasks
+                .filter((t) => t.dueDate)
+                .map((t) => ({
+                    id: t.id,
+                    title: t.title,
+                    date: new Date(t.dueDate).toISOString().split("T")[0],
+                    type: "task",
+                    time: "",
+                }));
+
             if (!defaultSprint) {
                 set({
                     currentProject: get().currentProject || { id: pid },
-                    activeProject: get().currentProject || { id: pid },
                     projectSprints,
                     projectTasks,
+                    calendarEvents: calendarEventsFallback,
                     activeSprint: null,
                     dashboardData: emptyDashboardData,
                     dashboardLoading: false,
@@ -243,7 +368,7 @@ export const useProjectStore = create((set, get) => ({
                 return;
             }
 
-            const { activeSprint, dashboardData } = await applySprintSelection(
+            const { activeSprint, dashboardData, calendarEvents } = await applySprintSelection(
                 defaultSprint,
                 projectTasks,
                 projectSprints
@@ -254,6 +379,7 @@ export const useProjectStore = create((set, get) => ({
                 projectTasks,
                 activeSprint,
                 dashboardData,
+                calendarEvents,
                 dashboardLoading: false,
             });
         } catch (error) {
@@ -313,8 +439,7 @@ export const useProjectStore = create((set, get) => ({
         set({ isLoading: true, error: null });
         try {
             const response = await resourceAPI.get(`/projects/${id}`);
-            const project = response.data.project || response.data;
-            set({ currentProject: project, activeProject: project, isLoading: false });
+            set({ currentProject: response.data.project || response.data, isLoading: false });
             return response.data;
         } catch (error) {
             set({ error: error.response?.data?.message || "Error fetching project", isLoading: false });
@@ -341,11 +466,9 @@ export const useProjectStore = create((set, get) => ({
         set({ isLoading: true, error: null });
         try {
             const response = await resourceAPI.patch(`/projects/${id}`, projectData);
-            const project = response.data.project || response.data;
             set((state) => ({
-                projects: state.projects.map((existingProject) => (existingProject.id === id ? project : existingProject)),
-                currentProject: project,
-                activeProject: project,
+                projects: state.projects.map((project) => (project.id === id ? response.data.project || response.data : project)),
+                currentProject: response.data.project || response.data,
                 isLoading: false,
             }));
             return response.data;
@@ -383,17 +506,33 @@ export const useProjectStore = create((set, get) => ({
         }
     },
 
-    setCurrentProject: (project) => set({ currentProject: project, activeProject: project }),
+    setCurrentProject: (project) => set({ currentProject: project }),
 
     switchProject: async (projectId) => {
         const project = get().projects.find((p) => p.id === projectId);
         if (project) {
-            set({ currentProject: project, activeProject: project });
+            set({ currentProject: project });
+            localStorage.setItem('gimsoi_active_project_id', projectId);
         }
         await get().fetchDashboard(projectId);
     },
 
-    clearCurrentProject: () => set({ currentProject: null, activeProject: null }),
+    addCalendarEvent: (event) => {
+        set((state) => ({
+            calendarEvents: [
+                ...state.calendarEvents,
+                {
+                    id: event.id || Math.random().toString(36).substring(2, 9),
+                    title: event.title,
+                    date: event.date,
+                    type: event.type,
+                    time: event.time || "",
+                }
+            ]
+        }));
+    },
+
+    clearCurrentProject: () => set({ currentProject: null }),
     clearError: () => set({ error: null }),
     clearDashboardError: () => set({ dashboardError: null }),
 }));

@@ -1,11 +1,20 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Info } from "lucide-react";
 import { useProjectStore } from "../../store/projectStore";
+import { useSprintStore } from "../../store/sprintStore";
 
 export default function BurnDownCard() {
   const [showInfo, setShowInfo] = useState(false);
   const activeSprint = useProjectStore((state) => state.activeSprint);
-  const burndown = useProjectStore((state) => state.dashboardData?.charts?.burndown ?? []);
+  const fetchSprintBurndown = useSprintStore((state) => state.fetchSprintBurndown);
+  const burndownRaw = useSprintStore((state) => state.burndownData);
+  const burndown = burndownRaw || [];
+
+  useEffect(() => {
+    if (activeSprint?.id) {
+      fetchSprintBurndown(activeSprint.id).catch(console.error);
+    }
+  }, [activeSprint?.id, fetchSprintBurndown]);
 
   const startDate = activeSprint?.startDate
     ? new Date(activeSprint.startDate).toLocaleDateString()

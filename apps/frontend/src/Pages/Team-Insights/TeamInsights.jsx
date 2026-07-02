@@ -6,37 +6,34 @@ import { useProjectStore } from "../../store/projectStore";
 
 
 function TeamInsights() {
-  const activeSprint  = useProjectStore((state) => state.activeSprint);
-  const activeProject = useProjectStore((state) => state.activeProject ?? state.currentProject);
+  const { activeSprint, currentProject, projects = [] } = useProjectStore((state) => state);
+
+  if (!currentProject) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 text-gray-500">
+        <Users size={48} className="mb-4 text-gray-300" />
+        <h2 className="text-xl font-semibold text-gray-700">No Active Project</h2>
+        <p className="text-sm mt-1 text-gray-400">Please select or create a project to view team insights.</p>
+      </div>
+    );
+  }
+
   const metrics = activeSprint?.metrics ?? {};
   const tasks   = activeSprint?.tasks ?? [];
-  const rawTeam = activeProject?.team ?? activeProject?.teamMembers ?? [];
-
-  const teamMembers = Array.isArray(rawTeam)
-    ? rawTeam.map((item, i) => {
-        const name = typeof item === 'string' ? item : item?.fullName || item?.name || 'Team Member';
-        const displayName = name.split('(')[0]?.trim() || 'Team Member';
-        const firstName = displayName.split(' ')[0] || 'Member';
-        return {
-          id: i,
-          name: displayName,
-          firstName,
-          initials: displayName.split(' ').map((n) => n[0] || '').join('').toUpperCase().slice(0, 2) || '?',
-          jobTitle: typeof item === 'string'
-            ? item.includes('(')
-              ? item.match(/\(([^)]+)\)/)?.[1] || 'Developer'
-              : 'Developer'
-            : item?.role || item?.jobTitle || 'Developer',
-        };
-      })
-    : [];
+  const teamMembers = (currentProject?.team || []).map((name, i) => ({
+    id: i,
+    name: name.split('(')[0]?.trim() || 'Team Member',
+    firstName: name.split('(')[0]?.trim().split(' ')[0] || 'Member',
+    initials: name.split('(')[0]?.trim().split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || '?',
+    jobTitle: name.includes('(') ? name.match(/\(([^)]+)\)/)?.[1] || 'Developer' : 'Developer',
+  }));
 
   const memberStats = teamMembers.map((member) => {
     const firstName      = member.name.split(" ")[0];
-    const memberTasks    = tasks.filter((t) => (t.assignee || "").split(" ")[0] === firstName);
-    const completed      = memberTasks.filter((t) => (t.status || "").toUpperCase() === "DONE").length;
-    const velocity       = memberTasks.filter((t) => (t.status || "").toUpperCase() === "DONE").reduce((sum, t) => sum + (t.storyPoints || 0), 0);
-    const active         = memberTasks.filter((t) => (t.status || "").toUpperCase() !== "DONE").length;
+    const memberTasks    = tasks.filter((t) => t.assignee === firstName);
+    const completed      = memberTasks.filter((t) => t.status === "done").length;
+    const velocity       = memberTasks.filter((t) => t.status === "done").reduce((sum, t) => sum + t.storyPoints, 0);
+    const active         = memberTasks.filter((t) => t.status !== "done").length;
     return { ...member, firstName, velocity, completed, active };
   });
 
@@ -60,8 +57,10 @@ function TeamInsights() {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <div className="px-4 sm:px-6 lg:px-8 pb-6 md:pb-8">
         <div className="py-6 md:py-8">
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-6">Team Insights</h1>
-          <p className="text-xs md:text-sm text-gray-500 mt-1">{activeProject?.name} {activeSprint?.name}  {activeSprint?.goal}</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-800 tracking-tight">Team Insights</h1>
+          <p className="text-xs md:text-sm text-gray-500 mt-1">
+            {currentProject?.name || "No Project"} · {activeSprint?.name || "No Active Sprint"} · {activeSprint?.goal || "No Goal Set"}
+          </p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
@@ -117,7 +116,7 @@ function TeamInsights() {
                 {[
                   { label: "Completed Tasks", value: metrics.completedTasks ?? "—", icon: <CheckCircle size={16} className="text-green-600" /> },
                   { label: "In Progress",     value: activeSprint?.kanban?.inProgress ?? "—", icon: <Activity size={16} className="text-blue-600" /> },
-                  { label: "Blocked",         value: activeSprint?.blocked?.length ?? 0, icon: <Clock size={16} className="text-orange-600" /> },
+                  { label: "Blocked",         value: activeSprint?.kanban?.blocked ?? 0, icon: <Clock size={16} className="text-orange-600" /> },
                   { label: "Delivery Risk",   value: metrics.deliveryRisk ?? "—", icon: <Clock size={16} className="text-red-500" /> },
                 ].map(({ label, value, icon }) => (
                   <li key={label} className="flex justify-between items-center bg-gray-50 p-3 rounded-lg hover:bg-gray-100 transition">

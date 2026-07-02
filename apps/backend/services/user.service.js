@@ -20,6 +20,8 @@ const SAFE_USER_SELECT = {
   createdAt: true,
   updatedAt: true,
   version: true,
+  jobTitle: true,
+  phone: true,
 };
 
 /**

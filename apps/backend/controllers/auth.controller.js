@@ -110,6 +110,47 @@ export const verifyEmail = async (req, res) => {
     }
 };
 
+export const resendVerification = async (req, res) => {
+    const { email } = req.body;
+
+    if (!email) {
+        return res.status(400).json({ success: false, message: "Email is required" });
+    }
+
+    try {
+        const user = await prisma.user.findUnique({ where: { email } });
+
+        if (!user || user.isVerified) {
+            return res.status(200).json({
+                success: true,
+                message: "If your email is registered and unverified, a new code has been sent.",
+            });
+        }
+
+        const verificationToken = crypto.randomInt(100000, 999999).toString();
+        const verificationTokenExpiresAt = new Date(Date.now() + 15 * 60 * 1000);
+
+        await prisma.user.update({
+            where: { id: user.id },
+            data: {
+                verificationToken,
+                verificationTokenExpiresAt,
+            },
+        });
+
+        sendVerificationEmail(user.email, verificationToken)
+            .catch(err => console.error("Failed to resend verification email:", err));
+
+        res.status(200).json({
+            success: true,
+            message: "If your email is registered and unverified, a new code has been sent.",
+        });
+    } catch (error) {
+        console.log("Error in resendVerification ", error);
+        res.status(500).json({ success: false, message: "Server error" });
+    }
+};
+
 export const login = async (req, res) => {
     const { email, password } = req.body;
 
@@ -273,3 +314,37 @@ export const checkAuth = async (req, res) => {
         res.status(400).json({ success: false, message: error.message });
     }
 };
+
+export const changePassword = async (req, res, next) => {
+    try {
+        const { currentPassword, newPassword } = req.body;
+        const userId = req.user.id;
+
+        const user = await prisma.user.findUnique({
+            where: { id: userId }
+        });
+
+        if (!user) {
+            return res.status(401).json({ success: false, message: "User not found" });
+        }
+
+        const isPasswordCorrect = await bcryptjs.compare(currentPassword, user.password);
+        if (!isPasswordCorrect) {
+            return res.status(401).json({ success: false, message: "Incorrect current password" });
+        }
+
+        const hashedPassword = await bcryptjs.hash(newPassword, 10);
+        await prisma.user.update({
+            where: { id: userId },
+            data: { password: hashedPassword }
+        });
+
+        return res.status(200).json({
+            success: true,
+            message: "Password updated successfully"
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+

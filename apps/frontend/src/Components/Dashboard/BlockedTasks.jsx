@@ -1,52 +1,38 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { resourceAPI } from '../../api/api';
 
 const BlockedTasks = () => {
-    // Task data array
-    const tasks = [
-        {
-            id: "b1",
-            name: "Waiting on Data from Backend",
-            date: "Thu, Dec 23",
-            severity: "high",
-            avatarUrl: "https://i.pravatar.cc/100?img=5",
-        },
-        {
-            id: "b1",
-            name: "Waiting on Data from Backend",
-            date: "Thu, Dec 23",
-            severity: "low",
-            avatarUrl: "https://i.pravatar.cc/100?img=14",
-        },
-        {
-            id: "b1",
-            name: "Waiting on Data from Backend",
-            date: "Thu, Dec 23",
-            severity: "high",
-            avatarUrl: "https://i.pravatar.cc/100?img=1",
-        },
-        {
-            id: "b2",
-            name: "Security Review",
-            date: "Mon, Dec 15",
-            severity: "medium",
-            avatarUrl: "https://i.pravatar.cc/100?img=9",
-        },
-        {
-            id: "b3",
-            name: "Priority Conflict",
-            date: "Wed, Dec 15",
-            severity: "medium",
-            avatarUrl: "https://i.pravatar.cc/100?img=24",
-        },
-        {
-            id: "b4",
-            name: "Priority Conflict",
-            date: "Thur, Oct 23",
-            severity: "high",
-            avatarUrl: "https://i.pravatar.cc/100?img=10",
-        },
-    ];
+    const [tasks, setTasks] = useState([]);
+    const [isLoading, setIsLoading] = useState(false);
+
+    useEffect(() => {
+        const fetchBlockedTasks = async () => {
+            setIsLoading(true);
+            try {
+                // Fetch tasks with status BLOCKED
+                const response = await resourceAPI.get('/tasks?status=BLOCKED');
+                // The API might return tasks under different keys depending on pagination
+                const tasksData = response.data?.tasks || response.data?.data || [];
+                
+                // Map the API response to the format needed by the component
+                const mappedTasks = tasksData.slice(0, 6).map(t => ({
+                    id: t.id,
+                    name: t.title,
+                    date: t.dueDate ? new Date(t.dueDate).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }) : 'No Due Date',
+                    severity: t.priority === 'CRITICAL' || t.priority === 'HIGH' ? 'high' : 'medium', // fallback mapping
+                    avatarUrl: t.assignee?.avatarUrl || "https://i.pravatar.cc/100?img=12" // Fallback avatar
+                }));
+                setTasks(mappedTasks);
+            } catch (error) {
+                console.error("Failed to fetch blocked tasks", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchBlockedTasks();
+    }, []);
 
     return (
         <Link to="/tasks/blocked" className="block h-full no-underline">
@@ -58,41 +44,47 @@ const BlockedTasks = () => {
 
             {/* List Container */}
             <ul className="divide-y divide-gray-100">
-                {tasks.map((task, index) => (
-                    <li key={`${task.id}-${index}`} className="py-3 flex items-center gap-4 group">
+                {isLoading ? (
+                    <li className="py-3 text-center text-gray-500 text-sm">Loading...</li>
+                ) : tasks.length === 0 ? (
+                    <li className="py-3 text-center text-gray-500 text-sm">No blocked tasks!</li>
+                ) : (
+                    tasks.map((task, index) => (
+                        <li key={`${task.id}-${index}`} className="py-3 flex items-center gap-4 group">
 
-                        {/* Severity Icon */}
-                        <div
-                            className={`h-10 w-10 rounded-xl flex items-center justify-center text-white font-bold text-xl flex-shrink-0 transition-all shadow-sm ${task.severity === "high" ? "bg-red-500 shadow-red-100" : "bg-orange-400 shadow-orange-100"
-                                }`}
-                        >
-                            {task.severity === "high" ? "!" : "i"}
-                        </div>
-
-                        {/* Content Area */}
-                        <div className="min-w-0 flex-1">
-                            <p
-                                className={`font-bold text-[16px] truncate mb-0.5 ${task.severity === "high" ? "text-red-600" : "text-orange-600"
+                            {/* Severity Icon */}
+                            <div
+                                className={`h-10 w-10 rounded-xl flex items-center justify-center text-white font-bold text-xl flex-shrink-0 transition-all shadow-sm ${task.severity === "high" ? "bg-red-500 shadow-red-100" : "bg-orange-400 shadow-orange-100"
                                     }`}
-                                title={task.name}
                             >
-                                {task.name}
-                            </p>
-                            <p className="text-[12px] text-gray-400 font-bold uppercase tracking-widest">
-                                {task.date}
-                            </p>
-                        </div>
+                                {task.severity === "high" ? "!" : "i"}
+                            </div>
 
-                        {/* Assignee Avatar */}
-                        <div className="flex-shrink-0">
-                            <img
-                                src={task.avatarUrl}
-                                alt="Assignee"
-                                className="h-9 w-9 rounded-lg object-cover border-2 border-white shadow-md group-hover:scale-110 transition-transform"
-                            />
-                        </div>
-                    </li>
-                ))}
+                            {/* Content Area */}
+                            <div className="min-w-0 flex-1">
+                                <p
+                                    className={`font-bold text-[16px] truncate mb-0.5 ${task.severity === "high" ? "text-red-600" : "text-orange-600"
+                                        }`}
+                                    title={task.name}
+                                >
+                                    {task.name}
+                                </p>
+                                <p className="text-[12px] text-gray-400 font-bold uppercase tracking-widest">
+                                    {task.date}
+                                </p>
+                            </div>
+
+                            {/* Assignee Avatar */}
+                            <div className="flex-shrink-0">
+                                <img
+                                    src={task.avatarUrl}
+                                    alt="Assignee"
+                                    className="h-9 w-9 rounded-lg object-cover border-2 border-white shadow-md group-hover:scale-110 transition-transform"
+                                />
+                            </div>
+                        </li>
+                    ))
+                )}
             </ul>
         </section>
         </Link>

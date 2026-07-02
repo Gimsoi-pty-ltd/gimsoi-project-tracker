@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { 
   Plus, 
   FileText, 
@@ -6,11 +6,11 @@ import {
   Filter,
   Download,
   Share2,
-  MoreVertical
+  Trash2
 } from "lucide-react";
 import { useProjectStore } from "../../store/projectStore";
 
-const DocumentRow = ({ doc, Icon = FileText }) => {
+const DocumentRow = ({ doc, Icon = FileText, onDelete }) => {
   return (
     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 px-4 md:px-6 py-4 hover:bg-gray-50 transition group">
       <div className="flex items-center gap-3 flex-1">
@@ -31,15 +31,15 @@ const DocumentRow = ({ doc, Icon = FileText }) => {
           {doc.status === 'approved' ? '✓ Approved' : doc.status === 'in-review' ? 'In Review' : 'Draft'}
         </span>
         <span className="text-xs md:text-sm text-gray-500 whitespace-nowrap">{doc.updatedDate}</span>
-        <button className="p-2 opacity-0 group-hover:opacity-100 transition text-gray-400 hover:text-gray-600">
-          <MoreVertical size={18} />
+        <button onClick={() => onDelete(doc.id)} className="p-2 opacity-0 group-hover:opacity-100 transition text-red-400 hover:text-red-600 cursor-pointer" title="Delete document">
+          <Trash2 size={18} />
         </button>
       </div>
     </div>
   );
 };
 
-const SectionCard = ({ title, documents }) => {
+const SectionCard = ({ title, documents, onDelete }) => {
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
       <div className="px-6 py-4 border-b border-gray-200">
@@ -47,7 +47,7 @@ const SectionCard = ({ title, documents }) => {
       </div>
       <div className="divide-y divide-gray-200">
         {documents.length > 0 ? (
-          documents.map(doc => <DocumentRow key={doc.id} doc={doc} />)
+          documents.map(doc => <DocumentRow key={doc.id} doc={doc} onDelete={onDelete} />)
         ) : (
           <div className="px-6 py-8 text-center text-gray-500">
             No documents yet
@@ -59,11 +59,15 @@ const SectionCard = ({ title, documents }) => {
 };
 
 const DocumentsPage = () => {
-  const { documents = [], projects = [] } = useProjectStore((state) => state);
+  const { documents = [], projects = [], fetchDocuments, createDocument, deleteDocument, currentProject } = useProjectStore((state) => state);
   const [filterType, setFilterType] = useState('All');
   const [sortBy, setSortBy] = useState('updated');
   const [showNewDocModal, setShowNewDocModal] = useState(false);
   const [newDoc, setNewDoc] = useState({ title: '', type: 'documentation', projectId: '' });
+
+  useEffect(() => {
+    fetchDocuments();
+  }, [fetchDocuments, currentProject]);
 
   // Group documents by type
   const documentsByType = useMemo(() => {
@@ -93,11 +97,12 @@ const DocumentsPage = () => {
 
   const handleAddDocument = () => {
     if (newDoc.title && newDoc.projectId) {
-      console.log("Document added:", newDoc);
+      createDocument(newDoc);
       setShowNewDocModal(false);
       setNewDoc({ title: '', type: 'documentation', projectId: '' });
     }
   };
+
 
   return (
     <div className="bg-gray-50 min-h-screen p-4 md:p-8">
@@ -131,16 +136,16 @@ const DocumentsPage = () => {
           <div className="md:col-span-2 space-y-6">
             {filterType === 'All' ? (
               <>
-                <SectionCard title="All Documents" documents={documentsByType.all} />
+                <SectionCard title="All Documents" documents={documentsByType.all} onDelete={deleteDocument} />
               </>
             ) : filterType === 'Architecture' ? (
-              <SectionCard title="Architecture Documents" documents={documentsByType.architecture} />
+              <SectionCard title="Architecture Documents" documents={documentsByType.architecture} onDelete={deleteDocument} />
             ) : filterType === 'API' ? (
-              <SectionCard title="API Documentation" documents={documentsByType['api-docs']} />
+              <SectionCard title="API Documentation" documents={documentsByType['api-docs']} onDelete={deleteDocument} />
             ) : filterType === 'Guidelines' ? (
-              <SectionCard title="Guidelines" documents={documentsByType.guidelines} />
+              <SectionCard title="Guidelines" documents={documentsByType.guidelines} onDelete={deleteDocument} />
             ) : (
-              <SectionCard title="Database Schema" documents={documentsByType.schema} />
+              <SectionCard title="Database Schema" documents={documentsByType.schema} onDelete={deleteDocument} />
             )}
           </div>
 

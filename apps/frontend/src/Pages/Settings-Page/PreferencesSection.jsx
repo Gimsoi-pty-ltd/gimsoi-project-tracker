@@ -7,9 +7,10 @@ export default function PreferencesSection() {
   const [darkMode, setDarkMode] = useState(false);
 
   const handleThemeChange = () => {
-    const nextMode = !darkMode;
-    setDarkMode(nextMode);
-    addActivityLog?.(`Changed theme to ${nextMode ? "dark" : "light"} mode`);
+    setDarkMode(!darkMode);
+    if (addActivityLog) {
+      addActivityLog(`Changed theme to ${!darkMode ? 'dark' : 'light'} mode`);
+    }
   };
 
   return (

@@ -74,7 +74,7 @@ function LoginPage() {
                         </div>
 
                         <div className="text-right">
-                            <Link to="/forgot-password" title="Coming soon!" className="text-xs text-[#002D62] font-semibold hover:underline">Forgot Password?</Link>
+                            <Link to="/forgot-password" className="text-xs text-[#002D62] font-semibold hover:underline">Forgot Password?</Link>
                         </div>
 
                         {error && <p className="text-red-500 font-semibold mt-2 text-center text-sm">{error}</p>}

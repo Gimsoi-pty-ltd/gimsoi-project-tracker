@@ -100,218 +100,203 @@ function App() {
   if (isCheckingAuth) return <div className="loading">Loading...</div>;
 
   return (
-    <Router>
+    <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <Suspense fallback={<div className="min-h-screen grid place-items-center text-slate-600">Loading...</div>}>
         <Routes>
           {/* === AUTH ROUTES  === */}
           <Route path="/login" element={
-            <RedirectAuthenticatedUser>
-              <LoginPage />
-            </RedirectAuthenticatedUser>
-          } />
+          <RedirectAuthenticatedUser>
+            <LoginPage />
+          </RedirectAuthenticatedUser>
+        } />
 
-          <Route path="/signup" element={
-            <RedirectAuthenticatedUser>
-              <SignUpPage />
-            </RedirectAuthenticatedUser>
-          } />
+        <Route path="/signup" element={
+          <RedirectAuthenticatedUser>
+            <SignUpPage />
+          </RedirectAuthenticatedUser>
+        } />
 
-          <Route path="/verify-email" element={<EmailVerification />} />
+        <Route path="/verify-email" element={<EmailVerification />} />
 
-          <Route path="/forgot-password" element={
-            <RedirectAuthenticatedUser>
-              <ForgotEmailPage />
-            </RedirectAuthenticatedUser>
-          } />
+        <Route path="/forgot-password" element={
+          <RedirectAuthenticatedUser>
+            <ForgotEmailPage />
+          </RedirectAuthenticatedUser>
+        } />
 
-          <Route path="/reset-password/:token" element={
-            <RedirectAuthenticatedUser>
-              <ResetPassword />
-            </RedirectAuthenticatedUser>
-          } />
+        <Route path="/reset-password/:token" element={
+          <RedirectAuthenticatedUser>
+            <ResetPassword />
+          </RedirectAuthenticatedUser>
+        } />
 
-          {/* === ROOT REDIRECT  === */}
-          <Route path="/" element={<Navigate to="/login" replace />} />
+        {/* === ROOT REDIRECT  === */}
+        <Route path="/" element={<Navigate to="/login" replace />} />
 
-          {/* === MAIN DASHBOARD === */}
-          <Route path="/dashboard" element={
-            <ProtectedRoute>
-              <DashboardLayout>
-                <Dashboard />
-              </DashboardLayout>
-            </ProtectedRoute>
-          } />
+        {/* === DASHBOARD ROUTES  === */}
 
-          {/* Tasks Group */}
-          <Route path="/tasks" element={
-            <ProtectedRoute>
-              <DashboardLayout><TasksPage /></DashboardLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/tasks/blocked" element={
-            <ProtectedRoute>
-              <DashboardLayout><BlockedTasksPage /></DashboardLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/tasks/overdue" element={
-            <ProtectedRoute>
-              <DashboardLayout><OverdueTasksPage /></DashboardLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/tasks/active-projects" element={
-            <ProtectedRoute>
-              <DashboardLayout><ActiveProjects /></DashboardLayout>
-            </ProtectedRoute>
-          } />
+        {/* Dashboard & Overview */}
+        <Route path="/dashboard" element={
+          <ProtectedRoute>
+            <DashboardLayout><Dashboard /></DashboardLayout>
+          </ProtectedRoute>
+        } />
 
-          {/* Projects & Phases */}
-          <Route path="/projects" element={
-            <ProtectedRoute>
-              <DashboardLayout><Projects /></DashboardLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/projects/:id" element={
-            <ProtectedRoute>
-              <DashboardLayout><ProjectOverview /></DashboardLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/project-overview" element={
-            <ProtectedRoute>
-              <DashboardLayout><ProjectOverview /></DashboardLayout>
-            </ProtectedRoute>
-          } />
+        {/* Tasks Group */}
+        <Route path="/tasks" element={
+          <ProtectedRoute>
+            <DashboardLayout><TasksPage /></DashboardLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/tasks/active-projects" element={
+          <ProtectedRoute>
+            <DashboardLayout><ActiveProjects /></DashboardLayout>
+          </ProtectedRoute>
+        } />
 
-          <Route path="/phases" element={
-            <ProtectedRoute>
-              <DashboardLayout><ProjectPhasesGantt /></DashboardLayout>
-            </ProtectedRoute>
-          } />
+        {/* Projects & Phases */}
+        <Route path="/projects" element={
+          <ProtectedRoute>
+            <DashboardLayout><Projects /></DashboardLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/projects/:id" element={
+          <ProtectedRoute>
+            <DashboardLayout><ProjectOverview /></DashboardLayout>
+          </ProtectedRoute>
+        } />
 
-          {/* Reports Group */}
-          <Route path="/reports" element={
-            <ProtectedRoute>
-              <DashboardLayout><ReportsHub /></DashboardLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/reports/sprint-report" element={
-            <ProtectedRoute>
-              <DashboardLayout><SprintReports /></DashboardLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/reports/project-report" element={
-            <ProtectedRoute>
-              <DashboardLayout><ProjectReport /></DashboardLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/reports/team-performance" element={
-            <ProtectedRoute>
-              <DashboardLayout><TeamPerformance /></DashboardLayout>
-            </ProtectedRoute>
-          } />
+        <Route path="/phases" element={
+          <ProtectedRoute>
+            <DashboardLayout><ProjectPhasesGantt /></DashboardLayout>
+          </ProtectedRoute>
+        } />
 
-          {/* Team-Insights */}
-          <Route path="/teamInsights" element={
-            <ProtectedRoute>
-              <DashboardLayout><TeamInsights /></DashboardLayout>
-            </ProtectedRoute>
-          } />
+        {/* Reports Group */}
+        <Route path="/reports" element={
+          <ProtectedRoute>
+            <DashboardLayout><ReportsHub /></DashboardLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/reports/sprint-report" element={
+          <ProtectedRoute>
+            <DashboardLayout><SprintReports /></DashboardLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/reports/project-report" element={
+          <ProtectedRoute>
+            <DashboardLayout><ProjectReport /></DashboardLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/reports/team-performance" element={
+          <ProtectedRoute>
+            <DashboardLayout><TeamPerformance /></DashboardLayout>
+          </ProtectedRoute>
+        } />
 
-          {/* Calendar & Documents */}
-          <Route path="/calendar" element={
-            <ProtectedRoute>
-              <DashboardLayout><Calendar /></DashboardLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/documents" element={
-            <ProtectedRoute>
-              <DashboardLayout><Documents /></DashboardLayout>
-            </ProtectedRoute>
-          } />
+        {/* Team-Insights */}
+        <Route path="/teamInsights" element={
+          <ProtectedRoute>
+            <DashboardLayout><TeamInsights /></DashboardLayout>
+          </ProtectedRoute>
+        } />
 
-          {/* Profile & Search */}
-          <Route path="/profile" element={
-            <ProtectedRoute>
-              <DashboardLayout><ProjectTrackerProfilePage /></DashboardLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/search" element={
-            <ProtectedRoute>
-              <DashboardLayout><SearchPage /></DashboardLayout>
-            </ProtectedRoute>
-          } />
+        {/* Calendar & Documents */}
+        <Route path="/calendar" element={
+          <ProtectedRoute>
+            <DashboardLayout><Calendar /></DashboardLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/documents" element={
+          <ProtectedRoute>
+            <DashboardLayout><Documents /></DashboardLayout>
+          </ProtectedRoute>
+        } />
 
-          {/* Settings Group */}
-          <Route path="/settings" element={
-            <ProtectedRoute>
-              <DashboardLayout><Settings /></DashboardLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/settings/profile" element={
-            <ProtectedRoute>
-              <DashboardLayout><ProfileSection /></DashboardLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/settings/preferences" element={
-            <ProtectedRoute>
-              <DashboardLayout><PreferencesSection /></DashboardLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/settings/activity" element={
-            <ProtectedRoute>
-              <DashboardLayout><ActivitySection /></DashboardLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/settings/storage" element={
-            <ProtectedRoute>
-              <DashboardLayout><StorageSection /></DashboardLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/settings/security" element={
-            <ProtectedRoute>
-              <DashboardLayout><SecuritySection /></DashboardLayout>
-            </ProtectedRoute>
-          } />
+        {/* Profile & Search */}
+        <Route path="/profile" element={
+          <ProtectedRoute>
+            <DashboardLayout><ProjectTrackerProfilePage /></DashboardLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/search" element={
+          <ProtectedRoute>
+            <DashboardLayout><SearchPage /></DashboardLayout>
+          </ProtectedRoute>
+        } />
 
-          {/* Help */}
-          <Route path="/help" element={
-            <ProtectedRoute>
-              <DashboardLayout><HelpSupport /></DashboardLayout>
-            </ProtectedRoute>
-          } />
+        {/* Settings Group */}
+        <Route path="/settings" element={
+          <ProtectedRoute>
+            <DashboardLayout><Settings /></DashboardLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/settings/profile" element={
+          <ProtectedRoute>
+            <DashboardLayout><ProfileSection /></DashboardLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/settings/preferences" element={
+          <ProtectedRoute>
+            <DashboardLayout><PreferencesSection /></DashboardLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/settings/activity" element={
+          <ProtectedRoute>
+            <DashboardLayout><ActivitySection /></DashboardLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/settings/storage" element={
+          <ProtectedRoute>
+            <DashboardLayout><StorageSection /></DashboardLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/settings/security" element={
+          <ProtectedRoute>
+            <DashboardLayout><SecuritySection /></DashboardLayout>
+          </ProtectedRoute>
+        } />
 
-          {/* User Management */}
-          <Route path="/users" element={
-            <ProtectedRoute>
-              <DashboardLayout><Usermanagement /></DashboardLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/clients" element={
-            <ProtectedRoute>
-              <DashboardLayout><Clients /></DashboardLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/teams" element={
-            <ProtectedRoute>
-              <DashboardLayout><Teams /></DashboardLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/users-list" element={
-            <ProtectedRoute>
-              <DashboardLayout><Users /></DashboardLayout>
-            </ProtectedRoute>
-          } />
+        {/* Help */}
+        <Route path="/help" element={
+          <ProtectedRoute>
+            <DashboardLayout><HelpSupport /></DashboardLayout>
+          </ProtectedRoute>
+        } />
 
-          {/* Kanban Board */}
-          <Route path="/kanban-board" element={
-            <ProtectedRoute>
-              <DashboardLayout><Kanban /></DashboardLayout>
-            </ProtectedRoute>
-          } />
+        {/* User Management */}
+        <Route path="/users" element={
+          <ProtectedRoute>
+            <DashboardLayout><Usermanagement /></DashboardLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/clients" element={
+          <ProtectedRoute>
+            <DashboardLayout><Clients /></DashboardLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/teams" element={
+          <ProtectedRoute>
+            <DashboardLayout><Teams /></DashboardLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/users-list" element={
+          <ProtectedRoute>
+            <DashboardLayout><Users /></DashboardLayout>
+          </ProtectedRoute>
+        } />
 
-          {/* === CATCH-ALL === */}
-          <Route path="*" element={<Navigate to="/login" replace />} />
-        </Routes>
-      </Suspense>
+        {/* Kanban Board */}
+        <Route path="/kanban-board" element={
+          <ProtectedRoute>
+            <DashboardLayout><Kanban /></DashboardLayout>
+          </ProtectedRoute>
+        } />
+
+        {/* === CATCH-ALL: Redirect to login when unauthenticated === */}
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    </Suspense>
     </Router>
   );
 }

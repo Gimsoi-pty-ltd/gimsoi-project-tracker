@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Building2, Briefcase, Users as UsersIcon } from "lucide-react";
+import { Building2, Briefcase, Users as UsersIcon, ArrowRight } from "lucide-react";
 import { resourceAPI } from "../../api/api";
 import { useAuthStore } from "../../store/authStore";
 
@@ -20,15 +20,19 @@ const SectionCard = ({ section }) => {
       onClick={() => navigate(section.route)}
       className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all cursor-pointer group"
     >
-      {/* Header with Icon & Title centered on same line */}
-      <div className="flex items-center justify-center gap-3 mb-4">
+      {/* Header */}
+      <div className="flex items-start justify-between mb-4">
         <div className={`p-3 rounded-xl border ${colorClasses[section.color]}`}>
           <Icon size={24} />
         </div>
-        <h3 className="text-xl font-semibold text-gray-800">{section.label}</h3>
+        <ArrowRight 
+          size={20} 
+          className="text-gray-400 group-hover:text-gray-600 group-hover:translate-x-1 transition-all" 
+        />
       </div>
 
-      {/* Description */}
+      {/* Content */}
+      <h3 className="text-xl font-semibold text-gray-800 mb-2">{section.label}</h3>
       <p className="text-gray-600 text-sm mb-6">{section.description}</p>
 
       {/* Stats */}

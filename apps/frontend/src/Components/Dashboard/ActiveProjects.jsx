@@ -1,7 +1,24 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useProjectStore } from '../../store/projectStore';
 
 const ActiveProjects = () => {
+    const { fetchProjects } = useProjectStore();
+    const [count, setCount] = useState(0);
+
+    useEffect(() => {
+        const load = async () => {
+            try {
+                const res = await fetchProjects({ status: 'ACTIVE' });
+                const projects = res.projects || res.data || [];
+                setCount(projects.length);
+            } catch(e) {
+                console.error("Failed to fetch projects", e);
+            }
+        };
+        load();
+    }, [fetchProjects]);
+
     return (
         <Link to="/projects" className="no-underline block h-full">
             <section className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 flex flex-col items-center justify-center h-full hover:shadow-md transition-shadow">
@@ -14,7 +31,7 @@ const ActiveProjects = () => {
                     <div className="absolute inset-0 rounded-full border-[10px] border-[#FF8C00]/10"></div>
                     <div className="absolute inset-0 rounded-full border-[10px] border-[#FF8C00] border-t-transparent -rotate-45"></div>
                     <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="text-2xl font-extrabold text-slate-800">3</span>
+                        <span className="text-2xl font-extrabold text-slate-800">{count}</span>
                     </div>
                 </div>
             </section>
