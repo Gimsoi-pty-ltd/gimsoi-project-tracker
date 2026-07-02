@@ -74,7 +74,7 @@ function TeamInsights() {
               </div>
 
               <div className="rounded-xl overflow-hidden border border-gray-200">
-                <div className="flex font-medium text-xs uppercase tracking-wider bg-orange-500 text-white px-4 py-3">
+                <div className="hidden sm:flex font-medium text-xs uppercase tracking-wider bg-orange-500 text-white px-4 py-3">
                   <span className="flex-1">Member</span>
                   <span className="flex-1">Role</span>
                   <span className="flex-1">Velocity</span>

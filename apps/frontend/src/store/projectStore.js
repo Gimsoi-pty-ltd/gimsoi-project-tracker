@@ -17,7 +17,7 @@ const PRIORITY_UI = {
     LOW: "Low",
 };
 
-async function fetchAllProjectTasks(projectId) {
+export async function fetchAllProjectTasks(projectId) {
     const tasks = [];
     let cursor = null;
     do {

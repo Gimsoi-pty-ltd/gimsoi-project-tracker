@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { resourceAPI } from "../api/api";
+import { useProjectStore, fetchAllProjectTasks } from "./projectStore"
 
 export const useTaskStore = create((set, get) => ({
     tasks: [],
@@ -59,6 +60,8 @@ export const useTaskStore = create((set, get) => ({
             throw error;
         }
     },
+
+ 
 
     createTask: async (taskData) => {
         set({ isLoading: true, error: null });

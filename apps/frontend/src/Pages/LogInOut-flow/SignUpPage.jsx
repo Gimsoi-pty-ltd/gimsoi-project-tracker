@@ -81,6 +81,17 @@ function SignUpPage() {
                             />
                             <User size={18} className="absolute right-4 top-3.5 text-gray-400 group-focus-within:text-[#002D62] transition-colors" />
                         </div>
+                        {/* <div className="relative group">
+                        <input
+                            type="tel"
+                            placeholder="+27123456789"
+                            value={phone}
+                            onChange={(e) => setPhone(e.target.value)}
+                            className="w-full bg-white rounded-lg px-4 py-3 pr-12 outline-none text-sm border-2 border-transparent focus:border-[#002D62]/20 transition-all shadow-sm"
+                            required
+                        />
+                            <Phone size={18} className="absolute right-4 top-3.5 text-gray-400 group-focus-within:text-[#002D62] transition-colors" />
+                        </div> */}
 
 
                         <div className="relative group">
@@ -121,12 +132,12 @@ function SignUpPage() {
                     </form>
 
                     <div className="mt-8 text-center w-full max-w-sm">
-                        <div className="relative flex items-center py-4">
+                        {/* <div className="relative flex items-center py-4">
                             <div className="flex-grow border-t border-gray-200"></div>
                             <span className="flex-shrink mx-4 text-xs text-gray-400 uppercase font-medium">or sign up with</span>
                             <div className="flex-grow border-t border-gray-200"></div>
-                        </div>
-                        <div className="flex justify-center mt-2">
+                        </div> */}
+                        {/* <div className="flex justify-center mt-2">
                             <button className="flex items-center gap-3 px-6 py-2 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 transition-all shadow-sm group">
                                 <img
                                     src="https://www.gstatic.com/images/branding/product/1x/googleg_48dp.png"
@@ -135,7 +146,7 @@ function SignUpPage() {
                                 />
                                 <span className="text-[#002D62] font-bold text-sm">Google</span>
                             </button>
-                        </div>
+                        </div> */}
                     </div>
                 </div>
             </div>

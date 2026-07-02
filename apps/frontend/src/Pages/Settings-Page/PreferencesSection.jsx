@@ -29,7 +29,7 @@ export default function PreferencesSection() {
         <button
           onClick={handleThemeChange}
           className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-            darkMode ? 'bg-orange-500' : 'bg-gray-300'
+            darkMode ? 'bg-green-500' : 'bg-gray-300'
           }`}
         >
           <span

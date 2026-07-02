@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Info } from 'lucide-react';
+import { Info,Lock, ArrowRight } from 'lucide-react';
 import { useProjectStore } from '../store/projectStore';
 
 const KanbanSummary = () => {
@@ -56,7 +56,7 @@ const KanbanSummary = () => {
         >
             {/* Header */}
             <div className="flex items-center gap-2 mb-4">
-                <h3 className="text-sm font-bold text-blue-400 uppercase">
+                <h3 className="text-sm font-bold text-sky-500 uppercase">
                     Kanban Summary
                 </h3>
                 
@@ -108,10 +108,13 @@ const KanbanSummary = () => {
                 <p>Click anywhere to open Kanban board.</p>
             </div>
 
-            {/* Hover Indicator */}
-            <div className="mt-6 flex items-center justify-end text-sky-500 text-xs font-medium opacity-0 group-hover:opacity-100 transition-all duration-200">
-                Open Full Kanban Board →
-            </div>
+             <div className="mt-20 flex items-center justify-end">
+          <div className="flex items-right gap-1 text-sky-500 text-sm font-medium">
+            View
+            <ArrowRight className="w-4 h-4" />
+          </div>
+        </div>
+            
 
             {/* Info Modal */}
             {showInfo && (

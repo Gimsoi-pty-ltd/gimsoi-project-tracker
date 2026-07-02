@@ -5,14 +5,16 @@ export default function ToggleSwitch({ defaultOn = false }) {
 
   return (
     <button
+      type="button"
       onClick={() => setEnabled(!enabled)}
-      className={`w-11 h-6 flex items-center rounded-full p-1 transition duration-300 ${
-        enabled ? "bg-[#001f44]" : "bg-gray-300"
+      aria-pressed={enabled}
+      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+        enabled ? "bg-green-500" : "bg-gray-300"
       }`}
     >
       <div
-        className={`bg-white w-4 h-4 rounded-full shadow-md transform transition ${
-          enabled ? "translate-x-5" : ""
+        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition-transform ${
+          enabled ? "translate-x-6" : "translate-x-1"
         }`}
       />
     </button>

@@ -15,7 +15,7 @@ export default function ReportsHub() {
           title="Reports not ready"
           message="Report data is not available yet. Please make sure a project and sprint are selected, or navigate back to the dashboard to load data."
           actionLabel="Go to Dashboard"
-          onAction={() => window.location.replace('/dashboard')}
+          onAction={() => window.location.replace('/app/')}
         />
       </div>
     );

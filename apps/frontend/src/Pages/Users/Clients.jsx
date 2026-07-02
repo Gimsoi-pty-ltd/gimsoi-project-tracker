@@ -47,7 +47,7 @@ const Clients = () => {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">Manage Clients</h2>
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-6">Manage Clients</h2>
           <nav className="flex mt-1 text-sm text-gray-500">
             <Link to="/users">
               <span className="text-slate-900 hover:text-slate-600 cursor-pointer">User Management</span>
@@ -67,7 +67,7 @@ const Clients = () => {
           />
           <button
             onClick={() => setShowModal(true)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition"
+            className="bg-[#002D62] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#001f44] transition"
           >
             + Add Client
           </button>
@@ -219,7 +219,7 @@ const Clients = () => {
               <button
                 onClick={handleSave}
                 disabled={saving || !form.name}
-                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition disabled:opacity-50"
+                className="bg-[#002D62] text-white px-4 py-2 rounded hover:bg-[#001f44] transition disabled:opacity-50"
               >
                 {saving ? "Saving..." : "Save Client"}
               </button>
