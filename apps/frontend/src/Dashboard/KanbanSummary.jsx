@@ -50,9 +50,9 @@ const KanbanSummary = () => {
     const statusData = getStatusData();
 
     return (
-        <Link 
-            to="/kanban-board" 
-            className="block min-h-[390px] bg-white p-5 border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer group"
+        <div
+            
+            className="block min-h-[220px] bg-white p-5 border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-all cursor-default"
         >
             {/* Header */}
             <div className="flex items-center gap-2 mb-4">
@@ -103,17 +103,17 @@ const KanbanSummary = () => {
             </div>
 
             {/* Footer Text */}
-            <div className="mt-6 text-sm text-slate-600 leading-relaxed">
+            <div className="mt-20 text-sm text-slate-600 leading-relaxed">
                 <p>Snapshot of tasks by status.</p>
-                <p>Click anywhere to open Kanban board.</p>
             </div>
 
-             <div className="mt-20 flex items-center justify-end">
-          <div className="flex items-right gap-1 text-sky-500 text-sm font-medium">
-            View
+             <div className=" flex items-center justify-end">
+             <Link to="/kanban-board" className="flex items-center gap-1 text-sky-500 text-sm font-medium">
+             View
             <ArrowRight className="w-4 h-4" />
+            </Link>
           </div>
-        </div>
+        
             
 
             {/* Info Modal */}
@@ -178,7 +178,7 @@ const KanbanSummary = () => {
                     </div>
                 </div>
             )}
-        </Link>
+        </div>
     );
 };
 

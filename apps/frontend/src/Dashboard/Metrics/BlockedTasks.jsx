@@ -20,8 +20,8 @@ const BlockedCard = () => {
   return (
     <>
       <div
-        onClick={handleNavigate}
-        className="w-full h-full min-h-[220px] bg-white border border-gray-200 rounded-2xl p-4 sm:p-5 lg:p-6 shadow-sm cursor-pointer transition-all duration-300 hover:shadow-xl flex flex-col justify-between"
+        
+        className="w-full h-full min-h-[220px] bg-white border border-gray-200 rounded-2xl p-4 sm:p-5 lg:p-6 shadow-sm cursor-default transition-all duration-300 hover:shadow-xl flex flex-col justify-between"
       >
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-2">
@@ -68,7 +68,9 @@ const BlockedCard = () => {
           <p className="text-[11px] sm:text-xs text-gray-400 max-w-[80%]">
             Total blocked tasks in the current project
           </p>
-          <div className="flex items-center gap-1 text-sky-500 text-sm font-medium">
+          <div className="flex items-center gap-1 text-sky-500 text-sm font-medium cursor-pointer"
+            onClick={handleNavigate}
+          >
             View
             <ArrowRight className="w-4 h-4" />
           </div>
