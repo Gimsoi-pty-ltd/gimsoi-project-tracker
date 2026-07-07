@@ -16,7 +16,7 @@ const DashboardLayout = ({ children }) => {
             />
 
          
-            <div className="pt-[60px] min-h-screen overflow-x-hidden">
+            <div className="min-h-screen overflow-x-hidden">
                 {children || <Outlet />}
             </div>
         </div>

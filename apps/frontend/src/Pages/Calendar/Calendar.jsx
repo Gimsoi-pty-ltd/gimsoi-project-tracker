@@ -193,9 +193,9 @@ const Calendar = () => {
                         {dayObj.day}
                       </div>
 
-                      {/* Events for this day — scrolls internally if it overflows */}
-                      <div className="mt-1 space-y-1 overflow-y-auto flex-1 min-h-0">
-                        {dayEvents.map((event) => (
+                      {/* Events for this day — show up to 3 items, no internal scroll */}
+                      <div className="mt-1 space-y-1 overflow-hidden flex-1 min-h-0">
+                        {dayEvents.slice(0, 3).map((event) => (
                           <div
                             key={event.id}
                             className={`
@@ -213,6 +213,9 @@ const Calendar = () => {
                             <span> {event.title}</span>
                           </div>
                         ))}
+                        {dayEvents.length > 3 && (
+                          <div className="text-xs text-gray-400">+{dayEvents.length - 3} more</div>
+                        )}
                       </div>
                     </div>
                   );

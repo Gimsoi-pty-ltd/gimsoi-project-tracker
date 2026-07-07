@@ -7,6 +7,7 @@ const COLUMN_TO_STATUS = {
   'todo':        'TODO',
   'in-progress': 'IN_PROGRESS',
   'review':      'REVIEW',
+  'blocked':     'BLOCKED',
   'done':        'DONE',
 };
 
@@ -249,6 +250,7 @@ const Kanban = () => {
         { id: 'todo', title: 'TO DO', headerColor: 'bg-blue-600', cards: [] },
         { id: 'in-progress', title: 'In Progress', headerColor: 'bg-green-600', cards: [] },
         { id: 'review', title: 'QA / Review', headerColor: 'bg-yellow-500', cards: [] },
+        {id: 'blocked', title: 'Blocked', headerColor: 'bg-red-600', cards: [] },
         { id: 'done', title: 'Done', headerColor: 'bg-green-800', cards: [] },
       ];
     }
@@ -258,18 +260,19 @@ const Kanban = () => {
       'IN_PROGRESS': 'in-progress',
       'DONE': 'done',
       'REVIEW': 'review',
-      'BLOCKED': 'todo', // Blocked items without a column go back to todo, or we could add a column
+      'BLOCKED': 'blocked',
       'todo': 'todo',
       'inProgress': 'in-progress',
       'done': 'done',
       'review': 'review',
-      'blocked': 'todo',
+      'blocked': 'blocked',
     };
 
     const cardsByStatus = {
       todo: [],
       'in-progress': [],
       review: [],
+      blocked: [],
       done: [],
     };
 
@@ -296,6 +299,7 @@ const Kanban = () => {
       { id: 'todo', title: 'TO DO', headerColor: 'bg-blue-600', cards: cardsByStatus.todo },
       { id: 'in-progress', title: 'In Progress', headerColor: 'bg-green-600', cards: cardsByStatus['in-progress'] },
       { id: 'review', title: 'QA / Review', headerColor: 'bg-yellow-500', cards: cardsByStatus.review },
+      { id: 'blocked', title: 'Blocked', headerColor: 'bg-red-600', cards: cardsByStatus.blocked },
       { id: 'done', title: 'Done', headerColor: 'bg-green-800', cards: cardsByStatus.done },
     ];
   }, [activeSprint?.tasks]);

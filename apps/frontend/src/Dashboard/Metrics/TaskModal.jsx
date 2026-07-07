@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTaskStore } from '../../store/taskStore';
 import { useProjectStore } from '../../store/projectStore';
+import { resourceAPI } from '../../api/api';
 import { X } from 'lucide-react';
 
 const UI_TO_STATUS = {
@@ -18,22 +19,54 @@ const UI_TO_PRIORITY = {
   Low: 'LOW'
 };
 
-export default function TaskModal({ isOpen, onClose, task = null }) {
+import TaskForm from '../../Components/Tasks/TaskForm';
+
+export default function TaskModal({ isOpen, onClose, task = null, initialSprintId = null }) {
   const createTask = useTaskStore(state => state.createTask);
   const updateTask = useTaskStore(state => state.updateTask);
   const currentProject = useProjectStore(state => state.currentProject);
   const activeSprint = useProjectStore(state => state.activeSprint);
-  
+
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     status: 'TODO',
     priority: 'MEDIUM',
     dueDate: '',
-    storyPoints: ''
+    storyPoints: '',
+    parentTaskId: '',
+    assigneeId: '',
+    ownerIds: [],
+    teamIds: []
   });
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [userOptions, setUserOptions] = useState([]);
+  const [parentTaskOptions, setParentTaskOptions] = useState([]);
+
+  useEffect(() => {
+    if (!isOpen || !currentProject?.id) return;
+
+    const fetchOptions = async () => {
+      try {
+        const [usersRes, tasksRes] = await Promise.all([
+          resourceAPI.get('/users'),
+          resourceAPI.get(`/tasks?projectId=${currentProject.id}&limit=100`)
+        ]);
+        const users = usersRes.data.users || usersRes.data.data || [];
+        const tasks = tasksRes.data.data || tasksRes.data.tasks || [];
+        setUserOptions(users.map((user) => ({
+          id: user.id,
+          label: user.fullName || user.email || 'Unknown user'
+        })));
+        setParentTaskOptions(tasks.filter((item) => item.id !== task?.id));
+      } catch (err) {
+        console.error('Failed to fetch task options:', err);
+      }
+    };
+
+    fetchOptions();
+  }, [isOpen, currentProject?.id, task?.id]);
 
   useEffect(() => {
     if (task) {
@@ -43,7 +76,11 @@ export default function TaskModal({ isOpen, onClose, task = null }) {
         status: UI_TO_STATUS[task.status] || task.status || 'TODO',
         priority: UI_TO_PRIORITY[task.priority] || task.priority || 'MEDIUM',
         dueDate: task.dueDate && task.dueDate !== '—' ? new Date(task.dueDate).toISOString().split('T')[0] : '',
-        storyPoints: task.storyPoints !== undefined && task.storyPoints !== null ? String(task.storyPoints) : ''
+        storyPoints: task.storyPoints !== undefined && task.storyPoints !== null ? String(task.storyPoints) : '',
+        parentTaskId: task.parentTaskId || '',
+        assigneeId: task.assigneeId || '',
+        ownerIds: Array.isArray(task.ownerIds) ? task.ownerIds : [],
+        teamIds: Array.isArray(task.teamIds) ? task.teamIds : []
       });
     } else {
       setFormData({
@@ -52,18 +89,32 @@ export default function TaskModal({ isOpen, onClose, task = null }) {
         status: 'TODO',
         priority: 'MEDIUM',
         dueDate: '',
-        storyPoints: ''
+        storyPoints: '',
+        parentTaskId: '',
+        assigneeId: '',
+        ownerIds: [],
+        teamIds: []
       });
     }
   }, [task, isOpen]);
 
   if (!isOpen) return null;
 
+  const toggleSelection = (field, value) => {
+    setFormData((prev) => {
+      const current = prev[field] || [];
+      return {
+        ...prev,
+        [field]: current.includes(value) ? current.filter((item) => item !== value) : [...current, value]
+      };
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!currentProject) {
-        setError("No project selected.");
-        return;
+      setError('No project selected.');
+      return;
     }
     setIsSubmitting(true);
     setError('');
@@ -71,18 +122,21 @@ export default function TaskModal({ isOpen, onClose, task = null }) {
       const taskData = {
         ...formData,
         projectId: currentProject.id,
-        sprintId: activeSprint?.id || null,
+        sprintId: initialSprintId || activeSprint?.id || null,
+        assigneeId: formData.assigneeId || null,
+        parentTaskId: formData.parentTaskId || null,
+        ownerIds: formData.ownerIds.filter(Boolean),
+        teamIds: formData.teamIds.filter(Boolean),
         storyPoints: formData.storyPoints ? Number(formData.storyPoints) : null
       };
-      
+
       if (!taskData.dueDate) {
-          taskData.dueDate = null;
+        taskData.dueDate = null;
       } else {
-          taskData.dueDate = new Date(taskData.dueDate).toISOString();
+        taskData.dueDate = new Date(taskData.dueDate).toISOString();
       }
-      
+
       if (task) {
-        // Edit mode
         const updateData = {
           title: taskData.title,
           description: taskData.description || null,
@@ -90,15 +144,17 @@ export default function TaskModal({ isOpen, onClose, task = null }) {
           priority: taskData.priority,
           dueDate: taskData.dueDate,
           storyPoints: taskData.storyPoints,
+          parentTaskId: taskData.parentTaskId,
+          assigneeId: taskData.assigneeId,
+          ownerIds: taskData.ownerIds,
+          teamIds: taskData.teamIds,
           version: task.version,
         };
         await updateTask(task.id, updateData);
       } else {
-        // Create mode
         await createTask(taskData);
       }
-      
-      // Refresh dashboard state to update charts immediately
+
       await useProjectStore.getState().fetchDashboard();
       onClose();
     } catch (err) {
@@ -110,7 +166,7 @@ export default function TaskModal({ isOpen, onClose, task = null }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center p-6 border-b border-gray-100">
           <h2 className="text-xl font-bold text-gray-800">{task ? 'Edit Task' : 'Create New Task'}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
@@ -125,81 +181,7 @@ export default function TaskModal({ isOpen, onClose, task = null }) {
             </div>
           )}
 
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Title *</label>
-              <input
-                type="text"
-                required
-                className="w-full border border-gray-300 rounded-lg p-2.5 text-sm"
-                value={formData.title}
-                onChange={e => setFormData({ ...formData, title: e.target.value })}
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-              <textarea
-                className="w-full border border-gray-300 rounded-lg p-2.5 text-sm h-24"
-                value={formData.description}
-                onChange={e => setFormData({ ...formData, description: e.target.value })}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                <select
-                  className="w-full border border-gray-300 rounded-lg p-2.5 text-sm bg-white"
-                  value={formData.status}
-                  onChange={e => setFormData({ ...formData, status: e.target.value })}
-                >
-                  <option value="TODO">To Do</option>
-                  <option value="IN_PROGRESS">In Progress</option>
-                  <option value="BLOCKED">Blocked</option>
-                  <option value="DONE">Done</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
-                <select
-                  className="w-full border border-gray-300 rounded-lg p-2.5 text-sm bg-white"
-                  value={formData.priority}
-                  onChange={e => setFormData({ ...formData, priority: e.target.value })}
-                >
-                  <option value="LOW">Low</option>
-                  <option value="MEDIUM">Medium</option>
-                  <option value="HIGH">High</option>
-                  <option value="URGENT">Urgent</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
-                <input
-                  type="date"
-                  className="w-full border border-gray-300 rounded-lg p-2.5 text-sm"
-                  value={formData.dueDate}
-                  onChange={e => setFormData({ ...formData, dueDate: e.target.value })}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Story Points</label>
-                <input
-                  type="number"
-                  min="0"
-                  placeholder="e.g. 5"
-                  className="w-full border border-gray-300 rounded-lg p-2.5 text-sm"
-                  value={formData.storyPoints}
-                  onChange={e => setFormData({ ...formData, storyPoints: e.target.value })}
-                />
-              </div>
-            </div>
-          </div>
+          <TaskForm formData={formData} setFormData={setFormData} userOptions={userOptions} parentTaskOptions={parentTaskOptions} />
 
           <div className="mt-8 flex justify-end gap-3">
             <button

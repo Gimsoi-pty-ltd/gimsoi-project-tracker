@@ -171,7 +171,7 @@ export default function ActiveTasksCard() {
             className="bg-blue-900 hover:bg-blue-700 text-white rounded-lg px-4 py-2 text-sm font-medium transition cursor-pointer"
           >
             + Add Task
-          </button> */}
+          </button>
         </div>
       </div>
 

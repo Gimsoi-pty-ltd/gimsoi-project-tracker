@@ -21,7 +21,7 @@ const BlockedCard = () => {
     <>
       <div
         onClick={handleNavigate}
-        className="w-full min-h-[220px] bg-white border border-gray-200 rounded-2xl p-4 sm:p-5 lg:p-6 shadow-sm cursor-pointer transition-all duration-300 hover:shadow-xl flex flex-col justify-between"
+        className="w-full h-full min-h-[220px] bg-white border border-gray-200 rounded-2xl p-4 sm:p-5 lg:p-6 shadow-sm cursor-pointer transition-all duration-300 hover:shadow-xl flex flex-col justify-between"
       >
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-2">

@@ -34,6 +34,7 @@ const isNavActive = (pathname, href) => {
 
 export default function Sidebar({ isOpen, onClose }) {
     const location = useLocation();
+    const sidebarRef = React.useRef(null);
     const navigate = useNavigate();
 
     const projects = useProjectStore((state) => state.projects);
@@ -66,6 +67,18 @@ export default function Sidebar({ isOpen, onClose }) {
         };
         initProjects().catch(() => {});
     }, [fetchProjects, switchProject]);
+
+    // Close sidebar when clicking outside of it
+    useEffect(() => {
+        const handleOutsideClick = (e) => {
+            if (!isOpen) return;
+            if (sidebarRef.current && !sidebarRef.current.contains(e.target)) {
+                onClose && onClose();
+            }
+        };
+        document.addEventListener('mousedown', handleOutsideClick);
+        return () => document.removeEventListener('mousedown', handleOutsideClick);
+    }, [isOpen, onClose]);
 
     const activeProject = currentProject || projects[0] || null;
 
@@ -119,6 +132,7 @@ export default function Sidebar({ isOpen, onClose }) {
         transform transition-transform duration-300
         ${isOpen ? "translate-x-0" : "-translate-x-full"}
       `}
+                ref={sidebarRef}
             >
                 <div className="h-full w-[280px] max-w-[85vw] bg-[#002D62] pt-6 md:pt-8 shadow-2xl flex flex-col border-r border-blue-500/30">
                     <div className="flex justify-between items-center px-5 md:px-8 mb-8 md:mb-10">

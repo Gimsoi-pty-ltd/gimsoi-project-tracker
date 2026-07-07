@@ -6,9 +6,11 @@ const { Prisma, PrismaClient } = pkg;
 
 const pool = new pg.Pool({
   connectionString: process.env.DATABASE_URL,
-  max: 5,
-  connectionTimeoutMillis: 3000,
-  idleTimeoutMillis: 30000,
+  max: Number(process.env.DB_POOL_MAX || 10),
+  connectionTimeoutMillis: Number(process.env.DB_CONNECTION_TIMEOUT_MS || 30000),
+  idleTimeoutMillis: Number(process.env.DB_IDLE_TIMEOUT_MS || 60000),
+  keepAlive: true,
+  keepAliveInitialDelayMillis: 10000,
 });
 const adapter = new PrismaPg(pool);
 const basePrisma = new PrismaClient({ adapter });
