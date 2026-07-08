@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useAuthStore } from "../../store/authStore";
 import { useProjectStore } from "../../store/projectStore";
-import { Phone } from "lucide-react"; // Phone icon component
+// import { Phone } from "lucide-react"; // Phone icon component
+import NavyButton from "../../Components/Buttons";
 
 const getInitials = (name) =>
   !name
@@ -31,7 +32,7 @@ export default function ProjectTrackerProfilePage() {
   const [formValues, setFormValues] = useState({
     fullName: user.fullName || user.name || "",
     jobTitle: user.jobTitle || "",
-    phone: user.phone || "",
+    // phone: user.phone || "",
     email: user.email || "",
   });
 
@@ -39,7 +40,7 @@ export default function ProjectTrackerProfilePage() {
     setFormValues({
       fullName: user.fullName || user.name || "",
       jobTitle: user.jobTitle || "",
-      phone: user.phone || "",
+      // phone: user.phone || "",
       email: user.email || "",
     });
   }, [user]);
@@ -88,22 +89,22 @@ export default function ProjectTrackerProfilePage() {
           <div className="flex-1 min-w-0">
             <h1 className="text-2xl md:text-3xl font-semibold text-black">{user.fullName || user.name}</h1>
             <p className="text-base md:text-lg text-gray-700 mt-1">{user.jobTitle}</p>
-            <span className="inline-block mt-1 text-xs bg-blue-600 text-white px-3 py-1 rounded-full font-medium">
-              {user.role}
-            </span>
             <div className="mt-3 text-xs md:text-sm text-gray-700 space-y-1">
               <p>📧 {user.email}</p>
-              <p><Phone className="inline-block w-4 h-4 mr-1" /> {user.phone}</p>
+              {/* <p><Phone className="inline-block w-4 h-4 mr-1" /> {user.phone}</p> */}
               <p>📅 Joined {user.joinedDate ? new Date(user.joinedDate).toLocaleDateString("en-ZA", { year: "numeric", month: "long", day: "numeric" }) : "N/A"}</p>
+              <span className="inline-block mt-1 text-xs bg-orange-500 text-white px-3 py-1 rounded-full font-medium">
+              {user.role}
+            </span>
             </div>
           </div>
         </div>
-        <button
-          className="rounded-2xl px-4 md:px-6 py-2 text-sm md:text-base bg-blue-600 text-white hover:bg-blue-700 transition w-full sm:w-auto"
+        <NavyButton
+          className="rounded-2xl px-4 md:px-6 py-2 text-sm md:text-base transition w-full sm:w-auto"
           onClick={() => setShowEdit(true)}
         >
           Edit Profile
-        </button>
+        </NavyButton>
       </div>
 
       {/* Edit Profile Modal */}
