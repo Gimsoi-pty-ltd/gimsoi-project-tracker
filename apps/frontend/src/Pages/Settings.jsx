@@ -21,7 +21,7 @@ export default function Settings() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8">
-      <h1 className="text-2xl md:text-3xl font-bold text-[#001f44] mb-6 md:mb-8">Settings</h1>
+      <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-6">Settings</h1>
       
       <div className="flex flex-col lg:flex-row gap-6 md:gap-8 bg-white rounded-2xl border border-gray-200 p-4 md:p-6 shadow-sm">
         {/* Navigation Sidebar */}

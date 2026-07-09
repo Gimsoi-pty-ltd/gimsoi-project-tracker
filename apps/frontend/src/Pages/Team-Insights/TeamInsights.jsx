@@ -57,7 +57,7 @@ function TeamInsights() {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <div className="px-4 sm:px-6 lg:px-8 pb-6 md:pb-8">
         <div className="py-6 md:py-8">
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-800 tracking-tight">Team Insights</h1>
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-6">Team Insights</h1>
           <p className="text-xs md:text-sm text-gray-500 mt-1">
             {currentProject?.name || "No Project"} · {activeSprint?.name || "No Active Sprint"} · {activeSprint?.goal || "No Goal Set"}
           </p>

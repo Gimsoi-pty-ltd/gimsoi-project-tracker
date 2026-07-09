@@ -393,7 +393,7 @@ const Kanban = () => {
         {/* HEADER */}
         <div className="pb-6 border-b border-gray-200 mb-6">
           <div className="flex justify-between items-center">
-            <h1 className="text-2xl font-bold">Sprint Task-Progress {currentProject?.name && `— ${currentProject.name}`}</h1>
+            <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-6">Sprint Task-Progress {currentProject?.name && `— ${currentProject.name}`}</h1>
             {projects && projects.length > 0 && (
               <select
                 className="bg-white border border-gray-300 text-gray-700 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block px-3 py-2 shadow-sm font-medium"
