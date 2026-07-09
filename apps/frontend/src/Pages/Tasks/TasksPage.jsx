@@ -92,7 +92,7 @@ function TasksPageContent() {
 
   return (
     <div className="bg-gray-50 min-h-screen p-4 md:p-8">
-      <div className="max-w-7xl mx-auto">
+      <div className="max-h-screens mx-auto">
         <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-6">Tasks</h1>
 
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden">

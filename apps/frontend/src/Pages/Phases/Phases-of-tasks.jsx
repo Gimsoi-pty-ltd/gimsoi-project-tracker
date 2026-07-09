@@ -250,6 +250,88 @@ export default function ProjectPhasesGantt() {
           </div>
         ))}
       </div>
+
+
+      {/* MODAL */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center">
+          <div className="bg-white p-6 rounded-xl w-[400px]">
+
+            <h2 className="text-lg font-bold mb-4">Create New Phase</h2>
+
+            <input
+              name="project"
+              placeholder="Project Name"
+              className="w-full border p-2 mb-2"
+              onChange={handleChange}
+            />
+
+            <input
+              name="client"
+              placeholder="Client"
+              className="w-full border p-2 mb-2"
+              onChange={handleChange}
+            />
+
+            <input
+              name="sprint"
+              placeholder="Sprint"
+              className="w-full border p-2 mb-2"
+              onChange={handleChange}
+            />
+
+            <input
+              name="start"
+              type="date"
+              className="w-full border p-2 mb-2"
+              onChange={handleChange}
+            />
+
+            <input
+              name="end"
+              type="date"
+              className="w-full border p-2 mb-2"
+              onChange={handleChange}
+            />
+
+            <input
+              name="goal"
+              placeholder="Goal"
+              className="w-full border p-2 mb-2"
+              onChange={handleChange}
+            />
+
+            <select
+              name="status"
+              className="w-full border p-2 mb-4"
+              onChange={handleChange}
+            >
+              <option>Active</option>
+              <option>Completed</option>
+              <option>On Hold</option>
+            </select>
+
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setShowModal(false)}
+                className="px-3 py-1 border rounded"
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={handleSave}
+                className="px-4 py-2 bg-blue-900 text-white rounded disabled:opacity-50"
+              >
+                Save
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+
       <ProjectForm 
         isOpen={isFormOpen} 
         onClose={() => setIsFormOpen(false)}
@@ -257,6 +339,7 @@ export default function ProjectPhasesGantt() {
           fetchProjects();
         }}
       />
+
     </div>
   );
 }
