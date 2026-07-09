@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useProjectStore } from "../../store/projectStore";
 import { Download, TrendingUp, CheckCircle2, AlertCircle, LineChart } from "lucide-react";
 import EmptyState from "../../Components/EmptyState";
@@ -31,11 +31,32 @@ export const sprintReports = [
 ];
 
 const SprintReport = () => {
-  const { activeSprint, projects, projectSprints } = useProjectStore((state) => state);
+  const activeSprint = useProjectStore((state) => state.activeSprint);
+  const projectSprints = useProjectStore((state) => state.projectSprints);
+  const dashboardLoading = useProjectStore((state) => state.dashboardLoading);
   const [activeTab, setActiveTab] = useState("Overview");
   const [selectedSprintId, setSelectedSprintId] = useState(activeSprint?.id);
 
-  const selectedSprint = projectSprints.find(s => s.id === selectedSprintId) || activeSprint;
+  useEffect(() => {
+    const hydrate = async () => {
+      try {
+        const state = useProjectStore.getState();
+        const loader = state.ensureDashboardLoaded || state.fetchDashboard;
+        if (typeof loader === "function") await loader();
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    hydrate();
+  }, []);
+
+  useEffect(() => {
+    if (activeSprint?.id && !selectedSprintId) {
+      setSelectedSprintId(activeSprint.id);
+    }
+  }, [activeSprint?.id, selectedSprintId]);
+
+  const selectedSprint = projectSprints.find((s) => s.id === selectedSprintId) || activeSprint;
   const sprintMetrics = selectedSprint?.metrics ?? {};
   
   const getStatusColor = (status) => {
@@ -82,7 +103,27 @@ const SprintReport = () => {
           <p className="text-sm text-slate-500 mt-1">{selectedSprint.name}</p>
         </div>
         <button 
-          onClick={() => window.print()}
+          onClick={async () => {
+            try {
+              const createRes = await fetch('/api/reports', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: `Sprint Report ${selectedSprint?.id || ''} ${new Date().toISOString()}`, type: 'SPRINT', projectId: selectedSprint?.projectId || null }) });
+              const createData = await createRes.json();
+              const reportId = createData?.data?.id || createData?.id;
+              if (!reportId) throw new Error('No report id returned');
+              const pdfRes = await fetch(`/api/reports/${reportId}/pdf`);
+              const arrayBuffer = await pdfRes.arrayBuffer();
+              const blob = new Blob([arrayBuffer], { type: 'application/pdf' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `sprint-report-${reportId}.pdf`;
+              document.body.appendChild(a);
+              a.click();
+              a.remove();
+              URL.revokeObjectURL(url);
+            } catch (err) {
+              console.error('Failed to export sprint report', err);
+            }
+          }}
           className="flex items-center gap-2 px-4 py-2 bg-[#002D62] hover:bg-[#001f44] text-white rounded-lg font-medium transition-colors"
         >
           <Download size={18} />

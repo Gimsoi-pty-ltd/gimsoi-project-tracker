@@ -1,12 +1,48 @@
 // src/Pages/Reports and Exporting/reports.jsx
-import React from "react";
+import React, { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Download } from "lucide-react";
 import { useProjectStore } from "../../store/projectStore";
 import EmptyState from "../../Components/EmptyState";
 
 export default function ReportsHub() {
-  const { activeSprint, currentProject } = useProjectStore((state) => state);
+  const activeSprint = useProjectStore((state) => state.activeSprint);
+  const currentProject = useProjectStore((state) => state.currentProject);
+  const dashboardLoading = useProjectStore((state) => state.dashboardLoading);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const hydrate = async () => {
+      if (cancelled) return;
+      try {
+        const state = useProjectStore.getState();
+        const loader = state.ensureDashboardLoaded || state.fetchDashboard;
+        if (typeof loader === "function") {
+          // call once on mount; loader manages internal loading guards
+          await loader();
+        }
+      } catch (error) {
+        console.error("Failed to load report data", error);
+      }
+    };
+
+    hydrate();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (dashboardLoading && (!currentProject || !activeSprint)) {
+    return (
+      <div className="p-6 md:p-8">
+        <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+          <h2 className="text-lg font-semibold text-slate-800">Loading report data…</h2>
+          <p className="mt-2 text-sm text-slate-500">We are pulling the latest project and sprint context from the dashboard.</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!currentProject || !activeSprint) {
     return (
@@ -21,6 +57,8 @@ export default function ReportsHub() {
     );
   }
   const metrics = activeSprint?.metrics ?? {};
+  const projectName = currentProject?.name ?? "No project";
+  const sprintName = activeSprint?.name ?? "No sprint";
 
   const reports = [
     {
@@ -50,7 +88,7 @@ export default function ReportsHub() {
     <div className="p-4 md:p-8 space-y-6 md:space-y-8">
       <div>
         <h1 className="text-2xl md:text-3xl font-bold text-slate-900">Reports Hub</h1>
-        <p className="text-sm text-gray-500 mt-1">{currentProject.name} · {activeSprint?.name}</p>
+        <p className="text-sm text-gray-500 mt-1">{projectName} · {sprintName}</p>
       </div>
 
       {/* Mobile */}

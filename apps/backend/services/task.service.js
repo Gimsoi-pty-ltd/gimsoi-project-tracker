@@ -72,10 +72,24 @@ const assertTaskIsModifiable = (task, updates = {}) => {
     }
 };
 
+const normalizeOptionalIdList = (value, fieldName) => {
+    if (value === undefined || value === null) return [];
+    if (!Array.isArray(value)) {
+        throw new StateTransitionError(`${fieldName} must be an array of user IDs.`);
+    }
+    const list = value.filter(Boolean);
+    if (list.some((item) => typeof item !== 'string' || !item.trim())) {
+        throw new StateTransitionError(`${fieldName} contains invalid values.`);
+    }
+    return [...new Set(list)];
+};
+
 export const createTask = async ({ taskData, context, requestingUser }) => {
-    const { title, description, priority, isBlocked, dueDate, storyPoints } = taskData;
+    const { title, description, priority, isBlocked, dueDate, storyPoints, parentTaskId, ownerIds, teamIds } = taskData;
     const { projectId, sprintId, phaseId, reporterId, assigneeId } = context;
     const { role: userRole } = requestingUser;
+    const normalizedOwnerIds = normalizeOptionalIdList(ownerIds, 'ownerIds');
+    const normalizedTeamIds = normalizeOptionalIdList(teamIds, 'teamIds');
 
     if (dueDate !== undefined && dueDate !== null && isNaN(Date.parse(dueDate))) {
         throw new StateTransitionError('Invalid dueDate format.');
@@ -124,6 +138,24 @@ export const createTask = async ({ taskData, context, requestingUser }) => {
         await requireProjectMembership(projectId, assigneeId);
     }
 
+    for (const ownerId of normalizedOwnerIds) {
+        await requireProjectMembership(projectId, ownerId, requestingUser.role);
+    }
+
+    for (const teamId of normalizedTeamIds) {
+        await requireProjectMembership(projectId, teamId, requestingUser.role);
+    }
+
+    if (parentTaskId) {
+        const parentTask = await prisma.task.findUnique({ where: { id: parentTaskId } });
+        if (!parentTask) {
+            throw new NotFoundError(`Parent task ${parentTaskId} not found.`);
+        }
+        if (parentTask.projectId !== projectId) {
+            throw new StateTransitionError('Parent task does not belong to the specified project.');
+        }
+    }
+
     validatePriority(priority);
 
     try {
@@ -134,8 +166,11 @@ export const createTask = async ({ taskData, context, requestingUser }) => {
                 projectId,
                 sprintId,
                 phaseId,
+                parentTaskId: parentTaskId || null,
                 reporterId,
                 assigneeId,
+                ownerIds: normalizedOwnerIds,
+                teamIds: normalizedTeamIds,
                 status: TASK_STATUS.TODO,
                 storyPoints: storyPoints !== undefined ? Number(storyPoints) : null,
                 priority: priority || 'MEDIUM',
@@ -318,6 +353,9 @@ export const updateTask = async (id, data, userId, userRole) => {
     assertCompletedAtNotInPayload(data);
     if (data.priority !== undefined) validatePriority(data.priority);
 
+    const normalizedOwnerIds = data.ownerIds !== undefined ? normalizeOptionalIdList(data.ownerIds, 'ownerIds') : undefined;
+    const normalizedTeamIds = data.teamIds !== undefined ? normalizeOptionalIdList(data.teamIds, 'teamIds') : undefined;
+
     if (data.dueDate !== undefined && data.dueDate !== null && isNaN(Date.parse(data.dueDate))) {
         throw new StateTransitionError('Invalid dueDate format.');
     }
@@ -339,6 +377,20 @@ export const updateTask = async (id, data, userId, userRole) => {
         assertSprintIsActiveForDone(existing.sprint, data.status);
     }
 
+    if (data.parentTaskId !== undefined && data.parentTaskId !== null && data.parentTaskId === id) {
+        throw new StateTransitionError('A task cannot be its own parent.');
+    }
+
+    if (data.parentTaskId !== undefined && data.parentTaskId !== null) {
+        const parentTask = await prisma.task.findUnique({ where: { id: data.parentTaskId } });
+        if (!parentTask) {
+            throw new NotFoundError(`Parent task ${data.parentTaskId} not found.`);
+        }
+        if (parentTask.projectId !== existing.projectId) {
+            throw new StateTransitionError('Parent task does not belong to the specified project.');
+        }
+    }
+
     const finalData = injectCompletedAt(data, data.status);
     const { version, ...updatePayload } = finalData;
 
@@ -348,7 +400,10 @@ export const updateTask = async (id, data, userId, userRole) => {
             description: updatePayload.description !== undefined ? updatePayload.description       : existing.description,
             status:      updatePayload.status      !== undefined ? updatePayload.status            : existing.status,
             sprintId:    updatePayload.sprintId    !== undefined ? updatePayload.sprintId          : existing.sprintId,
+            parentTaskId: updatePayload.parentTaskId !== undefined ? updatePayload.parentTaskId : existing.parentTaskId,
             assigneeId:  updatePayload.assigneeId  !== undefined ? updatePayload.assigneeId        : existing.assigneeId,
+            ownerIds:    normalizedOwnerIds !== undefined ? normalizedOwnerIds : existing.ownerIds,
+            teamIds:     normalizedTeamIds !== undefined ? normalizedTeamIds : existing.teamIds,
             priority:    updatePayload.priority    !== undefined ? updatePayload.priority          : existing.priority,
             isBlocked:   updatePayload.isBlocked   !== undefined ? updatePayload.isBlocked         : existing.isBlocked,
             dueDate:     updatePayload.dueDate     !== undefined

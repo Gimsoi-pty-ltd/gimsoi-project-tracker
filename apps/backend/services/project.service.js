@@ -7,7 +7,7 @@ import { getProjectTaskSummary, getProjectTaskSummaryBatch } from "./task.servic
 import { PROJECT_STATUS } from "../constants/statuses.js";
 import ROLES from "../constants/roles.js";
 
-export const createProject = async ({ name, clientId, status, description, createdByUserId }) => {
+export const createProject = async ({ name, clientId, status, description, startDate, endDate, milestones, setupNotes, createdByUserId }) => {
   if (status && ![PROJECT_STATUS.DRAFT, PROJECT_STATUS.ACTIVE, PROJECT_STATUS.COMPLETED, PROJECT_STATUS.ARCHIVED].includes(status)) {
     throw new StateTransitionError(`Invalid project status '${status}'.`);
   }
@@ -19,6 +19,10 @@ export const createProject = async ({ name, clientId, status, description, creat
         clientId: String(clientId),
         status: status || PROJECT_STATUS.DRAFT,
         description,
+        startDate: startDate ? new Date(startDate) : null,
+        endDate: endDate ? new Date(endDate) : null,
+        milestones: milestones || null,
+        setupNotes: setupNotes || null,
         createdByUserId,
       },
     });
@@ -113,7 +117,10 @@ export const updateProject = async (id, data, userId, userRole) => {
         ...(data.name && { name: data.name }),
         ...(data.status && { status: data.status }),
         ...(data.description !== undefined ? { description: data.description } : {}),
-        ...(data.endDate !== undefined ? { endDate: data.endDate } : {}),
+        ...(data.startDate !== undefined ? { startDate: data.startDate ? new Date(data.startDate) : null } : {}),
+        ...(data.endDate !== undefined ? { endDate: data.endDate ? new Date(data.endDate) : null } : {}),
+        ...(data.milestones !== undefined ? { milestones: data.milestones || null } : {}),
+        ...(data.setupNotes !== undefined ? { setupNotes: data.setupNotes || null } : {}),
         version: { increment: 1 }
       },
     });

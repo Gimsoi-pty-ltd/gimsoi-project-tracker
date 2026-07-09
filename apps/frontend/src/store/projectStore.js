@@ -412,6 +412,30 @@ export const useProjectStore = create((set, get) => ({
         }
     },
 
+    ensureDashboardLoaded: async (projectId) => {
+        if (get().dashboardLoading) return;
+
+        try {
+            if (!get().projects.length) {
+                await get().fetchProjects({ limit: 50 });
+            }
+
+            const pid = projectId || get().currentProject?.id || localStorage.getItem("gimsoi_active_project_id") || get().projects[0]?.id;
+            if (!pid) return;
+
+            if (!get().currentProject || get().currentProject.id !== pid) {
+                const project = get().projects.find((p) => p.id === pid);
+                if (project) {
+                    set({ currentProject: project });
+                }
+            }
+
+            await get().fetchDashboard(pid);
+        } catch (error) {
+            console.error("Failed to hydrate dashboard data", error);
+        }
+    },
+
     fetchProjects: async (filters = {}) => {
         set({ isLoading: true, error: null });
         try {

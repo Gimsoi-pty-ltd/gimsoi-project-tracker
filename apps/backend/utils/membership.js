@@ -40,7 +40,11 @@ export const assertProjectMembership = async (projectId, userId, userRole) => {
  * @param {string} projectId 
  * @param {string} userId 
  */
-export const requireProjectMembership = async (projectId, userId) => {
+export const requireProjectMembership = async (projectId, userId, userRole) => {
+    if (userRole === ROLES.ADMIN || userRole === ROLES.PROJECT_MANAGER) {
+        return { role: 'OWNER' };
+    }
+
     const membership = await prisma.projectMember.findUnique({
         where: {
             projectId_userId: {

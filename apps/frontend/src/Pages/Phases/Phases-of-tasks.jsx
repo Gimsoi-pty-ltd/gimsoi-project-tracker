@@ -1,5 +1,5 @@
 // src/Pages/Phases/Phases-of-tasks.jsx
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useProjectStore } from '../../store/projectStore';
 import ProjectForm from '../../Components/ProjectForm/ProjectForm';
 
@@ -22,8 +22,23 @@ const statusTextColor = (status) => {
 };
 
 export default function ProjectPhasesGantt() {
-  const { projects = [], currentProject = {}, activeSprint = {}, fetchProjects } = useProjectStore((state) => state);
+  const projects = useProjectStore((state) => state.projects) || [];
+  const currentProject = useProjectStore((state) => state.currentProject) || {};
+  const activeSprint = useProjectStore((state) => state.activeSprint) || {};
   const [isFormOpen, setIsFormOpen] = useState(false);
+
+  useEffect(() => {
+    const hydrate = async () => {
+      try {
+        const state = useProjectStore.getState();
+        const loader = state.ensureDashboardLoaded || state.fetchDashboard;
+        if (typeof loader === "function") await loader();
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    hydrate();
+  }, []);
 
   // Build phases from projects — each project is a phase row
   const phases = projects.map((project) => {

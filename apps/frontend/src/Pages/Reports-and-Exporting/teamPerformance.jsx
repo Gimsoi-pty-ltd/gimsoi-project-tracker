@@ -97,10 +97,28 @@ const TeamPerformance = () => {
           </nav>
         </div>
         <NavyButton 
-          onClick={() => window.print()}
+          onClick={async () => {
+            try {
+              const createRes = await resourceAPI.post('/reports', { name: `Team Performance ${new Date().toISOString()}`, type: 'TEAM' });
+              const reportId = createRes?.data?.data?.id || createRes?.data?.id;
+              if (!reportId) throw new Error('No report id returned');
+              const pdfRes = await resourceAPI.get(`/reports/${reportId}/pdf`, { responseType: 'arraybuffer' });
+              const blob = new Blob([pdfRes.data], { type: 'application/pdf' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `team-performance-${reportId}.pdf`;
+              document.body.appendChild(a);
+              a.click();
+              a.remove();
+              URL.revokeObjectURL(url);
+            } catch (err) {
+              console.error('Failed to export team report', err);
+            }
+          }}
           className="mt-4 md:mt-0 !min-w-0 !px-6 !py-2 text-sm" 
         >
-        <Download className="mr-2 h-4 w-4" />
+          <Download className="mr-2 h-4 w-4" />
           Download PDF
         </NavyButton>
       </div>
