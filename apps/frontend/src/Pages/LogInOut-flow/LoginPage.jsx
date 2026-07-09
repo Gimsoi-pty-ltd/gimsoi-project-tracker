@@ -33,7 +33,7 @@ function LoginPage() {
                     <div className="absolute inset-0 bg-gradient-to-br from-[#002D62] to-[#011f44] opacity-50"></div>
                     <div className="relative z-10 flex flex-col items-center">
                         <img src={logo} alt="Gimsoi AI" className="w-36 h-36 object-contain mb-6 rounded-full " />
-                        <h1 className="text-3xl font-bold mb-2">Hello, Welcome!</h1>
+                        <h1 className="text-3xl font-bold mb-2 text-gray-100">Hello, Welcome!</h1>
                         <p className="text-sm opacity-90 mb-8">Don't have an account?</p>
                         <Link to="/signup">
                             <button className="border-2 border-white rounded-xl px-10 py-2 hover:bg-white hover:text-[#002D62] transition-all font-semibold">

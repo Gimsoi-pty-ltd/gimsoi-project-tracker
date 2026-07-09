@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useProjectStore } from '../../store/projectStore';
 import ProjectForm from '../../Components/ProjectForm/ProjectForm';
+import NavyButton from '../../Components/Buttons';
 
 const statusColor = (status) => {
   switch (status) {
@@ -131,12 +132,12 @@ export default function ProjectPhasesGantt() {
           <h1 className="text-xl md:text-2xl font-bold text-gray-800">Phases</h1>
           <p className="text-xs md:text-sm text-gray-500 mt-1">Track project progress and timelines · Active project: <span className="font-medium text-blue-600">{currentProject?.name || "None"}</span></p>
         </div>
-        <button 
+        <NavyButton
           onClick={() => setIsFormOpen(true)}
-          className="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition shadow-sm whitespace-nowrap"
+          className=" px-4 py-2 rounded-lg transition shadow-sm whitespace-nowrap"
         >
           + New Project
-        </button>
+        </NavyButton>
       </div>
 
       {/* Gantt Container */}
