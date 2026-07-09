@@ -39,8 +39,9 @@ export const useSprintStore = create((set) => ({
         set({ isLoading: true, error: null });
         try {
             const response = await resourceAPI.post("/sprints", sprintData);
+            const created = response.data?.data || response.data?.sprint || response.data;
             set((state) => ({
-                sprints: [...state.sprints, response.data.sprint || response.data],
+                sprints: [...state.sprints, created],
                 isLoading: false,
             }));
             return response.data;

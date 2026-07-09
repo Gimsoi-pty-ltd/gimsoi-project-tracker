@@ -195,8 +195,8 @@ export default function ProjectForm({ isOpen, onClose, project = null, onSuccess
       setFormData({
         name:        project.name        || "",
         clientId:    project.clientId    || "",
-        startDate:   project.startDate   || "",
-        endDate:     project.endDate     || "",
+        startDate:   project.startDate ? new Date(project.startDate).toISOString().split('T')[0] : "",
+        endDate:     project.endDate ? new Date(project.endDate).toISOString().split('T')[0] : "",
         description: project.description || "",
         status:      project.status      || "PLANNED",
         team:        project.team        || [],

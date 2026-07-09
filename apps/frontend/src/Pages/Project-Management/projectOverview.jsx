@@ -429,15 +429,18 @@ export default function ProjectOverview() {
               <p className="text-sm text-gray-500">Tasks for this sprint can be created from the Dashboard. Use the Dashboard's "+ Add Task" button to assign tasks to this sprint after creating it.</p>
             </div>
 
-            <div className="mt-6 flex justify-end gap-3">
+              <div className="mt-6 flex justify-end gap-3">
               <button className="px-4 py-2 rounded border" onClick={() => setShowSprintModal(false)}>Cancel</button>
               <button className="px-4 py-2 rounded bg-blue-600 text-white" onClick={async () => {
                 try {
                   if (!sprintDraft.name.trim()) return;
                   await createSprint({ projectId: p.id, ...sprintDraft });
-                  // refresh project view
+                  // refresh project view and dashboard to pick up new sprint
                   await getProjectById(p.id);
                   await getProjectProgress(p.id);
+                  // Ensure dashboard sprints/tasks are reloaded
+                  const { fetchDashboard } = useProjectStore.getState();
+                  if (typeof fetchDashboard === 'function') await fetchDashboard(p.id);
                 } catch (err) {
                   console.error('Failed creating sprint', err);
                 } finally {

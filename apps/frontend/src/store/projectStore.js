@@ -463,7 +463,8 @@ export const useProjectStore = create((set, get) => ({
         set({ isLoading: true, error: null });
         try {
             const response = await resourceAPI.get(`/projects/${id}`);
-            set({ currentProject: response.data.project || response.data, isLoading: false });
+            const project = response.data?.data || response.data?.project || response.data;
+            set({ currentProject: project, isLoading: false });
             return response.data;
         } catch (error) {
             set({ error: error.response?.data?.message || "Error fetching project", isLoading: false });
