@@ -26,7 +26,19 @@ export default function ProjectPhasesGantt() {
   const projects = useProjectStore((state) => state.projects) || [];
   const currentProject = useProjectStore((state) => state.currentProject) || {};
   const activeSprint = useProjectStore((state) => state.activeSprint) || {};
+  const fetchProjects = useProjectStore((state) => state.fetchProjects);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [form, setForm] = useState({
+    project: '',
+    client: '',
+    sprint: '',
+    start: '',
+    end: '',
+    goal: '',
+    status: 'Active',
+    progress: 0,
+  });
 
   useEffect(() => {
     const hydrate = async () => {

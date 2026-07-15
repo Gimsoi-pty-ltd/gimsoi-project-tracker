@@ -48,7 +48,7 @@ app.set("trust proxy", 1);
 app.use(cors({
   origin: process.env.NODE_ENV === "production"
     ? process.env.CLIENT_URL
-    : "http://localhost:5174",
+    : "http://localhost:5173",
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "x-csrf-token"],
