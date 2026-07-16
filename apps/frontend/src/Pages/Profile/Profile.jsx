@@ -103,7 +103,10 @@ export default function ProjectTrackerProfilePage() {
       await useAuthStore.getState().uploadAvatar(file);
       await useAuthStore.getState().fetchActivities();
     } catch (error) {
-      setAvatarError(error.response?.data?.message || "Could not upload the profile picture.");
+      setAvatarError(
+        error.response?.data?.message ||
+          "Could not upload the profile picture.",
+      );
     } finally {
       event.target.value = "";
     }
@@ -115,7 +118,10 @@ export default function ProjectTrackerProfilePage() {
       await useAuthStore.getState().removeAvatar();
       await useAuthStore.getState().fetchActivities();
     } catch (error) {
-      setAvatarError(error.response?.data?.message || "Could not remove the profile picture.");
+      setAvatarError(
+        error.response?.data?.message ||
+          "Could not remove the profile picture.",
+      );
     }
   };
 
@@ -152,7 +158,11 @@ export default function ProjectTrackerProfilePage() {
                 className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <Camera className="h-3.5 w-3.5" />
-                {isAvatarLoading ? "Saving..." : user.avatarUrl ? "Change" : "Add photo"}
+                {isAvatarLoading
+                  ? "Saving..."
+                  : user.avatarUrl
+                    ? "Change"
+                    : "Add photo"}
               </button>
               {user.avatarUrl && (
                 <button
@@ -173,15 +183,30 @@ export default function ProjectTrackerProfilePage() {
             )}
           </div>
           <div className="flex-1 min-w-0">
-            <h1 className="text-2xl md:text-3xl font-semibold text-black">{user.fullName || user.name}</h1>
-            <p className="text-base md:text-lg text-gray-700 mt-1">{user.jobTitle}</p>
+            <h1 className="text-2xl md:text-3xl font-semibold text-black">
+              {user.fullName || user.name}
+            </h1>
+            <p className="text-base md:text-lg text-gray-700 mt-1">
+              {user.jobTitle}
+            </p>
             <span className="inline-block mt-1 text-xs bg-blue-600 text-white px-3 py-1 rounded-full font-medium">
               {user.role}
             </span>
             <div className="mt-3 text-xs md:text-sm text-gray-700 space-y-1">
               <p>📧 {user.email}</p>
-              <p><Phone className="inline-block w-4 h-4 mr-1" /> {user.phone}</p>
-              <p>📅 Joined {user.joinedDate ? new Date(user.joinedDate).toLocaleDateString("en-ZA", { year: "numeric", month: "long", day: "numeric" }) : "N/A"}</p>
+              <p>
+                <Phone className="inline-block w-4 h-4 mr-1" /> {user.phone}
+              </p>
+              <p>
+                📅 Joined{" "}
+                {user.joinedDate
+                  ? new Date(user.joinedDate).toLocaleDateString("en-ZA", {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    })
+                  : "N/A"}
+              </p>
             </div>
           </div>
         </div>
@@ -252,14 +277,18 @@ export default function ProjectTrackerProfilePage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 lg:gap-8">
         <div className="bg-gray-100 rounded-2xl shadow-sm p-6">
-          <h2 className="text-xl font-semibold text-black mb-4">Assigned Projects</h2>
+          <h2 className="text-xl font-semibold text-black mb-4">
+            Assigned Projects
+          </h2>
           <div className="space-y-4 text-sm text-gray-800">
             {assignedProjects.map((project) => (
               <div key={project.id} className="flex items-center gap-3">
                 <div className={`w-2.5 h-2.5 rounded-full ${project.color}`} />
                 <div>
                   <p className="font-medium">{project.name}</p>
-                  <p className="text-gray-500">Status: {project.status} · {project.progress}% complete</p>
+                  <p className="text-gray-500">
+                    Status: {project.status} · {project.progress}% complete
+                  </p>
                 </div>
               </div>
             ))}
@@ -269,16 +298,29 @@ export default function ProjectTrackerProfilePage() {
         <div className="bg-gray-100 rounded-2xl shadow-sm p-6">
           <h2 className="text-xl font-semibold text-black mb-4">Permissions</h2>
           <div className="space-y-4 text-sm text-gray-800">
-            <p><span className="font-medium">Role:</span> {user.role}</p>
-            <p><span className="font-medium">Job Title:</span> {user.jobTitle}</p>
-            <p><span className="font-medium">Project Access:</span> All Projects</p>
-            <p><span className="font-medium">Task Management:</span> Full Access</p>
-            <p><span className="font-medium">User Management:</span> {user.role === "Admin" ? "Full Access" : "View Only"}</p>
+            <p>
+              <span className="font-medium">Role:</span> {user.role}
+            </p>
+            <p>
+              <span className="font-medium">Job Title:</span> {user.jobTitle}
+            </p>
+            <p>
+              <span className="font-medium">Project Access:</span> All Projects
+            </p>
+            <p>
+              <span className="font-medium">Task Management:</span> Full Access
+            </p>
+            <p>
+              <span className="font-medium">User Management:</span>{" "}
+              {user.role === "Admin" ? "Full Access" : "View Only"}
+            </p>
           </div>
         </div>
 
         <div className="bg-gray-100 rounded-2xl shadow-sm p-6">
-          <h2 className="text-xl font-semibold text-black mb-4">Activity Log</h2>
+          <h2 className="text-xl font-semibold text-black mb-4">
+            Activity Log
+          </h2>
           <div className="space-y-3 text-sm text-gray-800">
             {user?.activityLog && user.activityLog.length > 0 ? (
               user.activityLog.map((entry, i) => (
