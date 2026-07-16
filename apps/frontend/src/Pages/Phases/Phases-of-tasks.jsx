@@ -26,7 +26,19 @@ export default function ProjectPhasesGantt() {
   const projects = useProjectStore((state) => state.projects) || [];
   const currentProject = useProjectStore((state) => state.currentProject) || {};
   const activeSprint = useProjectStore((state) => state.activeSprint) || {};
+  const fetchProjects = useProjectStore((state) => state.fetchProjects);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [form, setForm] = useState({
+    project: '',
+    client: '',
+    sprint: '',
+    start: '',
+    end: '',
+    goal: '',
+    status: 'Active',
+    progress: 0,
+  });
 
   useEffect(() => {
     const hydrate = async () => {
@@ -129,7 +141,7 @@ export default function ProjectPhasesGantt() {
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:justify-between md:items-center mb-6 md:mb-8">
         <div>
-          <h1 className="text-xl md:text-2xl font-bold text-gray-800">Phases</h1>
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-800">Phases</h1>
           <p className="text-xs md:text-sm text-gray-500 mt-1">Track project progress and timelines · Active project: <span className="font-medium text-blue-600">{currentProject?.name || "None"}</span></p>
         </div>
         <NavyButton
