@@ -122,25 +122,22 @@ jobs:
             fi
           done
 
+      # Pinned so an unannounced CLI release can't silently change auth
+      # behavior underneath this workflow again (see commit history).
       - name: Install Catalyst CLI
-        run: npm install -g zcatalyst-cli
+        run: npm install -g zcatalyst-cli@1.27.0
 
-      - name: Configure Catalyst Authentication
-        run: |
-          mkdir -p ~/.catalyst
-
-          TOKEN='${{ secrets.CATALYST_TOKEN }}'
-
-          echo "{\"token\":\"$TOKEN\"}" \
-             > ~/.catalyst/token.json
-
-      # Deploy backend AppSail + frontend hosting per catalyst.json
+      # --token authenticates this exact command; writing to
+      # ~/.catalyst/token.json does not reliably authenticate the CLI
+      # and let a broken deploy silently report success.
       - name: Deploy to Catalyst
         env:
+          CATALYST_TOKEN: ${{ secrets.CATALYST_TOKEN }}
           CATALYST_PROJECT_ID: ${{ secrets.CATALYST_PROJECT_ID_PROD }}
           NODE_ENV: production
         run: |
-          catalyst deploy --project $CATALYST_PROJECT_ID
+          catalyst --token "$CATALYST_TOKEN" \
+            --project "$CATALYST_PROJECT_ID" -ni deploy
 
       # Verify the deployed app is actually up before calling it done
       - name: Smoke test deployment
