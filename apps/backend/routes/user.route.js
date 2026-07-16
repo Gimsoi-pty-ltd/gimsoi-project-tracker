@@ -9,6 +9,7 @@ import {
   updateUserRole,
   updateProfile,
   updateAvatar,
+  removeAvatar,
 } from '../controllers/user.controller.js';
 import { changePassword } from '../controllers/auth.controller.js';
 import { upload } from '../utils/upload.js';
@@ -42,5 +43,8 @@ router.patch('/me/password', writeLimiter, verifyToken, requireCSRF, validate(ch
 
 // Upload own avatar
 router.post('/me/avatar', writeLimiter, verifyToken, requireCSRF, upload.single('avatar'), updateAvatar);
+
+// Remove own avatar
+router.delete('/me/avatar', writeLimiter, verifyToken, requireCSRF, removeAvatar);
 
 export default router;
