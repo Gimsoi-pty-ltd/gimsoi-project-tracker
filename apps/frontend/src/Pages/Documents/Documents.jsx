@@ -111,7 +111,7 @@ const DocumentsPage = () => {
         {/* Header */}
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6 md:mb-8">
           <div>
-            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-blue-700">Documents</h1>
+            <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-6">Documents</h1>
             <div className="flex flex-wrap gap-3 md:gap-6 mt-3 text-xs md:text-sm text-gray-600">
               <button onClick={() => setFilterType('All')} className={`cursor-pointer hover:text-blue-600 ${filterType === 'All' ? 'text-blue-600 font-medium' : ''}`}>
                 Filter: {filterType}
@@ -197,11 +197,15 @@ const DocumentsPage = () => {
                 Organize and share project documents with your team
               </p>
               <div className="space-y-2">
-                <button className="w-full flex items-center justify-center gap-2 bg-white/20 hover:bg-white/30 text-white px-3 py-2 rounded-lg text-sm font-medium transition">
+                <button 
+                onClick={() => alert("Import Data action triggered - this would open the CSV upload interface.")}
+                className="w-full flex items-center justify-center gap-2 bg-white/20 hover:bg-white/30 text-white px-3 py-2 rounded-lg text-sm font-medium transition">
                   <Download size={16} />
                   Export All
                 </button>
-                <button className="w-full flex items-center justify-center gap-2 bg-white/20 hover:bg-white/30 text-white px-3 py-2 rounded-lg text-sm font-medium transition">
+                <button 
+                onClick={() => alert("Share Folder action triggered.")}
+                className="w-full flex items-center justify-center gap-2 bg-white/20 hover:bg-white/30 text-white px-3 py-2 rounded-lg text-sm font-medium transition">
                   <Share2 size={16} />
                   Share Folder
                 </button>
@@ -268,7 +272,7 @@ const DocumentsPage = () => {
               </button>
               <button
                 onClick={handleAddDocument}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700"
+                className="px-4 py-2 bg-[#002D62] text-white rounded-md text-sm font-medium hover:bg-[#001f44] transition"
               >
                 Create Document
               </button>

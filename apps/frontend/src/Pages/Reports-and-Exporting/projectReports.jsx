@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import NavyButton from '../../Components/Buttons';
-import { Calendar, DollarSignIcon, AlertCircle, Users, Check, Code, Loader2, Filter } from 'lucide-react';
+import { Calendar, DollarSignIcon, AlertCircle, Users, Check, Code, Loader2, Filter, Download } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
 
 const taskData = [
@@ -29,9 +29,34 @@ const ProjectReport = () => {
             <span>Project Report</span>
           </nav>
         </div>
-        <NavyButton>
-          <Filter className="mr-2 h-4 w-4" /> Filter
-        </NavyButton>
+        <div className="flex items-center gap-2">
+          <NavyButton>
+            <Filter className="mr-2 h-4 w-4" /> Filter
+          </NavyButton>
+          <NavyButton onClick={async () => {
+            try {
+              const createRes = await fetch('/api/reports', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: `Project Report ${new Date().toISOString()}`, type: 'PROJECT' }) });
+              const createData = await createRes.json();
+              const reportId = createData?.data?.id || createData?.id;
+              if (!reportId) throw new Error('No report id returned');
+              const pdfRes = await fetch(`/api/reports/${reportId}/pdf`);
+              const arrayBuffer = await pdfRes.arrayBuffer();
+              const blob = new Blob([arrayBuffer], { type: 'application/pdf' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `project-report-${reportId}.pdf`;
+              document.body.appendChild(a);
+              a.click();
+              a.remove();
+              URL.revokeObjectURL(url);
+            } catch (err) {
+              console.error('Failed to export project report', err);
+            }
+          }}>
+            <Download className="mr-2 h-4 w-4" /> Download PDF
+          </NavyButton>
+        </div>
       </div>
 
       {/* Stats Grid */}

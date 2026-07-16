@@ -1,29 +1,57 @@
 // src/Pages/Phases/Phases-of-tasks.jsx
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useProjectStore } from '../../store/projectStore';
 import ProjectForm from '../../Components/ProjectForm/ProjectForm';
+import NavyButton from '../../Components/Buttons';
 
 const statusColor = (status) => {
   switch (status) {
-    case 'Active':      return 'bg-blue-500';
-    case 'Completed':   return 'bg-green-500';
-    case 'On Hold':     return 'bg-orange-400';
-    default:            return 'bg-gray-400';
+    case 'Active': return 'bg-blue-500';
+    case 'Completed': return 'bg-green-500';
+    case 'On Hold': return 'bg-orange-400';
+    default: return 'bg-gray-400';
   }
 };
 
 const statusTextColor = (status) => {
   switch (status) {
-    case 'Active':      return 'bg-blue-100 text-blue-700';
-    case 'Completed':   return 'bg-green-100 text-green-700';
-    case 'On Hold':     return 'bg-orange-100 text-orange-700';
-    default:            return 'bg-gray-100 text-gray-600';
+    case 'Active': return 'bg-blue-100 text-blue-700';
+    case 'Completed': return 'bg-green-100 text-green-700';
+    case 'On Hold': return 'bg-orange-100 text-orange-700';
+    default: return 'bg-gray-100 text-gray-600';
   }
 };
 
 export default function ProjectPhasesGantt() {
-  const { projects = [], currentProject = {}, activeSprint = {}, fetchProjects } = useProjectStore((state) => state);
+  const projects = useProjectStore((state) => state.projects) || [];
+  const currentProject = useProjectStore((state) => state.currentProject) || {};
+  const activeSprint = useProjectStore((state) => state.activeSprint) || {};
+  const fetchProjects = useProjectStore((state) => state.fetchProjects);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [form, setForm] = useState({
+    project: '',
+    client: '',
+    sprint: '',
+    start: '',
+    end: '',
+    goal: '',
+    status: 'Active',
+    progress: 0,
+  });
+
+  useEffect(() => {
+    const hydrate = async () => {
+      try {
+        const state = useProjectStore.getState();
+        const loader = state.ensureDashboardLoaded || state.fetchDashboard;
+        if (typeof loader === "function") await loader();
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    hydrate();
+  }, []);
 
   // Build phases from projects — each project is a phase row
   const phases = projects.map((project) => {
@@ -44,20 +72,84 @@ export default function ProjectPhasesGantt() {
     };
   });
 
+  const [localPhases, setLocalPhases] = useState([]);
+
+  const phaseRow = [
+    ...projects.map((project) => {
+      const sprints = project.sprints || [];
+      const sprint =
+        sprints.find((s) => s.id === project.activeSprint) ??
+        sprints[sprints.length - 1];
+
+      return {
+        id: project.id,
+        project: project.name,
+        client:
+          typeof project.client === 'object'
+            ? project.client?.name
+            : project.client ?? '—',
+        assignee: sprint?.tasks?.[0]?.assignee ?? '—',
+        status: project.status,
+        progress: project.progress,
+        color: statusColor(project.status),
+        start: sprint?.startDate ?? '—',
+        end: sprint?.endDate ?? '—',
+        sprint: sprint?.name ?? '—',
+        goal: sprint?.goal ?? '—',
+      };
+    }),
+    ...localPhases,
+  ];
+
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleSave = () => {
+    const newPhase = {
+      id: Date.now(),
+      project: form.project,
+      client: form.client,
+      assignee: '—',
+      status: form.status,
+      progress: Number(form.progress),
+      color: statusColor(form.status),
+      start: form.start,
+      end: form.end,
+      sprint: form.sprint,
+      goal: form.goal,
+    };
+
+    setLocalPhases([...localPhases, newPhase]);
+    setShowModal(false);
+
+    setForm({
+      project: '',
+      client: '',
+      sprint: '',
+      start: '',
+      end: '',
+      goal: '',
+      status: 'Active',
+      progress: 0,
+    });
+  };
+
   return (
     <div className="p-4 md:p-6 lg:p-8 bg-gray-50 min-h-screen font-sans">
+
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:justify-between md:items-center mb-6 md:mb-8">
         <div>
-          <h1 className="text-xl md:text-2xl font-bold text-gray-800">Phases</h1>
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-800">Phases</h1>
           <p className="text-xs md:text-sm text-gray-500 mt-1">Track project progress and timelines · Active project: <span className="font-medium text-blue-600">{currentProject?.name || "None"}</span></p>
         </div>
-        <button 
+        <NavyButton
           onClick={() => setIsFormOpen(true)}
-          className="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition shadow-sm whitespace-nowrap"
+          className=" px-4 py-2 rounded-lg transition shadow-sm whitespace-nowrap"
         >
           + New Project
-        </button>
+        </NavyButton>
       </div>
 
       {/* Gantt Container */}
@@ -73,7 +165,7 @@ export default function ProjectPhasesGantt() {
         </div>
 
         {/* Phase Rows */}
-        {phases.map((phase) => (
+        {phaseRow.map((phase) => (
           <div key={phase.id} className="grid grid-cols-6 md:grid-cols-7 min-w-full border-b border-gray-100 hover:bg-gray-50 transition items-center">
             {/* Project Info */}
             <div className="col-span-2 md:col-span-2 p-3 md:p-4 border-r border-gray-200">
@@ -114,7 +206,7 @@ export default function ProjectPhasesGantt() {
         ))}
       </div>
 
-      {/* Active Sprint Detail */}
+      {/* Table */}
       <div className="mt-4 md:mt-6 bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-5">
         <h2 className="font-semibold text-gray-800 mb-3 text-base md:text-lg">Active Sprint — {currentProject?.name || "No Project"}</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 text-sm">
@@ -135,7 +227,123 @@ export default function ProjectPhasesGantt() {
             <p className="font-semibold text-gray-800 text-sm">{activeSprint?.metrics?.sprintHealth}%</p>
           </div>
         </div>
+      </div>  
+
+
+      <div className="bg-white rounded-xl shadow-sm border overflow-x-auto">
+        {phases.map((phase) => (
+          <div key={phase.id} className="grid grid-cols-6 border-b p-3 items-center">
+
+            <div>
+              <p className="font-bold">{phase.project}</p>
+              <p className="text-xs text-gray-500">{phase.client}</p>
+            </div>
+
+            <div className="text-center">{phase.sprint}</div>
+            <div className="text-center">{phase.start}</div>
+            <div className="text-center">{phase.end}</div>
+
+            <div className="flex items-center gap-2">
+              <div className="flex-1 bg-gray-200 h-2 rounded">
+                <div
+                  className={`h-full ${phase.color}`}
+                  style={{ width: `${phase.progress}%` }}
+                />
+              </div>
+              <span className="text-xs">{phase.progress}%</span>
+            </div>
+
+            <div className="text-center">
+              <span className={`px-2 py-1 rounded text-xs ${statusTextColor(phase.status)}`}>
+                {phase.status}
+              </span>
+            </div>
+
+          </div>
+        ))}
       </div>
+
+
+      {/* MODAL */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center">
+          <div className="bg-white p-6 rounded-xl w-[400px]">
+
+            <h2 className="text-lg font-bold mb-4">Create New Phase</h2>
+
+            <input
+              name="project"
+              placeholder="Project Name"
+              className="w-full border p-2 mb-2"
+              onChange={handleChange}
+            />
+
+            <input
+              name="client"
+              placeholder="Client"
+              className="w-full border p-2 mb-2"
+              onChange={handleChange}
+            />
+
+            <input
+              name="sprint"
+              placeholder="Sprint"
+              className="w-full border p-2 mb-2"
+              onChange={handleChange}
+            />
+
+            <input
+              name="start"
+              type="date"
+              className="w-full border p-2 mb-2"
+              onChange={handleChange}
+            />
+
+            <input
+              name="end"
+              type="date"
+              className="w-full border p-2 mb-2"
+              onChange={handleChange}
+            />
+
+            <input
+              name="goal"
+              placeholder="Goal"
+              className="w-full border p-2 mb-2"
+              onChange={handleChange}
+            />
+
+            <select
+              name="status"
+              className="w-full border p-2 mb-4"
+              onChange={handleChange}
+            >
+              <option>Active</option>
+              <option>Completed</option>
+              <option>On Hold</option>
+            </select>
+
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setShowModal(false)}
+                className="px-3 py-1 border rounded"
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={handleSave}
+                className="px-4 py-2 bg-blue-900 text-white rounded disabled:opacity-50"
+              >
+                Save
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+
       <ProjectForm 
         isOpen={isFormOpen} 
         onClose={() => setIsFormOpen(false)}
@@ -143,6 +351,7 @@ export default function ProjectPhasesGantt() {
           fetchProjects();
         }}
       />
+
     </div>
   );
 }

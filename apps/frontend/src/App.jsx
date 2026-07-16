@@ -8,20 +8,16 @@ const ResetPassword = lazy(() => import('./Pages/LogInOut-flow/ResetPassword'));
 const EmailVerification = lazy(() => import('./Pages/LogInOut-flow/EmailVerification'));
 const ForgotEmailPage = lazy(() => import('./Pages/LogInOut-flow/ForgotEmailPage'));
 
-// ─── DASHBOARD LAYOUT & PAGES  ─────────────────────────────
-import DashboardLayout from "./Layouts/DashboardLayout";
-
-// Dashboard & Overview
+// ─── DASHBOARD ─────────────────────────────
 const Dashboard = lazy(() => import('./Pages/LogInOut-flow/Dashboard'));
-const DashboardCards = lazy(() => import("./Components/Dashboard/DashboardCards"));
-const DaysRemainingPage = lazy(() => import("./Components/Dashboard/DaysRemainingPage"));
-const SprintOverview = lazy(() => import('./Pages/Sprints/SprintOverview'));
-const SprintVelocityPage = lazy(() => import('./Pages/Sprints/SprintVelocity'));
+
+// ─── DASHBOARD LAYOUT ─────────────────────────────
+import DashboardLayout from "./Layouts/DashboardLayout";
 
 // Tasks
 const TasksPage = lazy(() => import('./Pages/Tasks/TasksPage'));
-const BlockedTasks = lazy(() => import('./Pages/Tasks/BlockedTasks'));
-const OverdueTasks = lazy(() => import('./Pages/Tasks/OverdueTasks'));
+const BlockedTasksPage = lazy(() => import('./Pages/Tasks/BlockedTasks'));
+const OverdueTasksPage = lazy(() => import('./Pages/Tasks/OverdueTasks'));
 const ActiveProjects = lazy(() => import('./Pages/Tasks/ActiveProjects'));
 
 // Projects & Phases

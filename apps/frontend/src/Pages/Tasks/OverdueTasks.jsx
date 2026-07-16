@@ -47,7 +47,7 @@ const activeSprintTasks = useProjectStore((state) => state.activeSprint?.tasks ?
 
   return (
     <div className="max-w-7xl mx-auto">
-      <div className="bg-white rounded-2xl shadow-lg p-6">
+      
         {isLoading && (
           <div className="text-center py-12 text-gray-400">Loading overdue tasks...</div>
         )}
@@ -66,7 +66,7 @@ const activeSprintTasks = useProjectStore((state) => state.activeSprint?.tasks ?
               <tr>
                 <th className="text-left py-3">Feature</th>
                 <th className="text-left py-3">Progress</th>
-                <th className="text-left py-3">Urgency</th>
+                <th className="text-left py-3">Priority</th>
                 <th className="text-left py-3">Assigned to</th>
               </tr>
             </thead>
@@ -100,7 +100,7 @@ const activeSprintTasks = useProjectStore((state) => state.activeSprint?.tasks ?
             </tbody>
           </table>
         )}
-      </div>
+      
     </div>
   );
 }

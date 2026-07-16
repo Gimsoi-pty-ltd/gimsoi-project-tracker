@@ -4,9 +4,7 @@ import DashboardCards from "../../Components/Dashboard/DashboardCards";
 
 const Dashboard = () => {
     return (
-            
-            <DashboardCards />
-
+        <DashboardCards />
     );
 };
 

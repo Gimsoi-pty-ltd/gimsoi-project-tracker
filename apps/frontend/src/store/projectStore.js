@@ -17,7 +17,7 @@ const PRIORITY_UI = {
     LOW: "Low",
 };
 
-async function fetchAllProjectTasks(projectId) {
+export async function fetchAllProjectTasks(projectId) {
     const tasks = [];
     let cursor = null;
     do {
@@ -412,6 +412,30 @@ export const useProjectStore = create((set, get) => ({
         }
     },
 
+    ensureDashboardLoaded: async (projectId) => {
+        if (get().dashboardLoading) return;
+
+        try {
+            if (!get().projects.length) {
+                await get().fetchProjects({ limit: 50 });
+            }
+
+            const pid = projectId || get().currentProject?.id || localStorage.getItem("gimsoi_active_project_id") || get().projects[0]?.id;
+            if (!pid) return;
+
+            if (!get().currentProject || get().currentProject.id !== pid) {
+                const project = get().projects.find((p) => p.id === pid);
+                if (project) {
+                    set({ currentProject: project });
+                }
+            }
+
+            await get().fetchDashboard(pid);
+        } catch (error) {
+            console.error("Failed to hydrate dashboard data", error);
+        }
+    },
+
     fetchProjects: async (filters = {}) => {
         set({ isLoading: true, error: null });
         try {
@@ -439,7 +463,8 @@ export const useProjectStore = create((set, get) => ({
         set({ isLoading: true, error: null });
         try {
             const response = await resourceAPI.get(`/projects/${id}`);
-            set({ currentProject: response.data.project || response.data, isLoading: false });
+            const project = response.data?.data || response.data?.project || response.data;
+            set({ currentProject: project, isLoading: false });
             return response.data;
         } catch (error) {
             set({ error: error.response?.data?.message || "Error fetching project", isLoading: false });

@@ -5,6 +5,7 @@ import { resourceAPI } from "../../api/api";
 
 const Users = () => {
   const [showModal, setShowModal] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [users, setUsers] = useState([]);
   const [search, setSearch] = useState("");
   const [formData, setFormData] = useState({
@@ -177,7 +178,7 @@ const handleChange = (e) => {
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6 md:mb-8">
 
        <div>
-              <h2 className="text-xl md:text-2xl font-bold text-slate-900">Manage Users</h2>
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-6">Manage Users</h2>
               <nav className="flex mt-1 text-xs md:text-sm text-gray-500">
                 <Link to="/users" >
                 <span className="text-slate-900 hover:text-slate-600 cursor-pointer">User Management</span>
@@ -203,7 +204,7 @@ const handleChange = (e) => {
               setFormData({ name: "", email: "", role: "", team: "", department: "", phone: "", notes: "" });
               setShowModal(true);
             }}
-            className="bg-blue-600 text-white px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium hover:bg-blue-700 whitespace-nowrap"
+            className="bg-[#002D62] text-white px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium hover:bg-[#001f44] whitespace-nowrap"
           >
             + Add User
           </button>
@@ -449,7 +450,7 @@ const handleChange = (e) => {
 
             <button
             onClick={handleSaveUser}
-            className="px-4 py-2 bg-blue-600 text-white rounded"
+            className="px-4 py-2 bg-[#002D62]  text-white rounded"
           >
             Save User
           </button>

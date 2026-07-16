@@ -33,7 +33,7 @@ function LoginPage() {
                     <div className="absolute inset-0 bg-gradient-to-br from-[#002D62] to-[#011f44] opacity-50"></div>
                     <div className="relative z-10 flex flex-col items-center">
                         <img src={logo} alt="Gimsoi AI" className="w-36 h-36 object-contain mb-6 rounded-full " />
-                        <h1 className="text-3xl font-bold mb-2">Hello, Welcome!</h1>
+                        <h1 className="text-3xl font-bold mb-2 text-gray-100">Hello, Welcome!</h1>
                         <p className="text-sm opacity-90 mb-8">Don't have an account?</p>
                         <Link to="/signup">
                             <button className="border-2 border-white rounded-xl px-10 py-2 hover:bg-white hover:text-[#002D62] transition-all font-semibold">
@@ -89,20 +89,20 @@ function LoginPage() {
                     </form>
 
                     <div className="mt-8 text-center w-full max-w-sm">
-                        <div className="relative flex items-center py-4">
+                        {/* <div className="relative flex items-center py-4">
                             <div className="flex-grow border-t border-gray-200"></div>
                             <span className="flex-shrink mx-4 text-xs text-gray-400 uppercase font-medium">or login with</span>
                             <div className="flex-grow border-t border-gray-200"></div>
-                        </div>
+                        </div> */}
                         <div className="flex justify-center mt-2">
-                            <button className="flex items-center gap-3 px-6 py-2 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 transition-all shadow-sm group">
+                            {/* <button className="flex items-center gap-3 px-6 py-2 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 transition-all shadow-sm group">
                                 <img
                                     src="https://www.gstatic.com/images/branding/product/1x/googleg_48dp.png"
                                     alt="Google"
                                     className="w-5 h-5"
                                 />
                                 <span className="text-[#002D62] font-bold text-sm">Google</span>
-                            </button>
+                            </button> */}
                         </div>
                     </div>
                 </div>

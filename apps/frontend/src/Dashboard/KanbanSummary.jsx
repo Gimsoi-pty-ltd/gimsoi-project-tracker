@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Info } from 'lucide-react';
+import { Info,Lock, ArrowRight } from 'lucide-react';
 import { useProjectStore } from '../store/projectStore';
 
 const KanbanSummary = () => {
@@ -50,68 +50,60 @@ const KanbanSummary = () => {
     const statusData = getStatusData();
 
     return (
-        <Link 
-            to="/kanban-board" 
-            className="block min-h-[390px] bg-white p-5 border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer group"
-        >
-            {/* Header */}
-            <div className="flex items-center gap-2 mb-4">
-                <h3 className="text-sm font-bold text-blue-400 uppercase">
-                    Kanban Summary
-                </h3>
-                
-                <Info
-                    className="w-4 h-4 text-slate-400 hover:text-slate-600 cursor-pointer z-10"
-                    onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setShowInfo(true);
-                    }}
-                />
+        
+            
+          <div className="flex flex-col h-full bg-white p-5 border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-all cursor-default">
+    {/* Header */}
+    <div className="flex items-center gap-2 mb-4">
+        <h3 className="text-sm font-bold text-sky-500 uppercase">
+            Kanban Summary
+        </h3>
+        <Info
+            className="w-4 h-4 text-slate-400 hover:text-slate-600 cursor-pointer z-10"
+            onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setShowInfo(true);
+            }}
+        />
+    </div>
+
+    {statusData.length === 0 && (
+        <p className="text-sm text-gray-500 py-8 text-center">
+            No tasks in this sprint yet
+        </p>
+    )}
+
+    {/* Status List */}
+    <div className="space-y-4">
+        {statusData.map((item) => (
+            <div key={item.label} className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <div className={`w-3 h-3 rounded-full ${item.color}`}></div>
+                    <span className="text-sm text-slate-700 font-medium">{item.label}</span>
+                </div>
+                <div className="flex items-center gap-3">
+                    <span className="text-sm font-semibold text-slate-800">{item.count}</span>
+                    <span className="text-sm text-slate-500">({item.percent})</span>
+                </div>
+            </div>
+        ))}
             </div>
 
-            {statusData.length === 0 && (
-                <p className="text-sm text-gray-500 py-8 text-center">
-                    No tasks in this sprint yet
-                </p>
-            )}
-
-            {/* Status List */}
-            <div className="space-y-4">
-                {statusData.map((item) => (
-                    <div
-                        key={item.label}
-                        className="flex items-center justify-between"
-                    >
-                        <div className="flex items-center gap-3">
-                            <div className={`w-3 h-3 rounded-full ${item.color}`}></div>
-                            <span className="text-sm text-slate-700 font-medium">
-                                {item.label}
-                            </span>
-                        </div>
-
-                        <div className="flex items-center gap-3">
-                            <span className="text-sm font-semibold text-slate-800">
-                                {item.count}
-                            </span>
-                            <span className="text-sm text-slate-500">
-                                ({item.percent})
-                            </span>
-                        </div>
-                    </div>
-                ))}
-            </div>
-
-            {/* Footer Text */}
-            <div className="mt-6 text-sm text-slate-600 leading-relaxed">
+            {/* Footer Text — pushed to the bottom of whatever space remains */}
+            <div className="mt-auto pt-6 text-sm text-slate-600 leading-relaxed">
                 <p>Snapshot of tasks by status.</p>
-                <p>Click anywhere to open Kanban board.</p>
             </div>
 
-            {/* Hover Indicator */}
-            <div className="mt-6 flex items-center justify-end text-sky-500 text-xs font-medium opacity-0 group-hover:opacity-100 transition-all duration-200">
-                Open Full Kanban Board →
-            </div>
+            <div className="flex items-center justify-end mt-2">
+                <Link to="/kanban-board" className="flex items-center gap-1 text-sky-500 text-sm font-medium">
+                    View
+                    <ArrowRight className="w-4 h-4" />
+                </Link>
+            
+                </div>
+        
+            
 
             {/* Info Modal */}
             {showInfo && (
@@ -175,7 +167,7 @@ const KanbanSummary = () => {
                     </div>
                 </div>
             )}
-        </Link>
+        </div>
     );
 };
 

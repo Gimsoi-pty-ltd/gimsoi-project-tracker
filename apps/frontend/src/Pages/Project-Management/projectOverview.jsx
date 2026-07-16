@@ -2,6 +2,9 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Trash2, Edit2, CheckCircle2, Clock, ChevronRight, Users, Calendar, Zap } from "lucide-react";
 import ProjectForm from "../../Components/ProjectForm/ProjectForm";
+import { useSprintStore } from "../../store/sprintStore";
+import { useTaskStore } from "../../store/taskStore";
+import { resourceAPI } from "../../api/api";
 import { useProjectStore } from "../../store/projectStore";
 import EmptyState from "../../Components/EmptyState";
 import ErrorAlert from "../../Components/ErrorAlert";
@@ -88,12 +91,18 @@ export default function ProjectOverview() {
   const [showEditForm, setShowEditForm]     = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteLoading, setDeleteLoading]   = useState(false);
+  const [showSprintModal, setShowSprintModal] = useState(false);
+  const [sprintDraft, setSprintDraft] = useState({ name: '', startDate: '', endDate: '', status: 'PLANNED' });
+
+  const createSprint = useSprintStore((s) => s.createSprint);
+  
 
   useEffect(() => {
     if (id) {
       getProjectById(id);
       getProjectProgress(id);
     }
+    // no-op: project data is fetched above
   }, [id, getProjectById, getProjectProgress]);
 
   const handleDelete = async () => {
@@ -335,7 +344,31 @@ export default function ProjectOverview() {
           </div>
         )}
 
-        {/* ── Team Members ── */}
+        {/* ── Sprints & Team Members ── */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wider">Sprints</h2>
+            <button onClick={() => setShowSprintModal(true)} className="text-sm text-blue-600">+ Add Sprint</button>
+          </div>
+          <div>
+            {/* Show existing sprints from currentProject.sprints if available */}
+            {p.sprints && p.sprints.length > 0 ? (
+              <div className="flex flex-col gap-2">
+                {p.sprints.map((s) => (
+                  <div key={s.id} className="flex items-center justify-between border border-gray-100 rounded-md px-3 py-2">
+                    <div>
+                      <div className="text-sm font-medium text-gray-800">{s.name}</div>
+                      <div className="text-xs text-gray-400">{s.startDate || '—'} — {s.endDate || '—'}</div>
+                    </div>
+                    <div className="text-xs text-gray-500">{(s.tasks && s.tasks.length) || 0} tasks</div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500">No sprints yet. Create one to organize tasks.</p>
+            )}
+          </div>
+        </div>
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
           <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wider mb-4 flex items-center gap-2">
             <Users className="w-4 h-4" />
@@ -374,6 +407,50 @@ export default function ProjectOverview() {
       </div>
 
       {/* ── Modals ── */}
+      {showSprintModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl p-6 overflow-y-auto max-h-[90vh]">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Create Sprint</h3>
+              <button onClick={() => setShowSprintModal(false)} className="text-gray-400">✕</button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <input className="md:col-span-2 px-3 py-2 border rounded" placeholder="Sprint name" value={sprintDraft.name} onChange={(e) => setSprintDraft(s => ({...s, name: e.target.value}))} />
+              <div className="flex gap-2">
+                <input type="date" className="px-3 py-2 border rounded flex-1" value={sprintDraft.startDate} onChange={(e) => setSprintDraft(s => ({...s, startDate: e.target.value}))} />
+                <input type="date" className="px-3 py-2 border rounded flex-1" value={sprintDraft.endDate} onChange={(e) => setSprintDraft(s => ({...s, endDate: e.target.value}))} />
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <h4 className="text-sm font-medium mb-2">Tasks</h4>
+              <p className="text-sm text-gray-500">Tasks for this sprint can be created from the Dashboard. Use the Dashboard's "+ Add Task" button to assign tasks to this sprint after creating it.</p>
+            </div>
+
+              <div className="mt-6 flex justify-end gap-3">
+              <button className="px-4 py-2 rounded border" onClick={() => setShowSprintModal(false)}>Cancel</button>
+              <button className="px-4 py-2 rounded bg-blue-600 text-white" onClick={async () => {
+                try {
+                  if (!sprintDraft.name.trim()) return;
+                  await createSprint({ projectId: p.id, ...sprintDraft });
+                  // refresh project view and dashboard to pick up new sprint
+                  await getProjectById(p.id);
+                  await getProjectProgress(p.id);
+                  // Ensure dashboard sprints/tasks are reloaded
+                  const { fetchDashboard } = useProjectStore.getState();
+                  if (typeof fetchDashboard === 'function') await fetchDashboard(p.id);
+                } catch (err) {
+                  console.error('Failed creating sprint', err);
+                } finally {
+                  setShowSprintModal(false);
+                  setSprintDraft({ name: '', startDate: '', endDate: '', status: 'PLANNED' });
+                }
+              }}>Create Sprint</button>
+            </div>
+          </div>
+        </div>
+      )}
       {showDeleteModal && (
         <DeleteModal
           projectName={p.name}

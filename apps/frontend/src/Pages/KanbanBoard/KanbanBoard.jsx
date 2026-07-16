@@ -7,6 +7,7 @@ const COLUMN_TO_STATUS = {
   'todo':        'TODO',
   'in-progress': 'IN_PROGRESS',
   'review':      'REVIEW',
+  'blocked':     'BLOCKED',
   'done':        'DONE',
 };
 
@@ -96,12 +97,12 @@ const KanbanCard = ({
       onClick={onClick}
       className={`${cardColor} rounded-md p-3 cursor-grab active:cursor-grabbing hover:shadow-md transition-all duration-200 border ${textColor.border} ${isDragging ? 'opacity-40 scale-95' : ''}`}
     >
-      <div className="flex justify-between items-start mb-2">
-        <h3 className={`font-semibold text-sm flex-1 pr-2 ${textColor.title}`}>{title}</h3>
+      <div className="flex justify-between items-start gap-2 mb-2">
+        <h3 className={`min-w-0 flex-1 break-words font-semibold text-sm ${textColor.title}`}>{title}</h3>
 
         
         {priorityLabel && (
-          <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${getPriorityColor(priorityLabel)}`}>
+          <span className={`shrink-0 text-xs font-bold px-2 py-0.5 rounded-full border ${getPriorityColor(priorityLabel)}`}>
             {priorityLabel}
           </span>
         )}
@@ -141,7 +142,7 @@ const Column = ({
 
   return (
     <div
-      className="flex flex-col rounded-lg shadow-md min-w-[350px] w-[350px] max-h-[700px]"
+      className="flex min-w-0 w-full flex-col rounded-lg shadow-md max-h-[700px]"
       onDragOver={(e) => { e.preventDefault(); setIsOver(true); }}
       onDragLeave={() => setIsOver(false)}
       onDrop={(e) => { 
@@ -249,6 +250,7 @@ const Kanban = () => {
         { id: 'todo', title: 'TO DO', headerColor: 'bg-blue-600', cards: [] },
         { id: 'in-progress', title: 'In Progress', headerColor: 'bg-green-600', cards: [] },
         { id: 'review', title: 'QA / Review', headerColor: 'bg-yellow-500', cards: [] },
+        {id: 'blocked', title: 'Blocked', headerColor: 'bg-red-600', cards: [] },
         { id: 'done', title: 'Done', headerColor: 'bg-green-800', cards: [] },
       ];
     }
@@ -258,18 +260,19 @@ const Kanban = () => {
       'IN_PROGRESS': 'in-progress',
       'DONE': 'done',
       'REVIEW': 'review',
-      'BLOCKED': 'todo', // Blocked items without a column go back to todo, or we could add a column
+      'BLOCKED': 'blocked',
       'todo': 'todo',
       'inProgress': 'in-progress',
       'done': 'done',
       'review': 'review',
-      'blocked': 'todo',
+      'blocked': 'blocked',
     };
 
     const cardsByStatus = {
       todo: [],
       'in-progress': [],
       review: [],
+      blocked: [],
       done: [],
     };
 
@@ -296,6 +299,7 @@ const Kanban = () => {
       { id: 'todo', title: 'TO DO', headerColor: 'bg-blue-600', cards: cardsByStatus.todo },
       { id: 'in-progress', title: 'In Progress', headerColor: 'bg-green-600', cards: cardsByStatus['in-progress'] },
       { id: 'review', title: 'QA / Review', headerColor: 'bg-yellow-500', cards: cardsByStatus.review },
+      { id: 'blocked', title: 'Blocked', headerColor: 'bg-red-600', cards: cardsByStatus.blocked },
       { id: 'done', title: 'Done', headerColor: 'bg-green-800', cards: cardsByStatus.done },
     ];
   }, [activeSprint?.tasks]);
@@ -377,8 +381,8 @@ const Kanban = () => {
       : null;
 
   return (
-    <div className="bg-gray-200 min-h-screen p-6 text-black" style={{ fontFamily: 'Arial, sans-serif' }}>
-      <div className="bg-white rounded-lg shadow-lg p-6">
+    <div className="bg-gray-200 min-h-screen p-3 sm:p-4 lg:p-6 text-black overflow-x-hidden" style={{ fontFamily: 'Arial, sans-serif' }}>
+      <div className="bg-white rounded-lg shadow-lg p-4 lg:p-6 overflow-hidden">
 
         {apiError && (
           <div className="mb-4 p-4 rounded-lg bg-red-50 border border-red-200 text-sm text-red-800">
@@ -392,7 +396,7 @@ const Kanban = () => {
             <h1 className="text-2xl font-bold">Sprint Task-Progress {currentProject?.name && `— ${currentProject.name}`}</h1>
             {projects && projects.length > 0 && (
               <select
-                className="bg-white border border-gray-300 text-gray-700 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block px-3 py-2 shadow-sm font-medium"
+                className="w-full bg-white border border-gray-300 text-gray-700 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block px-3 py-2 shadow-sm font-medium lg:w-auto"
                 value={currentProject?.id || ''}
                 onChange={(e) => switchProject(e.target.value)}
               >
@@ -406,26 +410,28 @@ const Kanban = () => {
             )}
           </div>
 
-          <div className="flex items-center justify-between mt-4">
-            <div>
-              <p className="text-sm">{doneCards}/{totalCards} Tasks completed</p>
-              <div className="w-64 bg-gray-300 rounded-full h-3 mt-2 relative">
+          <div className="flex flex-col gap-4 mt-4 xl:flex-row xl:items-center xl:justify-between">
+            <div className="w-full max-w-64">
+              <div className="flex items-center justify-between text-sm">
+                <p>{doneCards}/{totalCards} Tasks completed</p>
+                <span className="font-semibold">{progressPct}%</span>
+              </div>
+              <div className="w-full bg-gray-300 rounded-full h-3 mt-2">
                 <div
                   className="bg-blue-500 h-3 rounded-full transition-all duration-500"
                   style={{ width: `${progressPct}%` }}
                 />
-                <span className="absolute right-2 top-[-20px] text-sm font-semibold">{progressPct}%</span>
               </div>
             </div>
 
-            <div className="text-xs text-gray-600 flex gap-6">
-              <p><span className="font-semibold">High</span> – Critical feature / urgent fix</p>
-              <p><span className="font-semibold">Medium</span> – Important improvement</p>
-              <p><span className="font-semibold">Low</span> – Optional enhancement</p>
+            <div className="text-xs text-gray-600 grid gap-2 sm:grid-cols-3 xl:flex xl:gap-6">
+              <p><span className="font-semibold">High</span> - Critical feature / urgent fix</p>
+              <p><span className="font-semibold">Medium</span> - Important improvement</p>
+              <p><span className="font-semibold">Low</span> - Optional enhancement</p>
             </div>
           </div>
 
-          <div className="flex items-center justify-end gap-4 mt-4 text-xs">
+          <div className="flex flex-wrap items-center justify-start gap-3 mt-4 text-xs lg:justify-end lg:gap-4">
             {[
               { color: 'bg-purple-600', label: 'New Feature' },
               { color: 'bg-blue-600',   label: 'Technical Task' },
@@ -455,7 +461,7 @@ const Kanban = () => {
           </div>
         )}
 
-        <div className="flex gap-4 overflow-x-auto pb-2">
+        <div className="grid grid-cols-1 gap-4 pb-2 sm:grid-cols-2 lg:grid-cols-5">
           {columnState.map((col) => (
             <Column
               key={col.id}
