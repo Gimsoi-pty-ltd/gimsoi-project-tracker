@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { User, Lock, Mail, Github, Facebook, Linkedin, Loader } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import NavyButton from '../../Components/Buttons';
-import logo from '../../assets/Gimsoi-AI.jpg';
+import logo from '../../assets/Gimsoi-AI.png';
 import { useAuthStore } from '../../store/authStore';
 
 function LoginPage() {
@@ -74,7 +74,7 @@ function LoginPage() {
                         </div>
 
                         <div className="text-right">
-                            <Link to="/forgot-password" title="Coming soon!" className="text-xs text-[#002D62] font-semibold hover:underline">Forgot Password?</Link>
+                            <Link to="/forgot-password" className="text-xs text-[#002D62] font-semibold hover:underline">Forgot Password?</Link>
                         </div>
 
                         {error && <p className="text-red-500 font-semibold mt-2 text-center text-sm">{error}</p>}

@@ -9,7 +9,7 @@ export default function EmailVerification() {
   const refs = useRef([]);
   const navigate = useNavigate();
 
-  const { verifyEmail, isLoading, error, user } = useAuthStore();
+  const { verifyEmail, resendVerificationCode, isLoading, error, message, user } = useAuthStore();
 
   const otpValue = useMemo(() => otp.join(""), [otp]);
 
@@ -68,6 +68,15 @@ export default function EmailVerification() {
     try {
       await verifyEmail(otpValue);
       navigate("/dashboard");
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleResend = async () => {
+    if (!user?.email) return;
+    try {
+      await resendVerificationCode(user.email);
     } catch (err) {
       console.error(err);
     }
@@ -151,13 +160,16 @@ export default function EmailVerification() {
             Didn&apos;t get code?{" "}
             <button
               type="button"
-              className="font-semibold text-slate-900 hover:underline"
+              onClick={handleResend}
+              disabled={isLoading}
+              className="font-semibold text-slate-900 hover:underline disabled:opacity-50"
             >
               Resend Code
             </button>
           </div>
 
           {error && <p className="text-red-500 font-semibold mt-4">{error}</p>}
+          {message && <p className="text-green-500 font-semibold mt-4">{message}</p>}
 
           <NavyButton
             onClick={handleVerify}

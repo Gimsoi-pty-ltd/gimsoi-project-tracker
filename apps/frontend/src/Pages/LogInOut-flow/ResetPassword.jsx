@@ -7,6 +7,7 @@ import { useAuthStore } from "../../store/authStore";
 const ResetPassword = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [formError, setFormError] = useState("");
   const { resetPassword, error, isLoading, message } = useAuthStore();
 
   const { token } = useParams();
@@ -14,9 +15,10 @@ const ResetPassword = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setFormError("");
 
     if (password !== confirmPassword) {
-      alert("Passwords do not match");
+      setFormError("Passwords do not match");
       return;
     }
     try {
@@ -61,6 +63,7 @@ const ResetPassword = () => {
             />
           </div>
 
+          {formError && <p className="text-red-500 text-sm mb-4 text-center">{formError}</p>}
           {error && <p className="text-red-500 text-sm mb-4 text-center">{error}</p>}
           {message && <p className="text-green-500 text-sm mb-4 text-center">{message}</p>}
 

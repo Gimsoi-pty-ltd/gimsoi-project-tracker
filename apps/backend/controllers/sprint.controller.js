@@ -2,7 +2,7 @@ import * as sprintService from "../services/sprint.service.js";
 
 export const createSprint = async (req, res) => {
     try {
-        const { name, projectId, status, startDate, endDate } = req.body;
+        const { name, goal, projectId, status, startDate, endDate } = req.body;
 
         if (!name || !projectId) {
             return res.status(400).json({ success: false, message: "Sprint name and projectId are required" });
@@ -10,6 +10,7 @@ export const createSprint = async (req, res) => {
 
         const sprint = await sprintService.createSprint({
             name,
+            goal,
             projectId,
             status,
             startDate,
@@ -65,9 +66,9 @@ export const updateSprintStatus = async (req, res) => {
 export const updateSprint = async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, startDate, endDate, version } = req.body;
+        const { name, goal, startDate, endDate, version } = req.body;
 
-        const updated = await sprintService.updateSprint(id, { name, startDate, endDate, version }, req.user.id, req.user.role);
+        const updated = await sprintService.updateSprint(id, { name, goal, startDate, endDate, version }, req.user.id, req.user.role);
 
         return res.status(200).json({ success: true, message: "Sprint updated successfully", data: updated });
     } catch (err) {
@@ -85,3 +86,14 @@ export const getSprintVelocity = async (req, res, next) => {
         next(err);
     }
 };
+
+export const getSprintBurndown = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const burndown = await sprintService.getSprintBurndown(id);
+        return res.status(200).json({ success: true, data: burndown });
+    } catch (err) {
+        next(err);
+    }
+};
+

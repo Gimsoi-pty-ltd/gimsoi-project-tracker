@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Filter, Search, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useSprintStore } from '../../store/sprintStore';
 import {
   BarChart,
   Bar,
@@ -15,27 +16,44 @@ import {
 
 const SprintVelocityPage = () => {
   const [filterText, setFilterText] = useState('');
+  const { sprints, getSprints, isLoading } = useSprintStore();
 
-  // Realistic historical sprint velocity data
-  const velocityHistory = [
-    { sprint: 'Sprint 5 – Onboarding', short: 'S5', committed: 28, completed: 25, notes: 'New team ramp-up' },
-    { sprint: 'Sprint 6 – Core UI', short: 'S6', committed: 32, completed: 30, notes: 'Good flow, minor blockers' },
-    { sprint: 'Sprint 7 – Auth & Security', short: 'S7', committed: 35, completed: 28, notes: 'Security review delayed' },
-    { sprint: 'Sprint 8 – Payments', short: 'S8', committed: 38, completed: 40, notes: 'Over-delivered!' },
-    { sprint: 'Sprint 9 – Analytics', short: 'S9', committed: 36, completed: 34, notes: 'Smooth delivery' },
-    { sprint: 'Sprint 10 – Mobile', short: 'S10', committed: 42, completed: 38, notes: 'Responsive design issues' },
-    { sprint: 'Sprint 11 – Refactor', short: 'S11', committed: 30, completed: 32, notes: 'Tech debt reduction' },
-    { sprint: 'Sprint 12 – Q1 Features', short: 'S12', committed: 40, completed: 37, notes: 'Holiday slowdown' },
-  ];
+  useEffect(() => {
+    getSprints();
+  }, []);
 
-  const averageVelocity = velocityHistory.reduce((sum, s) => sum + s.completed, 0) / velocityHistory.length;
+  // Compute velocity history (completed sprints)
+  const velocityHistory = useMemo(() => {
+    return sprints
+      .filter(s => s.status === 'COMPLETED')
+      .map(s => ({
+        sprint: s.name,
+        short: s.name.substring(0, 10) + '...', // short name
+        committed: s.pointsCommitted || 0,
+        completed: s.pointsCompleted || 0,
+        notes: s.goal
+      }))
+      .filter(s => s.sprint.toLowerCase().includes(filterText.toLowerCase()))
+      .slice(-8); // Get last 8 sprints
+  }, [sprints, filterText]);
 
-  // Upcoming / To-Do list data
-  const upcomingData = [
-    { id: 1, sprint: 'Sprint 13 – Integrations', owner: 'Sarah K.', points: '35pts', notes: 'API + 3rd party', progress: 20 },
-    { id: 2, sprint: 'Sprint 14 – Dashboard V2', owner: 'Alex M.', points: '28pts', notes: 'UI redesign', progress: 5 },
-    { id: 3, sprint: 'Sprint 15 – Performance', owner: 'John Doe', points: '22pts', notes: 'Optimization focus', progress: 0 },
-  ];
+  const averageVelocity = velocityHistory.length > 0 
+    ? velocityHistory.reduce((sum, s) => sum + s.completed, 0) / velocityHistory.length 
+    : 0;
+
+  // Compute upcoming sprints
+  const upcomingData = useMemo(() => {
+    return sprints
+      .filter(s => s.status !== 'COMPLETED')
+      .map((s, index) => ({
+        id: s.id,
+        sprint: s.name,
+        owner: 'Project Manager', // Fallback, could be mapped if sprint has ownerId
+        points: `${s.pointsCommitted || 0}pts`,
+        notes: s.goal,
+        progress: s.pointsCommitted > 0 ? ((s.pointsCompleted || 0) / s.pointsCommitted) * 100 : 0
+      }));
+  }, [sprints]);
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6 font-arial">
@@ -52,7 +70,6 @@ const SprintVelocityPage = () => {
           Sprint Velocity Details
         </h1>
 
-        {/* Invisible spacer to balance the layout */}
         <div className="w-10" />
       </div>
 
@@ -81,83 +98,89 @@ const SprintVelocityPage = () => {
 
         {/* Recharts - Grouped bars + Trend line */}
         <div className="h-96 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={velocityHistory}
-              margin={{ top: 20, right: 30, left: 20, bottom: 80 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis
-                dataKey="short"
-                angle={-45}
-                textAnchor="end"
-                height={80}
-                interval={0}
-                tick={{ fontSize: 13, fill: '#475569' }}
-              />
-              <YAxis
-                label={{
-                  value: 'Story Points',
-                  angle: -90,
-                  position: 'insideLeft',
-                  style: { textAnchor: 'middle', fill: '#64748b', fontSize: 13 },
-                }}
-                tick={{ fontSize: 12 }}
-              />
-              <Tooltip
-                content={({ active, payload, label }) => {
-                  if (active && payload && payload.length) {
-                    const data = velocityHistory.find(s => s.short === label);
-                    return (
-                      <div className="bg-gray-900 text-white p-4 rounded-lg shadow-xl text-sm min-w-[220px]">
-                        <p className="font-bold mb-2 pb-1 border-b border-gray-700">
-                          {data?.sprint || label}
-                        </p>
-                        <p className="mb-1">
-                          Committed:{' '}
-                          <span className="text-blue-300 font-medium">{payload[0]?.value} pts</span>
-                        </p>
-                        <p className="mb-2">
-                          Completed:{' '}
-                          <span className="text-blue-400 font-bold">{payload[1]?.value} pts</span>
-                        </p>
-                        {data?.notes && (
-                          <p className="text-gray-300 text-xs italic mt-2">
-                            {data.notes}
+          {isLoading ? (
+            <div className="h-full flex items-center justify-center text-gray-500">Loading velocity data...</div>
+          ) : velocityHistory.length === 0 ? (
+            <div className="h-full flex items-center justify-center text-gray-500">No completed sprints found.</div>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={velocityHistory}
+                margin={{ top: 20, right: 30, left: 20, bottom: 80 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis
+                  dataKey="short"
+                  angle={-45}
+                  textAnchor="end"
+                  height={80}
+                  interval={0}
+                  tick={{ fontSize: 13, fill: '#475569' }}
+                />
+                <YAxis
+                  label={{
+                    value: 'Story Points',
+                    angle: -90,
+                    position: 'insideLeft',
+                    style: { textAnchor: 'middle', fill: '#64748b', fontSize: 13 },
+                  }}
+                  tick={{ fontSize: 12 }}
+                />
+                <Tooltip
+                  content={({ active, payload, label }) => {
+                    if (active && payload && payload.length) {
+                      const data = velocityHistory.find(s => s.short === label);
+                      return (
+                        <div className="bg-gray-900 text-white p-4 rounded-lg shadow-xl text-sm min-w-[220px]">
+                          <p className="font-bold mb-2 pb-1 border-b border-gray-700">
+                            {data?.sprint || label}
                           </p>
-                        )}
-                      </div>
-                    );
-                  }
-                  return null;
-                }}
-              />
-              <Legend wrapperStyle={{ paddingTop: '16px', fontSize: '13px' }} />
-              <Bar
-                dataKey="committed"
-                name="Committed"
-                fill="#93c5fd"
-                radius={[6, 6, 0, 0]}
-                barSize={28}
-              />
-              <Bar
-                dataKey="completed"
-                name="Completed"
-                fill="#2563eb"
-                radius={[6, 6, 0, 0]}
-                barSize={28}
-              />
-              <Line
-                type="monotone"
-                dataKey="completed"
-                name="Velocity Trend"
-                stroke="#16a34a"
-                strokeWidth={2.5}
-                dot={{ r: 4, stroke: '#16a34a', strokeWidth: 2 }}
-                activeDot={{ r: 8 }}
-              />
-            </BarChart>
-          </ResponsiveContainer>
+                          <p className="mb-1">
+                            Committed:{' '}
+                            <span className="text-blue-300 font-medium">{payload[0]?.value} pts</span>
+                          </p>
+                          <p className="mb-2">
+                            Completed:{' '}
+                            <span className="text-blue-400 font-bold">{payload[1]?.value} pts</span>
+                          </p>
+                          {data?.notes && (
+                            <p className="text-gray-300 text-xs italic mt-2">
+                              {data.notes}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
+                />
+                <Legend wrapperStyle={{ paddingTop: '16px', fontSize: '13px' }} />
+                <Bar
+                  dataKey="committed"
+                  name="Committed"
+                  fill="#93c5fd"
+                  radius={[6, 6, 0, 0]}
+                  barSize={28}
+                />
+                <Bar
+                  dataKey="completed"
+                  name="Completed"
+                  fill="#2563eb"
+                  radius={[6, 6, 0, 0]}
+                  barSize={28}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="completed"
+                  name="Velocity Trend"
+                  stroke="#16a34a"
+                  strokeWidth={2.5}
+                  dot={{ r: 4, stroke: '#16a34a', strokeWidth: 2 }}
+                  activeDot={{ r: 8 }}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
         </div>
 
         {/* Summary */}
@@ -172,7 +195,7 @@ const SprintVelocityPage = () => {
       {/* Upcoming Sprints Table */}
       <div className="bg-white rounded-[20px] border border-gray-100 shadow-sm overflow-hidden">
         <div className="p-6 border-b border-gray-100">
-          <h2 className="text-lg font-bold text-gray-800">Upcoming Sprints</h2>
+          <h2 className="text-lg font-bold text-gray-800">Upcoming / Active Sprints</h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left">
@@ -186,7 +209,11 @@ const SprintVelocityPage = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 text-sm">
-              {upcomingData.map((row) => (
+              {isLoading ? (
+                <tr><td colSpan="5" className="px-6 py-4 text-center text-gray-500">Loading...</td></tr>
+              ) : upcomingData.length === 0 ? (
+                <tr><td colSpan="5" className="px-6 py-4 text-center text-gray-500">No upcoming sprints.</td></tr>
+              ) : upcomingData.map((row) => (
                 <tr key={row.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4 font-medium text-gray-800">{row.sprint}</td>
                   <td className="px-6 py-4 text-gray-600">{row.owner}</td>
@@ -196,7 +223,7 @@ const SprintVelocityPage = () => {
                     <div className="w-full bg-gray-200 rounded-full h-2.5 max-w-[100px]">
                       <div
                         className="bg-blue-600 h-2.5 rounded-full transition-all duration-500"
-                        style={{ width: `${row.progress}%` }}
+                        style={{ width: `${Math.min(100, Math.max(0, row.progress))}%` }}
                       ></div>
                     </div>
                   </td>

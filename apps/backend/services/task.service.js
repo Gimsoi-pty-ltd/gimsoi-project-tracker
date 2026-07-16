@@ -14,15 +14,10 @@ import * as phaseService from "./phase.service.js";
 // State machine for task status transitions. Empty array = terminal state.
 export const ALLOWED_TRANSITIONS = {
     [TASK_STATUS.TODO]: [TASK_STATUS.IN_PROGRESS, TASK_STATUS.CANCELLED],
-    [TASK_STATUS.IN_PROGRESS]: [TASK_STATUS.DONE, TASK_STATUS.CANCELLED, TASK_STATUS.BLOCKED],
-    
-    // Reversible — task is obstructed but not abandoned. Must return to IN_PROGRESS before completing.
+    [TASK_STATUS.IN_PROGRESS]: [TASK_STATUS.DONE, TASK_STATUS.CANCELLED, TASK_STATUS.BLOCKED, TASK_STATUS.REVIEW],
     [TASK_STATUS.BLOCKED]: [TASK_STATUS.IN_PROGRESS, TASK_STATUS.CANCELLED],
-    
-    // Terminal — work is finalized
-    [TASK_STATUS.DONE]: [], 
-    
-    // Terminal — task was abandoned before completion
+    [TASK_STATUS.REVIEW]: [TASK_STATUS.DONE, TASK_STATUS.IN_PROGRESS, TASK_STATUS.CANCELLED],
+    [TASK_STATUS.DONE]: [TASK_STATUS.IN_PROGRESS, TASK_STATUS.REVIEW], 
     [TASK_STATUS.CANCELLED]: [], 
 };
 
@@ -61,8 +56,7 @@ const canModifyTask = (existingTask, userId, userRole, updates = {}) => {
     return false;
 };
 
-// Guards against modifying tasks in closed sprints, completed projects, or terminal states.
-const assertTaskIsModifiable = (task) => {
+const assertTaskIsModifiable = (task, updates = {}) => {
     if (task.sprint && task.sprint.status === SPRINT_STATUS.CLOSED) {
         throw new StateTransitionError("Cannot modify a task belonging to a closed sprint.");
     }
@@ -70,12 +64,16 @@ const assertTaskIsModifiable = (task) => {
         throw new StateTransitionError('Cannot modify a task inside a COMPLETED project.');
     }
     if (task.status === TASK_STATUS.DONE || task.status === TASK_STATUS.CANCELLED) {
-        throw new StateTransitionError(`Cannot modify a task that is already ${task.status}.`);
+        const isReopening = updates.status !== undefined && updates.status !== task.status;
+        const nonStatusUpdates = Object.keys(updates).filter(key => key !== 'status' && key !== 'version');
+        if (nonStatusUpdates.length > 0 || !isReopening) {
+            throw new StateTransitionError(`Cannot modify a task that is already ${task.status}.`);
+        }
     }
 };
 
 export const createTask = async ({ taskData, context, requestingUser }) => {
-    const { title, description, priority, isBlocked, dueDate } = taskData;
+    const { title, description, priority, isBlocked, dueDate, storyPoints } = taskData;
     const { projectId, sprintId, phaseId, reporterId, assigneeId } = context;
     const { role: userRole } = requestingUser;
 
@@ -139,6 +137,7 @@ export const createTask = async ({ taskData, context, requestingUser }) => {
                 reporterId,
                 assigneeId,
                 status: TASK_STATUS.TODO,
+                storyPoints: storyPoints !== undefined ? Number(storyPoints) : null,
                 priority: priority || 'MEDIUM',
                 isBlocked: isBlocked || false,
                 dueDate: dueDate ? new Date(dueDate) : null
@@ -172,10 +171,6 @@ export const createTask = async ({ taskData, context, requestingUser }) => {
  * @param {{ limit?: number, cursor?: string, status?: string, isBlocked?: boolean, isOverdue?: boolean, sortBy?: string }} options
  */
 export const getTasksByProject = async (projectId, requestingUser, { limit = 50, cursor, status, isBlocked, isOverdue, sortBy } = {}) => {
-    if (!projectId && (!requestingUser || ![ROLES.ADMIN, ROLES.PROJECT_MANAGER].includes(requestingUser.role))) {
-        throw new ForbiddenError('projectId is required for non-ADMIN/PM roles.');
-    }
-
     const where = projectId ? { projectId } : {};
 
     // Row-level security: non-admins on global fetch see only their assigned tasks
@@ -333,7 +328,7 @@ export const updateTask = async (id, data, userId, userRole) => {
     });
     if (!existing) throw new NotFoundError(`Task with id ${id} not found`);
 
-    assertTaskIsModifiable(existing);
+    assertTaskIsModifiable(existing, data);
 
     if (userId && userRole && !canModifyTask(existing, userId, userRole, data)) {
         throw new ForbiddenError('You do not have permission to access this resource.');
@@ -359,6 +354,7 @@ export const updateTask = async (id, data, userId, userRole) => {
             dueDate:     updatePayload.dueDate     !== undefined
                 ? (updatePayload.dueDate === null ? null : new Date(updatePayload.dueDate))
                 : existing.dueDate,
+            storyPoints: updatePayload.storyPoints !== undefined ? (updatePayload.storyPoints === null ? null : Number(updatePayload.storyPoints)) : existing.storyPoints,
             completedAt: existing.completedAt,
             version: { increment: 1 }
         };
@@ -405,7 +401,7 @@ export const updateTask = async (id, data, userId, userRole) => {
                 });
             }
             // General update if other fields changed
-            const otherFields = ['title', 'description', 'dueDate', 'isBlocked'];
+            const otherFields = ['title', 'description', 'dueDate', 'isBlocked', 'storyPoints'];
             const changedFields = otherFields.filter(f => updatePayload[f] !== undefined && String(updatePayload[f]) !== String(existing[f]));
             if (changedFields.length > 0) {
                 await logActivity({
@@ -623,7 +619,7 @@ export const bulkUpdateTasks = async (projectId, tasks, updateData, userId, user
             throw new StateTransitionError(`Task ${existing.id} does not belong to project ${projectId}.`);
         }
         
-        assertTaskIsModifiable(existing);
+        assertTaskIsModifiable(existing, updateData);
 
         if (updateData.status !== undefined && updateData.status !== existing.status) {
             assertValidTransition(existing.status, updateData.status);
@@ -676,6 +672,7 @@ export const bulkUpdateTasks = async (projectId, tasks, updateData, userId, user
                     dueDate:     updateData.dueDate     !== undefined
                         ? (updateData.dueDate === null ? null : new Date(updateData.dueDate))
                         : existing.dueDate,
+                    storyPoints: updateData.storyPoints !== undefined ? (updateData.storyPoints === null ? null : Number(updateData.storyPoints)) : existing.storyPoints,
                     completedAt: existing.completedAt,
                     version: { increment: 1 }
                 };
@@ -701,7 +698,7 @@ export const bulkUpdateTasks = async (projectId, tasks, updateData, userId, user
                     if (updateData.priority !== undefined && updateData.priority !== existing.priority) {
                         await logActivity({ taskId: existing.id, userId, action: "PRIORITY_CHANGE", oldValue: existing.priority, newValue: updateData.priority }, tx);
                     }
-                    const otherFields = ['sprintId', 'phaseId', 'dueDate', 'isBlocked'];
+                    const otherFields = ['sprintId', 'phaseId', 'dueDate', 'isBlocked', 'storyPoints'];
                     const changedFields = otherFields.filter(f => updateData[f] !== undefined && String(updateData[f]) !== String(existing[f]));
                     if (changedFields.length > 0) {
                         await logActivity({

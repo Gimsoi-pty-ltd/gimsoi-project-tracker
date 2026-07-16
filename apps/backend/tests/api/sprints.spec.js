@@ -6,13 +6,15 @@ test.describe('Sprint Lifecycle Validations', () => {
         const response = await pmApi.post('/api/sprints', {
             data: {
                 name: "Q3 Deliverable Sprint",
-                projectId: testProject.id
+                projectId: testProject.id,
+                goal: "Finish Q3 deliverables"
             }
         });
 
         expect(response.status()).toBe(201);
         const json = await response.json();
         expect(json.data.status).toBe('PLANNING');
+        expect(json.data.goal).toBe("Finish Q3 deliverables");
     });
 
     test('PM successfully activates a PLANNING sprint', async ({ pmApi, testSprint }) => {
@@ -86,4 +88,17 @@ test.describe('Sprint Lifecycle Validations', () => {
 
     });
 
+    test('User can fetch sprint burndown chart data', async ({ pmApi, testSprint }) => {
+        const response = await pmApi.get(`/api/sprints/${testSprint.id}/burndown`);
+        expect(response.status()).toBe(200);
+        const json = await response.json();
+        expect(json.success).toBe(true);
+        expect(Array.isArray(json.data)).toBe(true);
+        if (json.data.length > 0) {
+            expect(json.data[0]).toHaveProperty('day');
+            expect(json.data[0]).toHaveProperty('ideal');
+            expect(json.data[0]).toHaveProperty('actual');
+        }
+    });
 });
+

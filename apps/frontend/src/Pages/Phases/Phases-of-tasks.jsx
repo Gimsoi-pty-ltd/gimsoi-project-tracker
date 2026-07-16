@@ -1,103 +1,148 @@
+// src/Pages/Phases/Phases-of-tasks.jsx
 import React, { useState } from 'react';
-import NavyButton from '../../Components/Buttons';
+import { useProjectStore } from '../../store/projectStore';
+import ProjectForm from '../../Components/ProjectForm/ProjectForm';
 
-const ProjectPhasesGantt = () =>
-{
-    // Data structure based on your internal tracker requirements
-    const [phases, setPhases] = useState([
-        {
-            id: 1,
-            project: 'Website Redesign',
-            client: 'Acme Corp',
-            assignee: 'Jane Doe',
-            status: 'Active',
-            progress: 67,
-            color: 'bg-blue-500',
-            start: 'Jan 01',
-            end: 'Jan 20'
-        },
-        {
-            id: 2,
-            project: 'Mobile App',
-            client: 'Gimsoi AI',
-            assignee: 'Mike Will',
-            status: 'Blocked',
-            progress: '19',
-            color: 'bg-red-500',
-            start: 'Jan 05',
-            end: 'Jan 15'
-        }
-    ]);
-
-    return (
-        <div className="p-6 bg-gray-50 min-h-screen font-sans">
-            {/* Header Section */}
-            <div className="flex justify-between items-center mb-8">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-800">Phases</h1>
-                    <p className="text-gray-500 text-sm">Track project progress and timelines</p>
-                </div>
-<NavyButton onClick={() => console.log("Creating new phase...")}>
- + New Phase
-</NavyButton>
-            </div>
-
-            {/* Gantt Container */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                {/* Timeline Header */}
-                <div className="grid grid-cols-12 bg-gray-100 border-bottom border-gray-200 text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    <div className="col-span-3 p-4 border-r border-gray-200">Project & Lead</div>
-                    <div className="col-span-2 p-4 text-center">Week 1</div>
-                    <div className="col-span-2 p-4 text-center border-l border-gray-200">Week 2</div>
-                    <div className="col-span-2 p-4 text-center border-l border-gray-200">Week 3</div>
-                    <div className="col-span-2 p-4 text-center border-l border-gray-200 text-blue-600 font-bold">Today</div>
-                    <div className="col-span-1 p-4 text-center border-l border-gray-200">Status</div>
-                </div>
-
-                {/* Phase Rows */}
-                {phases.map((phase) => (
-                    <div key={phase.id} className="grid grid-cols-12 border-b border-gray-100 hover:bg-gray-50 transition items-center">
-                        {/* Project Info */}
-                        <div className="col-span-3 p-4 border-r border-gray-200">
-                            <h3 className="font-bold text-gray-900">{phase.project}</h3>
-                            <p className="text-xs text-gray-500">{phase.assignee} • {phase.client}</p>
-                        </div>
-
-                        {/* Gantt Timeline View */}
-                        <div className="col-span-8 p-4 relative h-16 flex items-center">
-                            {/* Draggable Phase Bar */}
-                            <div
-                                className={`h-8 rounded-full ${phase.color} shadow-md flex items-center px-3 text-white text-[10px] cursor-move relative transition-all hover:scale-[1.02]`}
-                                style={{ width: `${phase.progress}%`, marginLeft: '5%' }}
-                            >
-                                <span className="truncate font-medium">{phase.start} - {phase.end}</span>
-                                {/* Progress Percentage Indicator */}
-                                <div className="absolute -top-6 right-0 bg-gray-800 text-white text-[9px] px-1.5 py-0.5 rounded">
-                                    {phase.progress}%
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Status Label */}
-                        <div className="col-span-1 p-4 text-center">
-                            <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${phase.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                                }`}>
-                                {phase.status.toUpperCase()}
-                            </span>
-                        </div>
-                    </div>
-                ))}
-            </div>
-
-            {/* Drag & Drop Interaction Area */}
-            <div className="mt-8 border-2 border-dashed border-gray-300 rounded-xl p-10 flex flex-col items-center justify-center text-gray-400">
-                <svg className="w-10 h-10 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                </svg>
-                <p className="text-sm font-medium">Drag tasks from your backlog to create new phases here</p>
-            </div>
-        </div>
-    );
+const statusColor = (status) => {
+  switch (status) {
+    case 'Active':      return 'bg-blue-500';
+    case 'Completed':   return 'bg-green-500';
+    case 'On Hold':     return 'bg-orange-400';
+    default:            return 'bg-gray-400';
+  }
 };
 
-export default ProjectPhasesGantt;
+const statusTextColor = (status) => {
+  switch (status) {
+    case 'Active':      return 'bg-blue-100 text-blue-700';
+    case 'Completed':   return 'bg-green-100 text-green-700';
+    case 'On Hold':     return 'bg-orange-100 text-orange-700';
+    default:            return 'bg-gray-100 text-gray-600';
+  }
+};
+
+export default function ProjectPhasesGantt() {
+  const { projects = [], currentProject = {}, activeSprint = {}, fetchProjects } = useProjectStore((state) => state);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+
+  // Build phases from projects — each project is a phase row
+  const phases = projects.map((project) => {
+    const sprints = project.sprints || [];
+    const sprint = sprints.find((s) => s.id === project.activeSprint) ?? sprints[sprints.length - 1];
+    return {
+      id: project.id,
+      project: project.name,
+      client: project.client?.name ?? '—',
+      assignee: sprint?.tasks?.[0]?.assignee ?? '—',
+      status: project.status,
+      progress: project.progress,
+      color: statusColor(project.status),
+      start: sprint?.startDate ?? '—',
+      end: sprint?.endDate ?? '—',
+      sprint: sprint?.name ?? '—',
+      goal: sprint?.goal ?? '—',
+    };
+  });
+
+  return (
+    <div className="p-4 md:p-6 lg:p-8 bg-gray-50 min-h-screen font-sans">
+      {/* Header */}
+      <div className="flex flex-col gap-4 md:flex-row md:justify-between md:items-center mb-6 md:mb-8">
+        <div>
+          <h1 className="text-xl md:text-2xl font-bold text-gray-800">Phases</h1>
+          <p className="text-xs md:text-sm text-gray-500 mt-1">Track project progress and timelines · Active project: <span className="font-medium text-blue-600">{currentProject?.name || "None"}</span></p>
+        </div>
+        <button 
+          onClick={() => setIsFormOpen(true)}
+          className="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition shadow-sm whitespace-nowrap"
+        >
+          + New Project
+        </button>
+      </div>
+
+      {/* Gantt Container */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
+        {/* Timeline Header */}
+        <div className="grid grid-cols-6 md:grid-cols-7 min-w-full bg-gray-100 text-xs font-semibold text-gray-600 uppercase tracking-wider">
+          <div className="col-span-2 md:col-span-2 p-3 md:p-4 border-r border-gray-200 text-left">Project & Lead</div>
+          <div className="col-span-1 p-3 md:p-4 text-center border-r border-gray-200">Sprint</div>
+          <div className="col-span-1 p-3 md:p-4 text-center border-r border-gray-200 hidden sm:block">Start</div>
+          <div className="col-span-1 p-3 md:p-4 text-center border-r border-gray-200 hidden md:block">End</div>
+          <div className="col-span-1 p-3 md:p-4 text-center border-r border-gray-200">Progress</div>
+          <div className="col-span-1 p-3 md:p-4 text-center">Status</div>
+        </div>
+
+        {/* Phase Rows */}
+        {phases.map((phase) => (
+          <div key={phase.id} className="grid grid-cols-6 md:grid-cols-7 min-w-full border-b border-gray-100 hover:bg-gray-50 transition items-center">
+            {/* Project Info */}
+            <div className="col-span-2 md:col-span-2 p-3 md:p-4 border-r border-gray-200">
+              <div className="flex items-center gap-2">
+                <div className={`w-2.5 h-2.5 rounded-full ${phase.color} flex-shrink-0`} />
+                <h3 className="font-bold text-gray-900 text-sm md:text-base truncate">{phase.project}</h3>
+              </div>
+              <p className="text-xs text-gray-500 mt-1 truncate">{phase.client} · {phase.assignee}</p>
+              <p className="text-xs text-gray-400 mt-0.5 italic truncate">{phase.goal}</p>
+            </div>
+
+            {/* Sprint */}
+            <div className="col-span-1 p-3 md:p-4 text-center text-xs md:text-sm text-gray-700 font-medium border-r border-gray-200">{phase.sprint}</div>
+
+            {/* Start */}
+            <div className="col-span-1 p-3 md:p-4 text-center text-xs md:text-sm text-gray-600 border-r border-gray-200 hidden sm:block">{phase.start}</div>
+
+            {/* End */}
+            <div className="col-span-1 p-3 md:p-4 text-center text-xs md:text-sm text-gray-600 border-r border-gray-200 hidden md:block">{phase.end}</div>
+
+            {/* Progress Bar */}
+            <div className="col-span-1 p-3 md:p-4 border-r border-gray-200">
+              <div className="flex items-center gap-2">
+                <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                  <div className={`h-full rounded-full ${phase.color}`} style={{ width: `${phase.progress}%` }} />
+                </div>
+                <span className="text-xs font-semibold text-gray-600 w-7 text-right">{phase.progress}%</span>
+              </div>
+            </div>
+
+            {/* Status */}
+            <div className="col-span-1 p-3 md:p-4 text-center border-l border-gray-200">
+              <span className={`text-xs font-medium px-2 py-1 rounded-full ${statusTextColor(phase.status)}`}>
+                {phase.status}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Active Sprint Detail */}
+      <div className="mt-4 md:mt-6 bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-5">
+        <h2 className="font-semibold text-gray-800 mb-3 text-base md:text-lg">Active Sprint — {currentProject?.name || "No Project"}</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 text-sm">
+          <div className="bg-gray-50 rounded-lg p-3">
+            <p className="text-gray-500 text-xs uppercase tracking-wide mb-1">Sprint</p>
+            <p className="font-semibold text-gray-800 text-sm">{activeSprint?.name}</p>
+          </div>
+          <div className="bg-gray-50 rounded-lg p-3">
+            <p className="text-gray-500 text-xs uppercase tracking-wide mb-1">Goal</p>
+            <p className="font-semibold text-gray-800 text-sm">{activeSprint?.goal}</p>
+          </div>
+          <div className="bg-gray-50 rounded-lg p-3">
+            <p className="text-gray-500 text-xs uppercase tracking-wide mb-1">Tasks</p>
+            <p className="font-semibold text-gray-800 text-sm">{activeSprint?.metrics?.completedTasks} / {activeSprint?.metrics?.totalTasks} done</p>
+          </div>
+          <div className="bg-gray-50 rounded-lg p-3">
+            <p className="text-gray-500 text-xs uppercase tracking-wide mb-1">Health</p>
+            <p className="font-semibold text-gray-800 text-sm">{activeSprint?.metrics?.sprintHealth}%</p>
+          </div>
+        </div>
+      </div>
+      <ProjectForm 
+        isOpen={isFormOpen} 
+        onClose={() => setIsFormOpen(false)}
+        onSuccess={() => {
+          fetchProjects();
+        }}
+      />
+    </div>
+  );
+}

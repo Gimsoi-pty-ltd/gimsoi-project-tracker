@@ -34,14 +34,10 @@ test.describe('Users API Tests', () => {
 
         let adminTempCsrf = await fetchCsrfToken(request, adminSignupData.token);
 
-        const promoteAdminRes = await request.post('/api/testing/promote-role', {
-            headers: { 
-                'x-csrf-token': adminTempCsrf,
-                'Authorization': `Bearer ${adminSignupData.token}`
-            },
-            data: { email: adminEmail, role: 'ADMIN' }
+        await prisma.user.update({
+            where: { email: adminEmail },
+            data: { role: 'ADMIN', isVerified: true }
         });
-        expect(promoteAdminRes.status()).toBe(200);
 
         const adminLoginRes = await request.post('/api/auth/login', {
             data: { email: adminEmail, password }
@@ -59,12 +55,9 @@ test.describe('Users API Tests', () => {
 
         let userTempCsrf = await fetchCsrfToken(request, userSignupData.token);
 
-        await request.post('/api/testing/promote-role', {
-            headers: { 
-                'x-csrf-token': userTempCsrf,
-                'Authorization': `Bearer ${userSignupData.token}`
-            },
-            data: { email: userEmail, role: 'INTERN' }
+        await prisma.user.update({
+            where: { email: userEmail },
+            data: { role: 'INTERN', isVerified: true }
         });
 
         const userLoginRes = await request.post('/api/auth/login', {
@@ -181,16 +174,20 @@ test.describe('Users API Tests', () => {
             const me = (await meRes.json()).user;
 
             const newName = 'Updated Name';
+            const newJob = 'Senior Intern';
+            const newPhone = '+27821234567';
             const response = await request.patch('/api/users/me', {
                 headers: { 
                     Authorization: `Bearer ${userToken}`,
                     'x-csrf-token': userCsrf
                 },
-                data: { fullName: newName, version: me.version }
+                data: { fullName: newName, jobTitle: newJob, phone: newPhone, version: me.version }
             });
             expect(response.status()).toBe(200);
             const body = await response.json();
             expect(body.data.fullName).toBe(newName);
+            expect(body.data.jobTitle).toBe(newJob);
+            expect(body.data.phone).toBe(newPhone);
         });
     });
 
@@ -253,4 +250,39 @@ test.describe('Users API Tests', () => {
             expect(Array.isArray(body.data)).toBe(true);
         });
     });
+
+    test.describe('PATCH /api/users/me/password (Self)', () => {
+        test('User can change password with correct current password', async ({ request }) => {
+            const response = await request.patch('/api/users/me/password', {
+                headers: { 
+                    Authorization: `Bearer ${userToken}`,
+                    'x-csrf-token': userCsrf
+                },
+                data: { currentPassword: password, newPassword: 'newsecurepassword' }
+            });
+            expect(response.status()).toBe(200);
+
+            // Revert back so we don't break other test sequences
+            const revertResponse = await request.patch('/api/users/me/password', {
+                headers: { 
+                    Authorization: `Bearer ${userToken}`,
+                    'x-csrf-token': userCsrf
+                },
+                data: { currentPassword: 'newsecurepassword', newPassword: password }
+            });
+            expect(revertResponse.status()).toBe(200);
+        });
+
+        test('Fails on incorrect current password', async ({ request }) => {
+            const response = await request.patch('/api/users/me/password', {
+                headers: { 
+                    Authorization: `Bearer ${userToken}`,
+                    'x-csrf-token': userCsrf
+                },
+                data: { currentPassword: 'wrongpassword', newPassword: 'newsecurepassword' }
+            });
+            expect(response.status()).toBe(401);
+        });
+    });
 });
+

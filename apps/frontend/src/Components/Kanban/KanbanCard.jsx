@@ -1,4 +1,4 @@
-// src/Components/Kanban/KanbanCard.jsx
+
 import React from 'react';
 
 const KanbanCard = ({
