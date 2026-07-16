@@ -79,16 +79,43 @@ export const updateAvatar = async (req, res, next) => {
       throw new ValidationError('No file uploaded');
     }
 
+    const version = Number(req.body.version);
+    if (!Number.isInteger(version) || version < 1) {
+      throw new ValidationError('A valid user version is required');
+    }
+
     // Convert buffer to Data URI for MVP
     const b64 = req.file.buffer.toString('base64');
     const dataUri = `data:${req.file.mimetype};base64,${b64}`;
 
-    const user = await userService.updateAvatarUrl(req.user.id, dataUri, req.body.version);
+    const user = await userService.updateAvatarUrl(req.user.id, dataUri, version);
     
     return res.status(200).json({
       success: true,
       message: 'Avatar updated successfully',
-      data: { avatarUrl: user.avatarUrl },
+      data: { avatarUrl: user.avatarUrl, version: user.version },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Self: Remove current avatar and restore the initials fallback.
+ */
+export const removeAvatar = async (req, res, next) => {
+  try {
+    const version = Number(req.body.version);
+    if (!Number.isInteger(version) || version < 1) {
+      throw new ValidationError('A valid user version is required');
+    }
+
+    const user = await userService.updateAvatarUrl(req.user.id, '', version);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Avatar removed successfully',
+      data: { avatarUrl: user.avatarUrl, version: user.version },
     });
   } catch (error) {
     next(error);
