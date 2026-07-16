@@ -167,9 +167,17 @@ export default function TopBar({ onMenuClick }) {
           <Link
             to="/profile"
             title={user?.fullName || user?.name || "Profile"}
-            className="w-[40px] h-[40px] sm:w-[48px] sm:h-[48px] rounded-2xl bg-white flex items-center justify-center text-[16px] sm:text-[18px] font-extrabold text-blue-600"
+            className="w-[40px] h-[40px] sm:w-[48px] sm:h-[48px] rounded-2xl bg-white flex items-center justify-center text-[16px] sm:text-[18px] font-extrabold text-blue-600 overflow-hidden"
           >
-            {initials}
+            {user?.avatarUrl ? (
+              <img
+                src={user.avatarUrl}
+                alt=""
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              initials
+            )}
           </Link>
         </div>
 

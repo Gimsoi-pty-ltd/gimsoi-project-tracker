@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useAuthStore } from "../../store/authStore";
 import { useProjectStore } from "../../store/projectStore";
-// import { Phone } from "lucide-react"; // Phone icon component
+import { Camera, Phone, Trash2 } from "lucide-react";
 import NavyButton from "../../Components/Buttons";
+
+const MAX_AVATAR_SIZE = 2 * 1024 * 1024;
 
 const getInitials = (name) =>
   !name
@@ -16,7 +18,10 @@ const getInitials = (name) =>
 
 export default function ProjectTrackerProfilePage() {
   const user = useAuthStore((state) => state.user) || {};
+  const isAvatarLoading = useAuthStore((state) => state.isAvatarLoading);
   const projects = useProjectStore((state) => state.projects) || [];
+  const avatarInputRef = useRef(null);
+  const [avatarError, setAvatarError] = useState("");
   // Load user data, activity log, and projects on component mount
   useEffect(() => {
     const auth = useAuthStore.getState();
@@ -72,6 +77,44 @@ export default function ProjectTrackerProfilePage() {
     }
   };
 
+  const handleAvatarChange = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setAvatarError("");
+
+    if (!file.type.startsWith("image/")) {
+      setAvatarError("Please choose an image file.");
+      event.target.value = "";
+      return;
+    }
+
+    if (file.size > MAX_AVATAR_SIZE) {
+      setAvatarError("The profile picture must be 2 MB or smaller.");
+      event.target.value = "";
+      return;
+    }
+
+    try {
+      await useAuthStore.getState().uploadAvatar(file);
+      await useAuthStore.getState().fetchActivities();
+    } catch (error) {
+      setAvatarError(error.response?.data?.message || "Could not upload the profile picture.");
+    } finally {
+      event.target.value = "";
+    }
+  };
+
+  const handleAvatarRemove = async () => {
+    setAvatarError("");
+    try {
+      await useAuthStore.getState().removeAvatar();
+      await useAuthStore.getState().fetchActivities();
+    } catch (error) {
+      setAvatarError(error.response?.data?.message || "Could not remove the profile picture.");
+    }
+  };
+
   // Project has no `assignedTo` field — for non-admin/PM roles the backend
   // already scopes GET /projects to projects the user is a member of, so the
   // fetched list itself is "your projects" (see project.service.js getProjects).
@@ -81,8 +124,52 @@ export default function ProjectTrackerProfilePage() {
     <div className="min-h-screen bg-white p-4 md:p-8 lg:p-10">
       <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 md:gap-6 mb-8 md:mb-12">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 md:gap-6 w-full">
-          <div className="w-20 md:w-28 h-20 md:h-28 rounded-full bg-[#002D62] flex items-center justify-center text-white text-2xl md:text-4xl font-bold shadow-md flex-shrink-0">
-            {user.initials || getInitials(user.fullName || user.name)}
+          <div className="flex flex-col items-start sm:items-center gap-2 flex-shrink-0">
+            <div className="w-20 md:w-28 h-20 md:h-28 rounded-full bg-[#002D62] flex items-center justify-center text-white text-2xl md:text-4xl font-bold shadow-md overflow-hidden">
+              {user.avatarUrl ? (
+                <img
+                  src={user.avatarUrl}
+                  alt={`${user.fullName || user.name || "User"} profile`}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                user.initials || getInitials(user.fullName || user.name)
+              )}
+            </div>
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept="image/*"
+              className="sr-only"
+              onChange={handleAvatarChange}
+            />
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => avatarInputRef.current?.click()}
+                disabled={isAvatarLoading}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Camera className="h-3.5 w-3.5" />
+                {isAvatarLoading ? "Saving..." : user.avatarUrl ? "Change" : "Add photo"}
+              </button>
+              {user.avatarUrl && (
+                <button
+                  type="button"
+                  onClick={handleAvatarRemove}
+                  disabled={isAvatarLoading}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Remove
+                </button>
+              )}
+            </div>
+            {avatarError && (
+              <p className="max-w-48 text-xs text-red-600" role="alert">
+                {avatarError}
+              </p>
+            )}
           </div>
           <div className="flex-1 min-w-0">
             <h1 className="text-2xl md:text-3xl font-semibold text-black">{user.fullName || user.name}</h1>
