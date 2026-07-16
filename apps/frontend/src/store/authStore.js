@@ -1,7 +1,8 @@
 import { create } from "zustand";
-import axios, { resourceAPI } from "../api/api";
+// Explicitly import both instances to avoid base URL confusion
+import { authAPI, resourceAPI } from "../api/api"; // Adjust path if your file is named API.js
 
-export const useAuthStore = create((set) => ({
+export const useAuthStore = create((set, get) => ({
     user: null,
     isAuthenticated: false,
     error: null,
@@ -14,8 +15,9 @@ export const useAuthStore = create((set) => ({
     signup: async (email, password, fullName) => {
         set({ isLoading: true, error: null });
         try {
-            const response = await axios.post("/signup", { email, password, fullName });
-            set({ user: response.data.user, isAuthenticated: true, isLoading: false });
+            // Explicitly use authAPI for auth routes
+            const response = await authAPI.post("/signup", { email, password, fullName });
+            set({ user: response.data.user || response.data, isAuthenticated: true, isLoading: false });
         } catch (error) {
             set({ error: error.response?.data?.message || "Error signing up", isLoading: false });
             throw error;
@@ -25,9 +27,9 @@ export const useAuthStore = create((set) => ({
     login: async (email, password) => {
         set({ isLoading: true, error: null });
         try {
-            const response = await axios.post("/login", { email, password });
+            const response = await authAPI.post("/login", { email, password });
             set({
-                user: response.data.user,
+                user: response.data.user || response.data,
                 isAuthenticated: true,
                 isLoading: false,
                 error: null,
@@ -41,8 +43,8 @@ export const useAuthStore = create((set) => ({
     logout: async () => {
         set({ isLoggingOut: true, error: null });
         try {
-            await axios.post("/logout");
-            set({ user: null, isAuthenticated: false, isLoggingOut: false, error: null });
+            await authAPI.post("/logout");
+            set({ user: null, isAuthenticated: false, isLoggingOut: false, error: null, message: null });
         } catch (error) {
             set({ error: "Error logging out", isLoggingOut: false });
             throw error;
@@ -52,9 +54,9 @@ export const useAuthStore = create((set) => ({
     verifyEmail: async (code) => {
         set({ isLoading: true, error: null });
         try {
-            const email = useAuthStore.getState().user?.email;
-            const response = await axios.post("/verify-email", { code, email });
-            set({ user: response.data.user, isAuthenticated: true, isLoading: false });
+            const email = get().user?.email; // Use get() for cleaner state access
+            const response = await authAPI.post("/verify-email", { code, email });
+            set({ user: response.data.user || response.data, isAuthenticated: true, isLoading: false });
             return response.data;
         } catch (error) {
             set({ error: error.response?.data?.message || "Error verifying email", isLoading: false });
@@ -65,7 +67,7 @@ export const useAuthStore = create((set) => ({
     resendVerificationCode: async (email) => {
         set({ isLoading: true, error: null, message: null });
         try {
-            const response = await axios.post("/resend-verification", { email });
+            const response = await authAPI.post("/resend-verification", { email });
             set({ message: response.data.message, isLoading: false });
             return response.data;
         } catch (error) {
@@ -77,17 +79,17 @@ export const useAuthStore = create((set) => ({
     checkAuth: async () => {
         set({ isCheckingAuth: true, error: null });
         try {
-            const response = await axios.get("/check-auth");
-            set({ user: response.data.user, isAuthenticated: true, isCheckingAuth: false });
+            const response = await authAPI.get("/check-auth");
+            set({ user: response.data.user || response.data, isAuthenticated: true, isCheckingAuth: false });
         } catch (error) {
-            set({ error: null, isCheckingAuth: false, isAuthenticated: false });
+            set({ error: null, isCheckingAuth: false, isAuthenticated: false, user: null });
         }
     },
 
     forgotPassword: async (email) => {
         set({ isLoading: true, error: null });
         try {
-            const response = await axios.post("/forgot-password", { email });
+            const response = await authAPI.post("/forgot-password", { email });
             set({ message: response.data.message, isLoading: false });
         } catch (error) {
             set({
@@ -101,7 +103,7 @@ export const useAuthStore = create((set) => ({
     resetPassword: async (token, password) => {
         set({ isLoading: true, error: null });
         try {
-            const response = await axios.post(`/reset-password/${token}`, { password });
+            const response = await authAPI.post(`/reset-password/${token}`, { password });
             set({ message: response.data.message, isLoading: false });
         } catch (error) {
             set({
@@ -112,47 +114,56 @@ export const useAuthStore = create((set) => ({
         }
     },
 
-    updateUserProfile: (profileUpdates) => {
-        set((state) => ({
-            user: {
-                ...state.user,
-                ...profileUpdates,
-                initials: profileUpdates.fullName
-                    ? profileUpdates.fullName
-                          .split(" ")
-                          .map((part) => part[0])
-                          .join("")
-                          .slice(0, 2)
-                          .toUpperCase()
-                    : state.user?.initials,
-            },
-        }));
-    },
-
-    /** New method: persist profile updates to backend */
-    updateProfile: async (profileUpdates) => {
+    // ✅ NEW: Fetch fresh profile data from backend (useful after page reload or external changes)
+    fetchProfile: async () => {
         set({ isLoading: true, error: null });
         try {
-            const response = await resourceAPI.patch("/users/me", profileUpdates);
-            const updatedUser = response.data.data; // Server response returns data
+            const response = await resourceAPI.get("/users/me"); // Adjust path if your backend uses /profile
+            const userData = response.data.user || response.data.data || response.data;
+            set({ user: userData, isAuthenticated: true, isLoading: false, error: null });
+            return userData;
+        } catch (error) {
+            set({ error: error.response?.data?.message || "Error fetching profile", isLoading: false });
+            throw error;
+        }
+    },
+
+    // ✅ UPDATED: Persist profile updates to backend AND keep local state perfectly fresh
+    updateProfile: async (profileUpdates) => {
+        set({ isLoading: true, error: null, message: null });
+        try {
+            const response = await resourceAPI.patch("/users/me", profileUpdates); // Adjust path if needed
+            
+            // Safely extract the updated user object regardless of backend wrapper (data.user, data.data, or just data)
+            const updatedUser = response.data.user || response.data.data || response.data;
+            
             set((state) => ({
                 user: {
                     ...state.user,
                     ...updatedUser,
+                    // Auto-generate initials if fullName was updated
+                    initials: updatedUser.fullName
+                        ? updatedUser.fullName.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase()
+                        : state.user?.initials,
                 },
                 isLoading: false,
+                message: "Profile updated successfully",
             }));
+            return updatedUser;
         } catch (error) {
-            set({ error: error.response?.data?.message || "Error updating profile", isLoading: false });
+            set({ 
+                error: error.response?.data?.message || "Error updating profile", 
+                isLoading: false 
+            });
             throw error;
         }
     },
 
     changePassword: async (currentPassword, newPassword) => {
-        set({ isLoading: true, error: null });
+        set({ isLoading: true, error: null, message: null });
         try {
             const response = await resourceAPI.patch("/users/me/password", { currentPassword, newPassword });
-            set({ isLoading: false, message: response.data.message });
+            set({ isLoading: false, message: response.data.message || "Password changed successfully" });
             return response.data;
         } catch (error) {
             set({ error: error.response?.data?.message || "Error changing password", isLoading: false });
@@ -161,26 +172,26 @@ export const useAuthStore = create((set) => ({
     },
 
     fetchActivities: async () => {
-      set({ isLoading: true, error: null });
-      try {
-        const response = await resourceAPI.get("/activity");
-        const activities = response.data.data || [];
-        // Update both the separate activities array and embed into user for UI consumption
-        set((state) => ({
-          userActivities: activities,
-          user: { ...state.user, activityLog: activities },
-          isLoading: false,
-        }));
-      } catch (error) {
-        set({ error: error.response?.data?.message || "Error fetching activities", isLoading: false });
-      }
+        set({ isLoading: true, error: null });
+        try {
+            const response = await resourceAPI.get("/activity");
+            const activities = response.data.data || response.data || [];
+            set((state) => ({
+                userActivities: activities,
+                user: { ...state.user, activityLog: activities },
+                isLoading: false,
+            }));
+        } catch (error) {
+            set({ error: error.response?.data?.message || "Error fetching activities", isLoading: false });
+        }
     },
 
     addActivityLog: async (action, entityId = null, entityType = null) => {
         try {
             const response = await resourceAPI.post("/activity", { action, entityId, entityType });
+            const newActivity = response.data.data || response.data;
             set((state) => ({
-                userActivities: [response.data.data, ...(state.userActivities || [])]
+                userActivities: [newActivity, ...(state.userActivities || [])]
             }));
         } catch (error) {
             console.error("Failed to log activity:", error);

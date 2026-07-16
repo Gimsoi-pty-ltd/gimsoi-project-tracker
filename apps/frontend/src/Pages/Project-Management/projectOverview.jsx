@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Trash2, Edit2, CheckCircle2, Clock, ChevronRight, Users, Calendar, Zap } from "lucide-react";
+import { ArrowLeft, Trash2, Edit2, CheckCircle2, Clock, ChevronRight, Users, Calendar, Zap, X } from "lucide-react";
 import ProjectForm from "../../Components/ProjectForm/ProjectForm";
 import { useSprintStore } from "../../store/sprintStore";
 import { useTaskStore } from "../../store/taskStore";
@@ -96,13 +96,11 @@ export default function ProjectOverview() {
 
   const createSprint = useSprintStore((s) => s.createSprint);
   
-
   useEffect(() => {
     if (id) {
       getProjectById(id);
       getProjectProgress(id);
     }
-    // no-op: project data is fetched above
   }, [id, getProjectById, getProjectProgress]);
 
   const handleDelete = async () => {
@@ -195,7 +193,6 @@ export default function ProjectOverview() {
               )}
             </div>
 
-            {/* Action buttons using NavyButton + plain red */}
             <div className="flex items-center gap-2">
               <NavyButton
                 onClick={() => setShowEditForm(true)}
@@ -282,48 +279,76 @@ export default function ProjectOverview() {
           />
         )}
 
-        {/* ── Milestones ── */}
-        {p.milestones?.length > 0 ? (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-            <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wider mb-5">
-              Milestones (Timeline View)
-            </h2>
-            <div className="space-y-3">
-              {p.milestones.map((m, i) => {
-                const mc   = MILESTONE_CONFIG[m.status] || MILESTONE_CONFIG.Upcoming;
-                const Icon = mc.icon;
-                return (
-                  <div key={i} className="flex items-center gap-4">
-                    <div className={`w-7 h-7 rounded-full ${mc.bg} flex items-center justify-center flex-shrink-0`}>
-                      <Icon className={`w-4 h-4 ${mc.color}`} />
-                    </div>
-                    <div className="flex-1 flex items-center justify-between flex-wrap gap-2">
-                      <span className="text-sm font-medium text-gray-800">
-                        {m.label}
-                        <span className={`ml-2 text-xs font-semibold ${mc.color}`}>— {m.status}</span>
-                      </span>
-                      {m.date && (
-                        <span className="text-xs text-gray-400 bg-gray-50 px-2 py-1 rounded-lg border border-gray-100">
-                          {m.date}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+{/* ── Milestones ── */}
+{(() => {
+  // 1. Safely normalize milestones into an array of objects
+  let normalizedMilestones = [];
+  
+  if (Array.isArray(p.milestones)) {
+    normalizedMilestones = p.milestones.map(m => 
+      typeof m === 'string' 
+        ? { label: m.trim(), status: 'Upcoming', date: '' } // Convert string to expected object shape
+        : m // Already an object, keep as is
+    ).filter(m => m.label); // Remove any empty entries
+  } else if (typeof p.milestones === 'string' && p.milestones.trim() !== '') {
+    // Fallback: if it's a comma-separated string, split it
+    normalizedMilestones = p.milestones.split(',').map(m => ({ 
+      label: m.trim(), 
+      status: 'Upcoming', 
+      date: '' 
+    }));
+  }
+
+  const hasMilestones = normalizedMilestones.length > 0;
+
+  // 2. Render Empty State if no milestones
+  if (!hasMilestones) {
+    return (
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wider mb-2">
+          Milestones (Timeline View)
+        </h2>
+        <EmptyState
+          title="No milestones yet"
+          message="Add milestones to track key project phases."
+        />
+      </div>
+    );
+  }
+
+  // 3. Render the Timeline View safely
+  return (
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+      <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wider mb-5">
+        Milestones (Timeline View)
+      </h2>
+      <div className="space-y-3">
+        {normalizedMilestones.map((m, i) => {
+          const mc = MILESTONE_CONFIG[m.status] || MILESTONE_CONFIG.Upcoming;
+          const Icon = mc.icon;
+          return (
+            <div key={i} className="flex items-center gap-4">
+              <div className={`w-7 h-7 rounded-full ${mc.bg} flex items-center justify-center flex-shrink-0`}>
+                <Icon className={`w-4 h-4 ${mc.color}`} />
+              </div>
+              <div className="flex-1 flex items-center justify-between flex-wrap gap-2">
+                <span className="text-sm font-medium text-gray-800">
+                  {m.label}
+                  <span className={`ml-2 text-xs font-semibold ${mc.color}`}>— {m.status}</span>
+                </span>
+                {m.date && (
+                  <span className="text-xs text-gray-400 bg-gray-50 px-2 py-1 rounded-lg border border-gray-100">
+                    {m.date}
+                  </span>
+                )}
+              </div>
             </div>
-          </div>
-        ) : (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-            <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wider mb-2">
-              Milestones (Timeline View)
-            </h2>
-            <EmptyState
-              title="No milestones yet"
-              message="Add milestones to track key project phases."
-            />
-          </div>
-        )}
+          );
+        })}
+      </div>
+    </div>
+  );
+})()}
 
         {/* ── Sprint Details ── */}
         {(p.sprint || p.sprintGoal) && (
@@ -351,8 +376,7 @@ export default function ProjectOverview() {
             <button onClick={() => setShowSprintModal(true)} className="text-sm text-blue-600">+ Add Sprint</button>
           </div>
           <div>
-            {/* Show existing sprints from currentProject.sprints if available */}
-            {p.sprints && p.sprints.length > 0 ? (
+            {Array.isArray(p.sprints) && p.sprints.length > 0 ? (
               <div className="flex flex-col gap-2">
                 {p.sprints.map((s) => (
                   <div key={s.id} className="flex items-center justify-between border border-gray-100 rounded-md px-3 py-2">
@@ -369,39 +393,59 @@ export default function ProjectOverview() {
             )}
           </div>
         </div>
+
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
           <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wider mb-4 flex items-center gap-2">
             <Users className="w-4 h-4" />
             Team Members
           </h2>
 
-          {p.team?.length > 0 ? (
-            <div className="flex flex-wrap gap-3">
-              {p.team.map((member, i) => {
-                const [name, role] = (member || "").split("(");
-                const initials = (name || "?")
-                  .trim().split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
-                return (
-                  <div key={i} className="flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-100 rounded-xl">
-                    <div className={`w-7 h-7 rounded-full ${AVATAR_COLORS[i % AVATAR_COLORS.length]} flex items-center justify-center text-white text-xs font-bold`}>
-                      {initials}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-800">{name?.trim()}</p>
-                      {role && <p className="text-xs text-gray-400">{role.replace(")", "").trim()}</p>}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <EmptyState
-              title="No team members assigned"
-              message="Edit the project to assign team members."
-              onAction={() => setShowEditForm(true)}
-              actionLabel="Edit Project"
-            />
-          )}
+          {(() => {
+            let teamArray = [];
+            
+            if (Array.isArray(p.team)) {
+              teamArray = p.team;
+            } else if (typeof p.team === 'string') {
+              teamArray = p.team.split(',').map(t => t.trim()).filter(t => t !== '');
+            }
+
+            if (teamArray.length > 0) {
+              return (
+                <div className="flex flex-wrap gap-3">
+                  {teamArray.map((member, i) => {
+                    const memberStr = typeof member === 'object' 
+                      ? (member.fullName || member.name || member.email || 'Unknown') 
+                      : String(member);
+                      
+                    const [name, role] = (memberStr || "").split("(");
+                    const initials = (name || "?")
+                      .trim().split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
+                    
+                    return (
+                      <div key={i} className="flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-100 rounded-xl">
+                        <div className={`w-7 h-7 rounded-full ${AVATAR_COLORS[i % AVATAR_COLORS.length]} flex items-center justify-center text-white text-xs font-bold`}>
+                          {initials}
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-800">{name?.trim() || memberStr}</p>
+                          {role && <p className="text-xs text-gray-400">{role.replace(")", "").trim()}</p>}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            }
+            
+            return (
+              <EmptyState
+                title="No team members assigned"
+                message="Edit the project to assign team members."
+                onAction={() => setShowEditForm(true)}
+                actionLabel="Edit Project"
+              />
+            );
+          })()}
         </div>
 
       </div>
@@ -412,7 +456,9 @@ export default function ProjectOverview() {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl p-6 overflow-y-auto max-h-[90vh]">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold">Create Sprint</h3>
-              <button onClick={() => setShowSprintModal(false)} className="text-gray-400">✕</button>
+              <button onClick={() => setShowSprintModal(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -428,16 +474,14 @@ export default function ProjectOverview() {
               <p className="text-sm text-gray-500">Tasks for this sprint can be created from the Dashboard. Use the Dashboard's "+ Add Task" button to assign tasks to this sprint after creating it.</p>
             </div>
 
-              <div className="mt-6 flex justify-end gap-3">
-              <button className="px-4 py-2 rounded border" onClick={() => setShowSprintModal(false)}>Cancel</button>
-              <button className="px-4 py-2 rounded bg-blue-600 text-white" onClick={async () => {
+            <div className="mt-6 flex justify-end gap-3">
+              <button className="px-4 py-2 rounded border hover:bg-gray-50" onClick={() => setShowSprintModal(false)}>Cancel</button>
+              <button className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700" onClick={async () => {
                 try {
                   if (!sprintDraft.name.trim()) return;
                   await createSprint({ projectId: p.id, ...sprintDraft });
-                  // refresh project view and dashboard to pick up new sprint
                   await getProjectById(p.id);
                   await getProjectProgress(p.id);
-                  // Ensure dashboard sprints/tasks are reloaded
                   const { fetchDashboard } = useProjectStore.getState();
                   if (typeof fetchDashboard === 'function') await fetchDashboard(p.id);
                 } catch (err) {
@@ -451,6 +495,7 @@ export default function ProjectOverview() {
           </div>
         </div>
       )}
+      
       {showDeleteModal && (
         <DeleteModal
           projectName={p.name}

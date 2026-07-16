@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
-import { X, AlertCircle, ChevronDown, Check, Calendar } from "lucide-react";
+import { X, AlertCircle, ChevronDown, Check } from "lucide-react";
 import NavyButton from "../Buttons";
 import { useProjectStore } from "../../store/projectStore";
 import { useSprintStore } from "../../store/sprintStore";
 import { useTaskStore } from "../../store/taskStore";
-
 import { resourceAPI } from "../../api/api";
 import TaskForm from "../../Components/Tasks/TaskForm";
 
@@ -15,7 +14,6 @@ const STATUS_OPTIONS = [
   { value: "COMPLETED", label: "Completed" },
 ];
 
-// ─── Shared input style ───────────────────────────────────────────────────────
 const inputCls =
   "w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-800 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition placeholder-gray-400";
 
@@ -200,7 +198,23 @@ export default function ProjectForm({ isOpen, onClose, project = null, onSuccess
   }, [isOpen]);
 
   useEffect(() => {
-    if (project) {
+    if (project && isOpen) {
+      // 🛡️ SAFELY NORMALIZE MILESTONES TO AN ARRAY
+      let normalizedMilestones = [];
+      if (Array.isArray(project.milestones)) {
+        normalizedMilestones = project.milestones;
+      } else if (typeof project.milestones === 'string') {
+        normalizedMilestones = project.milestones.split(',').map(m => m.trim()).filter(m => m !== '');
+      }
+
+      // 🛡️ SAFELY NORMALIZE TEAM TO AN ARRAY
+      let normalizedTeam = [];
+      if (Array.isArray(project.team)) {
+        normalizedTeam = project.team;
+      } else if (typeof project.team === 'string') {
+        normalizedTeam = project.team.split(',').map(t => t.trim()).filter(t => t !== '');
+      }
+
       setFormData({
         name:        project.name        || "",
         clientId:    project.clientId    || "",
@@ -208,13 +222,13 @@ export default function ProjectForm({ isOpen, onClose, project = null, onSuccess
         endDate:     project.endDate ? new Date(project.endDate).toISOString().split('T')[0] : "",
         description: project.description || "",
         status:      project.status      || "PLANNED",
-        team:        project.team        || [],
-        milestones:  project.milestones   || [],
+        team:        normalizedTeam,
+        milestones:  normalizedMilestones,
       });
-      // if editing an existing project, clear any queued sprints
       setQueuedSprints([]);
-    } else {
+    } else if (!project && isOpen) {
       setFormData(empty);
+      setQueuedSprints([]);
     }
     setFormError(null);
   }, [project, isOpen]);
@@ -239,8 +253,8 @@ export default function ProjectForm({ isOpen, onClose, project = null, onSuccess
         createdProjectResp = await createProject(formData);
       }
 
-      // If there are queued sprints (added while creating project), create them now
-      const pid = project?.id || createdProjectResp?.project?.id || createdProjectResp?.id;
+      const pid = project?.id || createdProjectResp?.project?.id || createdProjectResp?.id || createdProjectResp?.data?.id;
+      
       if (queuedSprints.length && pid) {
         for (const s of queuedSprints) {
           try {
@@ -251,15 +265,17 @@ export default function ProjectForm({ isOpen, onClose, project = null, onSuccess
               endDate: s.endDate,
               status: s.status || 'PLANNED',
             });
-            const sprintId = sprintRes?.sprint?.id || sprintRes?.id;
+            const sprintId = sprintRes?.sprint?.id || sprintRes?.id || sprintRes?.data?.id;
             if (s.tasks && sprintId) {
               for (const t of s.tasks) {
                 await createTask({
                   projectId: pid,
                   sprintId,
                   title: t.title,
+                  description: t.description,
                   storyPoints: Number(t.storyPoints) || 0,
                   status: t.status || 'TODO',
+                  priority: t.priority || 'MEDIUM',
                 });
               }
             }
@@ -271,11 +287,11 @@ export default function ProjectForm({ isOpen, onClose, project = null, onSuccess
       onClose();
       if (onSuccess) onSuccess();
     } catch (err) {
+      console.error("Project save error:", err);
       setFormError(err.response?.data?.message || "Failed to save project");
     }
   };
 
-  // Sprint & Task helpers
   const addSprint = () => {
     setQueuedSprints((s) => [...s, { id: Math.random().toString(36).slice(2, 8), name: '', startDate: '', endDate: '', status: 'PLANNED', tasks: [] }]);
   };
@@ -287,33 +303,20 @@ export default function ProjectForm({ isOpen, onClose, project = null, onSuccess
   const removeSprint = (idx) => setQueuedSprints((s) => s.filter((_, i) => i !== idx));
 
   const addTaskToSprint = (sprintIdx) => {
-    // open task modal for queued sprint to capture full task details
     setTaskFormData({ title: '', description: '', status: 'TODO', priority: 'MEDIUM', dueDate: '', storyPoints: '', parentTaskId: '', assigneeId: '', ownerIds: [], teamIds: [] });
     setTaskModalSprintIdx(sprintIdx);
     setTaskModalOpen(true);
   };
 
-  const updateTaskInSprint = (sprintIdx, taskIdx, field, value) => {
-    setQueuedSprints((s) => s.map((sp, i) => {
-      if (i !== sprintIdx) return sp;
-      const tasks = sp.tasks.map((t, ti) => ti === taskIdx ? { ...t, [field]: value } : t);
-      return { ...sp, tasks };
-    }));
-  };
-
-  const removeTaskFromSprint = (sprintIdx, taskIdx) => {
-    setQueuedSprints((s) => s.map((sp, i) => i === sprintIdx ? { ...sp, tasks: sp.tasks.filter((_, ti) => ti !== taskIdx) } : sp));
-  };
-
   const handleTaskFormSaveForQueuedSprint = (data) => {
-    // Append to queued sprint tasks
     if (taskModalSprintIdx == null) return;
     const newTask = {
       id: Math.random().toString(36).slice(2,8),
       title: data.title,
       description: data.description,
       storyPoints: Number(data.storyPoints) || 0,
-      status: data.status || 'TODO'
+      status: data.status || 'TODO',
+      priority: data.priority || 'MEDIUM',
     };
     setQueuedSprints((s) => s.map((sp, i) => i === taskModalSprintIdx ? { ...sp, tasks: [...sp.tasks, newTask] } : sp));
     setTaskModalOpen(false);
@@ -325,29 +328,21 @@ export default function ProjectForm({ isOpen, onClose, project = null, onSuccess
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-start justify-center z-50 p-4 pt-12 overflow-y-auto">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
-
-        {/* Header */}
         <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100">
           <div>
             <p className="text-xs font-semibold text-blue-600 uppercase tracking-wider mb-0.5">
-              {project ? "Edit Project" : "+ Create / Edit Project"}
+              {project ? "Edit Project" : "+ Create Project"}
             </p>
             <h2 className="text-lg font-bold text-gray-900">
               {project ? project.name : "New Project"}
             </h2>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-xl transition-colors text-gray-400 hover:text-gray-600"
-          >
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-xl transition-colors text-gray-400 hover:text-gray-600">
             <X size={18} />
           </button>
         </div>
 
-        {/* Form */}
         <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
-
-          {/* Error */}
           {(formError || error) && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-xl flex gap-3">
               <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
@@ -355,70 +350,37 @@ export default function ProjectForm({ isOpen, onClose, project = null, onSuccess
             </div>
           )}
 
-          {/* Project Name */}
           <div>
             <label className={labelCls}>Project Name</label>
-            <input
-              type="text"
-              value={formData.name}
-              onChange={(e) => set("name", e.target.value)}
-              placeholder="e.g. Website Redesign"
-              className={inputCls}
-            />
+            <input type="text" value={formData.name} onChange={(e) => set("name", e.target.value)} placeholder="e.g. Website Redesign" className={inputCls} required />
           </div>
 
-          {/* Client */}
           <div>
             <label className={labelCls}>Client</label>
-            <Dropdown
-              value={formData.clientId}
-              onChange={(v) => set("clientId", v)}
-              options={clientOptions}
-              placeholder="Acme Corp, TechStart Inc..."
-            />
+            <Dropdown value={formData.clientId} onChange={(v) => set("clientId", v)} options={clientOptions} placeholder="Acme Corp, TechStart Inc..." />
           </div>
 
-          {/* Start + End Date */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className={labelCls}>Start Date</label>
-              <div className="relative">
-                <input
-                  type="date"
-                  value={formData.startDate}
-                  onChange={(e) => set("startDate", e.target.value)}
-                  className={inputCls}
-                />
-              </div>
+              <input type="date" value={formData.startDate} onChange={(e) => set("startDate", e.target.value)} className={inputCls} />
             </div>
             <div>
               <label className={labelCls}>End Date</label>
-              <input
-                type="date"
-                value={formData.endDate}
-                onChange={(e) => set("endDate", e.target.value)}
-                className={inputCls}
-              />
+              <input type="date" value={formData.endDate} onChange={(e) => set("endDate", e.target.value)} className={inputCls} />
             </div>
           </div>
 
-          {/* Description */}
           <div>
             <label className={labelCls}>Description</label>
-            <input
-              type="text"
-              value={formData.description}
-              onChange={(e) => set("description", e.target.value)}
-              placeholder="Brief project description..."
-              className={inputCls}
-            />
+            <input type="text" value={formData.description} onChange={(e) => set("description", e.target.value)} placeholder="Brief project description..." className={inputCls} />
           </div>
 
-          {/* Milestones */}
+          {/* 🛡️ SAFELY RENDER MILESTONES */}
           <div>
             <label className={labelCls}>Milestones</label>
             <div className="space-y-2">
-              {formData.milestones?.map((m, idx) => (
+              {Array.isArray(formData.milestones) && formData.milestones.map((m, idx) => (
                 <div key={idx} className="flex items-center gap-2">
                   <input 
                     type="text" 
@@ -428,85 +390,70 @@ export default function ProjectForm({ isOpen, onClose, project = null, onSuccess
                       newMilestones[idx] = e.target.value;
                       set("milestones", newMilestones);
                     }} 
-                    className="flex-1 px-3 py-2 border border-gray-200 rounded-md text-sm" />
+                    className="flex-1 px-3 py-2 border border-gray-200 rounded-md text-sm" 
+                    placeholder="Milestone name"
+                  />
                   <button type="button" onClick={() => {
                     const newMilestones = formData.milestones.filter((_, i) => i !== idx);
                     set("milestones", newMilestones);
-                  }} className="text-red-500 ml-2">Remove</button>
+                  }} className="text-red-500 hover:text-red-700 p-1">
+                    <X size={16} />
+                  </button>
                 </div>
               ))}
             </div>
             <button
               type="button"
-              className="mt-3 text-sm font-semibold text-blue-600 hover:text-blue-800"
-              onClick={() => set("milestones", [...(formData.milestones || []), ""])}
+              className="mt-2 text-sm font-semibold text-blue-600 hover:text-blue-800"
+              onClick={() => set("milestones", [...(Array.isArray(formData.milestones) ? formData.milestones : []), ""])}
             >
               + Add milestone
             </button>
           </div>
 
-          {/* Status */}
           <div>
             <label className={labelCls}>Status</label>
-            <Dropdown
-              value={formData.status}
-              onChange={(v) => set("status", v)}
-              options={STATUS_OPTIONS}
-              placeholder="Select status"
-            />
+            <Dropdown value={formData.status} onChange={(v) => set("status", v)} options={STATUS_OPTIONS} placeholder="Select status" />
           </div>
 
-          {/* Assign Team */}
           <div>
             <label className={labelCls}>Assign Team</label>
-            <MultiSelect
-              value={formData.team}
-              onChange={(v) => set("team", v)}
-              teamOptions={teamOptions}
-            />
+            <MultiSelect value={formData.team} onChange={(v) => set("team", v)} teamOptions={teamOptions} />
           </div>
 
-          {/* Sprints (queued while creating project) */}
           <div>
             <div className="flex items-center justify-between">
               <label className={labelCls}>Sprints (optional)</label>
-              <button type="button" onClick={addSprint} className="text-sm text-blue-600">+ Add Sprint</button>
+              <button type="button" onClick={addSprint} className="text-sm text-blue-600 hover:text-blue-800 font-medium">+ Add Sprint</button>
             </div>
             <div className="space-y-3 mt-2">
               {queuedSprints.map((sp, idx) => (
                 <div key={sp.id} className="bg-gray-50 border border-gray-100 rounded-xl p-3">
                   <div className="flex items-center justify-between gap-2">
-                    <input
-                      type="text"
-                      value={sp.name}
-                      onChange={(e) => updateSprintField(idx, 'name', e.target.value)}
-                      placeholder="Sprint name"
-                      className="flex-1 px-3 py-2 border border-gray-200 rounded-md text-sm"
-                    />
-                    <button type="button" onClick={() => removeSprint(idx)} className="text-red-500 ml-2">Remove</button>
+                    <input type="text" value={sp.name} onChange={(e) => updateSprintField(idx, 'name', e.target.value)} placeholder="Sprint name" className="flex-1 px-3 py-2 border border-gray-200 rounded-md text-sm" />
+                    <button type="button" onClick={() => removeSprint(idx)} className="text-red-500 hover:text-red-700 p-1"><X size={16} /></button>
                   </div>
                   <div className="grid grid-cols-2 gap-2 mt-2">
                     <input type="date" value={sp.startDate} onChange={(e) => updateSprintField(idx, 'startDate', e.target.value)} className="px-3 py-2 border border-gray-200 rounded-md text-sm" />
                     <input type="date" value={sp.endDate} onChange={(e) => updateSprintField(idx, 'endDate', e.target.value)} className="px-3 py-2 border border-gray-200 rounded-md text-sm" />
                   </div>
-
                   <div className="mt-3">
                     <div className="flex items-center justify-between">
                       <p className="text-sm font-medium text-gray-600">Tasks</p>
-                      <button type="button" onClick={() => addTaskToSprint(idx)} className="text-sm text-blue-600">+ Add Task</button>
+                      <button type="button" onClick={() => addTaskToSprint(idx)} className="text-sm text-blue-600 hover:text-blue-800 font-medium">+ Add Task</button>
                     </div>
                     <div className="space-y-2 mt-2">
                       {sp.tasks.map((t, ti) => (
-                        <div key={t.id} className="flex items-center gap-2">
-                          <div className="flex-1">
-                            <div className="text-sm font-medium">{t.title}</div>
-                            <div className="text-xs text-gray-500">{t.description || ''}</div>
+                        <div key={t.id} className="flex items-center gap-2 bg-white p-2 rounded-lg border border-gray-100">
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium truncate">{t.title}</div>
+                            <div className="text-xs text-gray-500 truncate">{t.description || ''}</div>
                           </div>
-                          <div className="w-[60px] text-sm text-gray-700">{t.storyPoints}</div>
-                          <button type="button" onClick={() => removeTaskFromSprint(idx, ti)} className="text-red-500">✕</button>
+                          <div className="w-[60px] text-xs font-medium text-gray-700 bg-gray-100 px-2 py-1 rounded text-center">{t.storyPoints} pts</div>
+                          <button type="button" onClick={() => removeTaskFromSprint(idx, ti)} className="text-red-500 hover:text-red-700 p-1"><X size={16} /></button>
                         </div>
                       ))}
-                      {sp.tasks.length === 0 && <p className="text-xs text-gray-400">No tasks added</p>}
+                      {sp.tasks.length === 0 && <p className="text-xs text-gray-400 italic py-1">No tasks added</p>}
                     </div>
                   </div>
                 </div>
@@ -514,42 +461,27 @@ export default function ProjectForm({ isOpen, onClose, project = null, onSuccess
             </div>
           </div>
 
-          {/* Actions */}
-          <div className="flex gap-3 pt-2 pb-1">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-slate-900 hover:text-white transition-colors"
-            >
-              Cancel
-            </button>
-            <NavyButton
-              type="submit"
-              disabled={isLoading}
-              className="flex-1 px-4 py-2.5  hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isLoading
-                ? project ? "Saving..." : "Creating..."
-                : project ? "Save Changes" : "Save"}
+          <div className="flex gap-3 pt-4 pb-1 border-t border-gray-100 mt-4">
+            <button type="button" onClick={onClose} className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">Cancel</button>
+            <NavyButton type="submit" disabled={isLoading} className="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+              {isLoading ? (project ? "Saving..." : "Creating...") : (project ? "Save Changes" : "Create Project")}
             </NavyButton>
           </div>
         </form>
       </div>
+
       {taskModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center p-6 border-b border-gray-100">
               <h2 className="text-xl font-bold text-gray-800">Create Task</h2>
-              <button onClick={() => setTaskModalOpen(false)} className="text-gray-400 hover:text-gray-600">
-                <X size={20} />
-              </button>
+              <button onClick={() => setTaskModalOpen(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
             </div>
             <div className="p-6">
               <TaskForm formData={taskFormData} setFormData={setTaskFormData} userOptions={userOptionsFull} parentTaskOptions={[]} />
-
               <div className="mt-6 flex justify-end gap-3">
-                <button type="button" onClick={() => setTaskModalOpen(false)} className="px-4 py-2 rounded-lg border">Cancel</button>
-                <button type="button" onClick={() => handleTaskFormSaveForQueuedSprint(taskFormData)} className="px-4 py-2 rounded-lg bg-blue-600 text-white">Save Task</button>
+                <button type="button" onClick={() => setTaskModalOpen(false)} className="px-4 py-2 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50">Cancel</button>
+                <button type="button" onClick={() => handleTaskFormSaveForQueuedSprint(taskFormData)} className="px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700">Save Task</button>
               </div>
             </div>
           </div>
