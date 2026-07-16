@@ -103,13 +103,21 @@ function MultiSelect({ value = [], onChange, teamOptions = [] }) {
                 className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 rounded-lg text-xs font-medium"
               >
                 {m}
-                <button
-                  type="button"
+                <span
+                  role="button"
+                  tabIndex={0}
                   onClick={(e) => { e.stopPropagation(); toggle(m); }}
-                  className="hover:text-blue-900"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      toggle(m);
+                    }
+                  }}
+                  className="hover:text-blue-900 cursor-pointer"
                 >
                   <X className="w-3 h-3" />
-                </button>
+                </span>
               </span>
             ))
           )}
@@ -155,6 +163,7 @@ export default function ProjectForm({ isOpen, onClose, project = null, onSuccess
     description: "",
     status: "PLANNED",
     team: [],
+    milestones: [],
   };
 
   const [formData, setFormData] = useState(empty);
@@ -200,6 +209,7 @@ export default function ProjectForm({ isOpen, onClose, project = null, onSuccess
         description: project.description || "",
         status:      project.status      || "PLANNED",
         team:        project.team        || [],
+        milestones:  project.milestones   || [],
       });
       // if editing an existing project, clear any queued sprints
       setQueuedSprints([]);
@@ -402,6 +412,37 @@ export default function ProjectForm({ isOpen, onClose, project = null, onSuccess
               placeholder="Brief project description..."
               className={inputCls}
             />
+          </div>
+
+          {/* Milestones */}
+          <div>
+            <label className={labelCls}>Milestones</label>
+            <div className="space-y-2">
+              {formData.milestones?.map((m, idx) => (
+                <div key={idx} className="flex items-center gap-2">
+                  <input 
+                    type="text" 
+                    value={m}
+                    onChange={(e) => {
+                      const newMilestones = [...formData.milestones];
+                      newMilestones[idx] = e.target.value;
+                      set("milestones", newMilestones);
+                    }} 
+                    className="flex-1 px-3 py-2 border border-gray-200 rounded-md text-sm" />
+                  <button type="button" onClick={() => {
+                    const newMilestones = formData.milestones.filter((_, i) => i !== idx);
+                    set("milestones", newMilestones);
+                  }} className="text-red-500 ml-2">Remove</button>
+                </div>
+              ))}
+            </div>
+            <button
+              type="button"
+              className="mt-3 text-sm font-semibold text-blue-600 hover:text-blue-800"
+              onClick={() => set("milestones", [...(formData.milestones || []), ""])}
+            >
+              + Add milestone
+            </button>
           </div>
 
           {/* Status */}

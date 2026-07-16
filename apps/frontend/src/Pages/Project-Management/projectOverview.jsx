@@ -344,8 +344,7 @@ export default function ProjectOverview() {
           </div>
         )}
 
-        {/* ── Team Members ── */}
-        {/* ── Add Sprint Box (before Team Members) ── */}
+        {/* ── Sprints & Team Members ── */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wider">Sprints</h2>
