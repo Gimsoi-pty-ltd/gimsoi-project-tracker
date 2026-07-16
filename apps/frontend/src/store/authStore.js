@@ -8,6 +8,7 @@ export const useAuthStore = create((set, get) => ({
     isLoading: false,
     isCheckingAuth: true,
     isLoggingOut: false,
+    isAvatarLoading: false,
     message: null,
     userActivities: [],
 
@@ -161,6 +162,54 @@ export const useAuthStore = create((set, get) => ({
             set({
                 error: error.response?.data?.message || error.message || "Error updating profile",
                 isLoading: false,
+            });
+            throw error;
+        }
+    },
+
+    uploadAvatar: async (file) => {
+        set({ isAvatarLoading: true, error: null });
+        try {
+            const formData = new FormData();
+            formData.append("avatar", file);
+            formData.append("version", String(useAuthStore.getState().user?.version));
+
+            const response = await resourceAPI.post("/users/me/avatar", formData, {
+                headers: { "Content-Type": "multipart/form-data" },
+            });
+            const avatarUpdates = response.data.data;
+
+            set((state) => ({
+                user: { ...state.user, ...avatarUpdates },
+                isAvatarLoading: false,
+            }));
+            return avatarUpdates;
+        } catch (error) {
+            set({
+                error: error.response?.data?.message || "Error uploading profile picture",
+                isAvatarLoading: false,
+            });
+            throw error;
+        }
+    },
+
+    removeAvatar: async () => {
+        set({ isAvatarLoading: true, error: null });
+        try {
+            const response = await resourceAPI.delete("/users/me/avatar", {
+                data: { version: useAuthStore.getState().user?.version },
+            });
+            const avatarUpdates = response.data.data;
+
+            set((state) => ({
+                user: { ...state.user, ...avatarUpdates },
+                isAvatarLoading: false,
+            }));
+            return avatarUpdates;
+        } catch (error) {
+            set({
+                error: error.response?.data?.message || "Error removing profile picture",
+                isAvatarLoading: false,
             });
             throw error;
         }
