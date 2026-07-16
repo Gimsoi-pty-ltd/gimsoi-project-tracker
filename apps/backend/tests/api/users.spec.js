@@ -219,6 +219,7 @@ test.describe('Users API Tests', () => {
             expect(response.status()).toBe(200);
             const body = await response.json();
             expect(body.data.avatarUrl).toContain('data:image/png;base64,');
+            expect(body.data.version).toBeGreaterThan(me.version);
         });
 
         test('Fails on non-image file', async ({ request }) => {
@@ -236,6 +237,26 @@ test.describe('Users API Tests', () => {
                 }
             });
             expect(response.status()).toBe(400);
+        });
+
+        test('User can remove their avatar', async ({ request }) => {
+            const meRes = await request.get('/api/auth/check-auth', {
+                headers: { Authorization: `Bearer ${userToken}` }
+            });
+            const me = (await meRes.json()).user;
+
+            const response = await request.delete('/api/users/me/avatar', {
+                headers: {
+                    Authorization: `Bearer ${userToken}`,
+                    'x-csrf-token': userCsrf
+                },
+                data: { version: me.version }
+            });
+
+            expect(response.status()).toBe(200);
+            const body = await response.json();
+            expect(body.data.avatarUrl).toBe('');
+            expect(body.data.version).toBeGreaterThan(me.version);
         });
     });
 
