@@ -16,7 +16,7 @@ const getInitials = (name) => {
 };
 
 export default function TopBar({ onMenuClick }) {
-  const location  = useLocation();
+  const location = useLocation();
   const user = useAuthStore((state) => state.user);
   const initials = getInitials(user?.fullName || user?.name);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -34,25 +34,24 @@ export default function TopBar({ onMenuClick }) {
 
   const navItems = [
     { label: "Dashboard", href: "/dashboard" },
-    { label: "Tasks",     href: "/tasks" },
-    { label: "Kanban",    href: "/kanban-board" },
-    { label: "Users",     href: "/users" },
-    { label: "Reports",   href: "/reports" },
+    { label: "Tasks", href: "/tasks" },
+    { label: "Kanban", href: "/kanban-board" },
+    { label: "Users", href: "/users" },
+    { label: "Reports", href: "/reports" },
     { label: "Documents", href: "/documents" },
-    { label: "Phases",    href: "/phases" },
-    { label: "Calendar",  href: "/calendar" },
+    { label: "Phases", href: "/phases" },
+    { label: "Calendar", href: "/calendar" },
   ];
 
   const buttonItems = [
     { button: <HelpCircle size={24} />, href: "/help" },
-    { button: <Search size={24} />,     href: "/search" },
-    { button: <Settings size={24} />,   href: "/settings" },
+    { button: <Search size={24} />, href: "/search" },
+    { button: <Settings size={24} />, href: "/settings" },
   ];
 
   return (
     <div className="bg-[#002D62] px-[20px] sm:px-[32px] py-[18px] shadow-[0_4px_20px_rgba(37,99,235,0.2)] sticky top-0 z-30 border-b border-blue-500/30">
       <div className="flex items-center justify-between w-full">
-
         {/* LEFT */}
         <div className="flex items-center gap-[16px] sm:gap-[24px]">
           <button
@@ -62,15 +61,23 @@ export default function TopBar({ onMenuClick }) {
             <Menu size={24} />
           </button>
 
-          <Link to="/dashboard" className="flex items-center gap-2 sm:gap-3 no-underline">
-            <img src={logo} alt="logo" className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg" />
-            <span className="font-bold text-lg sm:text-xl text-white">Gimsoi</span>
+          <Link
+            to="/dashboard"
+            className="flex items-center gap-2 sm:gap-3 no-underline"
+          >
+            <img
+              src={logo}
+              alt="logo"
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg"
+            />
+            <span className="font-bold text-lg sm:text-xl text-white">
+              Gimsoi
+            </span>
           </Link>
         </div>
 
         {/* NAVIGATION */}
         <div className="flex items-center gap-1 bg-blue-700/40 p-1 rounded-xl border border-blue-400/20">
-
           {/* Desktop */}
           <div className="hidden xl:flex">
             {navItems.map((item) => (
@@ -110,7 +117,9 @@ export default function TopBar({ onMenuClick }) {
             <Link
               to="/dashboard"
               className={`px-4 py-2 rounded-lg text-sm no-underline ${
-                location.pathname.startsWith("/dashboard") ? "bg-white text-blue-600 font-bold" : "text-blue-100 hover:bg-white/10 hover:text-white"
+                location.pathname.startsWith("/dashboard")
+                  ? "bg-white text-blue-600 font-bold"
+                  : "text-blue-100 hover:bg-white/10 hover:text-white"
               }`}
             >
               Dashboard
@@ -130,18 +139,24 @@ export default function TopBar({ onMenuClick }) {
               <div className="absolute right-0 top-12 bg-white rounded-xl shadow-lg w-[200px] overflow-hidden z-50">
                 <div className="hidden lg:block xl:hidden">
                   {navItems.slice(3).map((item) => (
-                    <Link key={item.label} to={item.href}
+                    <Link
+                      key={item.label}
+                      to={item.href}
                       className="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 no-underline"
-                      onClick={() => setMoreOpen(false)}>
+                      onClick={() => setMoreOpen(false)}
+                    >
                       {item.label}
                     </Link>
                   ))}
                 </div>
                 <div className="lg:hidden">
                   {navItems.slice(1).map((item) => (
-                    <Link key={item.label} to={item.href}
+                    <Link
+                      key={item.label}
+                      to={item.href}
                       className="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 no-underline"
-                      onClick={() => setMoreOpen(false)}>
+                      onClick={() => setMoreOpen(false)}
+                    >
                       {item.label}
                     </Link>
                   ))}
@@ -180,7 +195,6 @@ export default function TopBar({ onMenuClick }) {
             )}
           </Link>
         </div>
-
       </div>
     </div>
   );
