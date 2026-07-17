@@ -467,28 +467,65 @@ export default function ProjectForm({ isOpen, onClose, project = null, onSuccess
           </div>
 
           {/* Sprints (queued while creating project) */}
-          <div>
-            <div className="flex items-center justify-between">
-              <label className={labelCls}>Sprints (optional)</label>
-              <button type="button" onClick={addSprint} className="text-sm text-blue-600">+ Add Sprint</button>
-            </div>
-            <div className="space-y-3 mt-2">
-              {queuedSprints.map((sp, idx) => (
-                <div key={sp.id} className="bg-gray-50 border border-gray-100 rounded-xl p-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <input
-                      type="text"
-                      value={sp.name}
-                      onChange={(e) => updateSprintField(idx, 'name', e.target.value)}
-                      placeholder="Sprint name"
-                      className="flex-1 px-3 py-2 border border-gray-200 rounded-md text-sm"
-                    />
-                    <button type="button" onClick={() => removeSprint(idx)} className="text-red-500 ml-2">Remove</button>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 mt-2">
-                    <input type="date" value={sp.startDate} onChange={(e) => updateSprintField(idx, 'startDate', e.target.value)} className="px-3 py-2 border border-gray-200 rounded-md text-sm" />
-                    <input type="date" value={sp.endDate} onChange={(e) => updateSprintField(idx, 'endDate', e.target.value)} className="px-3 py-2 border border-gray-200 rounded-md text-sm" />
-                  </div>
+<div className="w-full">
+  <div className="flex items-center justify-between">
+    <label className={labelCls}>Sprints (optional)</label>
+    <button
+      type="button"
+      onClick={addSprint}
+      className="text-sm text-blue-600"
+    >
+      + Add Sprint
+    </button>
+  </div>
+
+  <div className="space-y-3 mt-2">
+    {queuedSprints.map((sp, idx) => (
+      <div
+        key={sp.id}
+        className="w-full bg-gray-50 border border-gray-100 rounded-xl p-3"
+      >
+        {/* Name + Remove */}
+        <div className="flex flex-col sm:flex-row gap-2">
+          <input
+            type="text"
+            value={sp.name}
+            onChange={(e) =>
+              updateSprintField(idx, "name", e.target.value)
+            }
+            placeholder="Sprint name"
+            className="flex-1 min-w-0 px-3 py-2 border border-gray-200 rounded-md text-sm"
+          />
+
+          <button
+            type="button"
+            onClick={() => removeSprint(idx)}
+            className="sm:w-auto w-full px-3 py-2 text-red-500 border border-red-200 rounded-md hover:bg-red-50"
+          >
+            Remove
+          </button>
+        </div>
+
+        {/* Dates */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+          <input
+            type="date"
+            value={sp.startDate}
+            onChange={(e) =>
+              updateSprintField(idx, "startDate", e.target.value)
+            }
+            className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm"
+          />
+
+          <input
+            type="date"
+            value={sp.endDate}
+            onChange={(e) =>
+              updateSprintField(idx, "endDate", e.target.value)
+            }
+            className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm"
+          />
+        </div>
 
                   <div className="mt-3">
                     <div className="flex items-center justify-between">

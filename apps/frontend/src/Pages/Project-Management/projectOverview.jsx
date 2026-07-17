@@ -409,19 +409,41 @@ export default function ProjectOverview() {
       {/* ── Modals ── */}
       {showSprintModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl p-6 overflow-y-auto max-h-[90vh]">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl p-6 max-h-full">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold">Create Sprint</h3>
               <button onClick={() => setShowSprintModal(false)} className="text-gray-400">✕</button>
             </div>
+<div className="space-y-3">
+  <input
+    className="w-full px-3 py-2 border rounded"
+    placeholder="Sprint name"
+    value={sprintDraft.name}
+    onChange={(e) =>
+      setSprintDraft((s) => ({ ...s, name: e.target.value }))
+    }
+  />
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <input className="md:col-span-2 px-3 py-2 border rounded" placeholder="Sprint name" value={sprintDraft.name} onChange={(e) => setSprintDraft(s => ({...s, name: e.target.value}))} />
-              <div className="flex gap-2">
-                <input type="date" className="px-3 py-2 border rounded flex-1" value={sprintDraft.startDate} onChange={(e) => setSprintDraft(s => ({...s, startDate: e.target.value}))} />
-                <input type="date" className="px-3 py-2 border rounded flex-1" value={sprintDraft.endDate} onChange={(e) => setSprintDraft(s => ({...s, endDate: e.target.value}))} />
-              </div>
-            </div>
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+    <input
+      type="date"
+      className="w-2xl px-3 py-2 border rounded"
+      value={sprintDraft.startDate}
+      onChange={(e) =>
+        setSprintDraft((s) => ({ ...s, startDate: e.target.value }))
+      }
+    />
+
+    <input
+      type="date"
+      className="w-2xl px-3 py-2 border rounded"
+      value={sprintDraft.endDate}
+      onChange={(e) =>
+        setSprintDraft((s) => ({ ...s, endDate: e.target.value }))
+      }
+    />
+  </div>
+</div>
 
             <div className="mt-4">
               <h4 className="text-sm font-medium mb-2">Tasks</h4>
@@ -430,7 +452,7 @@ export default function ProjectOverview() {
 
               <div className="mt-6 flex justify-end gap-3">
               <button className="px-4 py-2 rounded border" onClick={() => setShowSprintModal(false)}>Cancel</button>
-              <button className="px-4 py-2 rounded bg-blue-600 text-white" onClick={async () => {
+              <button className="px-4 py-2 rounded bg-blue-900 hover:bg-blue-600 text-white" onClick={async () => {
                 try {
                   if (!sprintDraft.name.trim()) return;
                   await createSprint({ projectId: p.id, ...sprintDraft });
