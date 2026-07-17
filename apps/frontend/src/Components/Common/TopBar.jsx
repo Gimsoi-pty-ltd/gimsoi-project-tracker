@@ -18,6 +18,7 @@ const getInitials = (name) => {
 export default function TopBar({ onMenuClick }) {
   const location = useLocation();
   const user = useAuthStore((state) => state.user);
+  console.log(user);
   const initials = getInitials(user?.fullName || user?.name);
   const [moreOpen, setMoreOpen] = useState(false);
   const moreRef = useRef(null);
@@ -44,9 +45,9 @@ export default function TopBar({ onMenuClick }) {
   ];
 
   const buttonItems = [
-    { button: <HelpCircle size={24} />, href: "/help" },
-    { button: <Search size={24} />, href: "/search" },
-    { button: <Settings size={24} />, href: "/settings" },
+    { label: "Help", button: <HelpCircle size={24} />, href: "/help" },
+    { label: "Search", button: <Search size={24} />, href: "/search" },
+    { label: "Settings", button: <Settings size={24} />, href: "/settings" },
   ];
 
   return (
@@ -55,6 +56,8 @@ export default function TopBar({ onMenuClick }) {
         {/* LEFT */}
         <div className="flex items-center gap-[16px] sm:gap-[24px]">
           <button
+            type="button"
+            aria-label="Open navigation menu"
             className="p-2 hover:bg-blue-500 rounded-xl text-blue-100 hover:text-white"
             onClick={onMenuClick}
           >
@@ -129,6 +132,9 @@ export default function TopBar({ onMenuClick }) {
           {/* MORE MENU */}
           <div className="relative xl:hidden" ref={moreRef}>
             <button
+              type="button"
+              aria-expanded={moreOpen}
+              aria-controls="topbar-more-menu"
               onClick={() => setMoreOpen(!moreOpen)}
               className="px-4 py-2 text-sm text-blue-100 hover:bg-white/10 rounded-lg"
             >
@@ -136,7 +142,10 @@ export default function TopBar({ onMenuClick }) {
             </button>
 
             {moreOpen && (
-              <div className="absolute right-0 top-12 bg-white rounded-xl shadow-lg w-[200px] overflow-hidden z-50">
+              <div
+                id="topbar-more-menu"
+                className="absolute right-0 top-12 bg-white rounded-xl shadow-lg w-[200px] overflow-hidden z-50"
+              >
                 <div className="hidden lg:block xl:hidden">
                   {navItems.slice(3).map((item) => (
                     <Link
@@ -169,11 +178,15 @@ export default function TopBar({ onMenuClick }) {
         {/* RIGHT */}
         <div className="flex items-center gap-[10px] sm:gap-[20px]">
           <div className="flex items-center gap-[6px] sm:gap-[12px]">
-            {buttonItems.map((item, index) => (
-              <Link key={index} to={item.href}>
-                <button className="p-2 sm:p-3 hover:bg-blue-500 rounded-full text-blue-100 hover:text-white">
-                  {item.button}
-                </button>
+            {buttonItems.map((item) => (
+              <Link
+                key={item.href}
+                to={item.href}
+                aria-label={item.label}
+                title={item.label}
+                className="p-2 sm:p-3 hover:bg-blue-500 rounded-full text-blue-100 hover:text-white"
+              >
+                {item.button}
               </Link>
             ))}
           </div>
