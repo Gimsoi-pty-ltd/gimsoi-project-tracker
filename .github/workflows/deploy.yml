@@ -2,28 +2,26 @@
 name: Deploy to Zoho Catalyst
 
 "on":
-  # ------------------------------------------------------------
-  # Trigger deployment ONLY after CI succeeds
-  # ------------------------------------------------------------
   workflow_run:
     workflows: ["CI Pipeline"]
     types:
       - completed
 
-  # ------------------------------------------------------------
-  # Allow manual deployments from GitHub Actions UI
-  # ------------------------------------------------------------
+  # ci_run_id redeploys a specific already-tested artifact (rollback)
   workflow_dispatch:
+    inputs:
+      ci_run_id:
+        description: >
+          CI Pipeline run ID to deploy artifacts from. Leave blank to use
+          the most recent successful run on main (used for rollback).
+        required: false
+        type: string
 
-# ------------------------------------------------------------
-# Minimal required permissions
-# ------------------------------------------------------------
+# actions: read is needed to download artifacts from another workflow run
 permissions:
   contents: read
+  actions: read
 
-# ------------------------------------------------------------
-# Prevent overlapping production deployments
-# ------------------------------------------------------------
 concurrency:
   group: production-deployment
   cancel-in-progress: true
@@ -33,12 +31,6 @@ jobs:
     name: Deploy Production
     runs-on: ubuntu-latest
 
-    # ------------------------------------------------------------
-    # Only deploy if:
-    # 1. CI workflow succeeded
-    # OR
-    # 2. Manual workflow_dispatch was used
-    # ------------------------------------------------------------
     if: >
       github.event_name == 'workflow_dispatch' ||
       (
@@ -51,120 +43,109 @@ jobs:
       name: production
 
     steps:
-      # ------------------------------------------------------------
-      # STEP 1: CHECKOUT REPOSITORY
-      # ------------------------------------------------------------
+      # Pick which already-tested CI run's artifacts to deploy (never rebuilds)
+      - name: Resolve source CI run ID
+        id: resolve-run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          WORKFLOW_RUN_ID: ${{ github.event.workflow_run.id }}
+          WORKFLOW_RUN_SHA: ${{ github.event.workflow_run.head_sha }}
+          CI_RUN_ID_INPUT: ${{ inputs.ci_run_id }}
+        run: |
+          if [ -n "$WORKFLOW_RUN_ID" ]; then
+            RUN_ID="$WORKFLOW_RUN_ID"
+            RUN_SHA="$WORKFLOW_RUN_SHA"
+          elif [ -n "$CI_RUN_ID_INPUT" ]; then
+            RUN_ID="$CI_RUN_ID_INPUT"
+            RUN_SHA=$(gh run view "$RUN_ID" \
+              --repo "${{ github.repository }}" \
+              --json headSha --jq '.headSha')
+          else
+            RUN_JSON=$(gh run list \
+              --repo "${{ github.repository }}" \
+              --workflow "CI Pipeline" \
+              --branch main \
+              --status success \
+              --limit 1 \
+              --json databaseId,headSha)
+            RUN_ID=$(echo "$RUN_JSON" | jq -r '.[0].databaseId')
+            RUN_SHA=$(echo "$RUN_JSON" | jq -r '.[0].headSha')
+          fi
+
+          if [ -z "$RUN_ID" ] || [ "$RUN_ID" = "null" ]; then
+            echo "::error::Could not resolve a CI Pipeline run to deploy from."
+            exit 1
+          fi
+
+          if [ -z "$RUN_SHA" ] || [ "$RUN_SHA" = "null" ]; then
+            echo "::error::Could not resolve the commit SHA for run $RUN_ID."
+            exit 1
+          fi
+
+          echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
+          echo "run_sha=$RUN_SHA" >> "$GITHUB_OUTPUT"
+          echo "Deploying artifacts from CI run $RUN_ID (commit $RUN_SHA)"
+
+      # Check out the exact commit the artifacts were built from
       - name: Checkout code
         uses: actions/checkout@v4
-
-      # ------------------------------------------------------------
-      # STEP 2: SETUP NODE
-      # ------------------------------------------------------------
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
         with:
-          node-version: "22"
-          cache: npm
-          cache-dependency-path: |
-            apps/backend/package-lock.json
-            apps/frontend/package-lock.json
+          ref: ${{ steps.resolve-run.outputs.run_sha }}
 
-      # ------------------------------------------------------------
-      # STEP 3: INSTALL BACKEND DEPENDENCIES
-      # ------------------------------------------------------------
-      - name: Install backend dependencies
-        working-directory: apps/backend
-        run: npm ci
+      # Pull the CI-built backend into apps/backend
+      - name: Download backend artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-package
+          path: apps/backend
+          github-token: ${{ github.token }}
+          run-id: ${{ steps.resolve-run.outputs.run_id }}
 
-      # ------------------------------------------------------------
-      # STEP 4: GENERATE PRISMA CLIENT
-      # ------------------------------------------------------------
-      - name: Generate Prisma Client
-        working-directory: apps/backend
-        run: npx prisma generate
+      # Pull the CI-built frontend into apps/frontend/dist
+      - name: Download frontend artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-package
+          path: apps/frontend/dist
+          github-token: ${{ github.token }}
+          run-id: ${{ steps.resolve-run.outputs.run_id }}
 
-      # ------------------------------------------------------------
-      # STEP 5: INSTALL FRONTEND DEPENDENCIES
-      # ------------------------------------------------------------
-      - name: Install frontend dependencies
-        working-directory: apps/frontend
-        run: npm ci
-
-      # ------------------------------------------------------------
-      # STEP 6: BUILD FRONTEND
-      #
-      # IMPORTANT:
-      # This generates:
-      # - dist/
-      # - index.html
-      # - assets/
-      # - client-package.json
-      # ------------------------------------------------------------
-      - name: Build frontend
-        working-directory: apps/frontend
-        env:
-          VITE_API_BASE_URL: ${{ secrets.CATALYST_PROD_BACKEND_URL }}/api
-        run: npm run build
-
-      # ------------------------------------------------------------
-      # STEP 7: VERIFY BUILD OUTPUT
-      # ------------------------------------------------------------
-      - name: Verify frontend build output
+      # Confirm the downloaded artifacts are a finished, runnable app
+      - name: Verify downloaded build output
         run: |
-          if [ ! -d "apps/frontend/dist" ]; then
-            echo "::error::dist folder missing"
-            exit 1
-          fi
+          for f in apps/backend/server.js \
+                   apps/frontend/dist/index.html \
+                   apps/frontend/dist/client-package.json; do
+            if [ ! -f "$f" ]; then
+              echo "::error::$f missing from downloaded artifact"
+              exit 1
+            fi
+          done
 
-          if [ ! -f "apps/frontend/dist/index.html" ]; then
-            echo "::error::index.html missing from dist"
-            exit 1
-          fi
-
-          if [ ! -f "apps/frontend/dist/client-package.json" ]; then
-            echo "::error::client-package.json missing from dist"
-            exit 1
-          fi
-
-      # ------------------------------------------------------------
-      # STEP 8: INSTALL ZOHO CATALYST CLI
-      # ------------------------------------------------------------
+      # Pinned so an unannounced CLI release can't silently change auth
+      # behavior underneath this workflow again (see commit history).
       - name: Install Catalyst CLI
-        run: npm install -g zcatalyst-cli
+        run: npm install -g zcatalyst-cli@1.27.0
 
-      # ------------------------------------------------------------
-      # STEP 9: AUTHENTICATE CATALYST
-      # ------------------------------------------------------------
-      - name: Configure Catalyst Authentication
-        run: |
-          mkdir -p ~/.catalyst
-
-          TOKEN='${{ secrets.CATALYST_TOKEN }}'
-
-          echo "{\"token\":\"$TOKEN\"}" \
-             > ~/.catalyst/token.json
-
-      # ------------------------------------------------------------
-      # STEP 10: DEPLOY TO CATALYST
-      #
-      # Deploys:
-      # - Backend AppSail service
-      # - Frontend Client Hosting
-      #
-      # Based on catalyst.json:
-      # apps/backend
-      # apps/frontend/dist
-      # ------------------------------------------------------------
+      # --token authenticates this exact command; writing to
+      # ~/.catalyst/token.json does not reliably authenticate the CLI
+      # and let a broken deploy silently report success.
       - name: Deploy to Catalyst
         env:
+          CATALYST_TOKEN: ${{ secrets.CATALYST_TOKEN }}
           CATALYST_PROJECT_ID: ${{ secrets.CATALYST_PROJECT_ID_PROD }}
           NODE_ENV: production
         run: |
-          catalyst deploy --project $CATALYST_PROJECT_ID
+          catalyst --token "$CATALYST_TOKEN" \
+            --project "$CATALYST_PROJECT_ID" -ni deploy
 
-      # ------------------------------------------------------------
-      # STEP 11: SUCCESS MESSAGE
-      # ------------------------------------------------------------
+      # Verify the deployed app is actually up before calling it done
+      - name: Smoke test deployment
+        env:
+          BACKEND_URL: ${{ secrets.CATALYST_PROD_BACKEND_URL }}
+          FRONTEND_URL: ${{ secrets.CATALYST_PROD_FRONTEND_URL }}
+        run: bash scripts/smoke-test.sh "$BACKEND_URL" "$FRONTEND_URL"
+
       - name: Deployment Complete
         run: |
-          echo "Deployment completed successfully."
+          echo "Deployment completed successfully and passed smoke tests."
