@@ -18,7 +18,6 @@ const getInitials = (name) => {
 export default function TopBar({ onMenuClick }) {
   const location = useLocation();
   const user = useAuthStore((state) => state.user);
-  console.log(user);
   const initials = getInitials(user?.fullName || user?.name);
   const [moreOpen, setMoreOpen] = useState(false);
   const moreRef = useRef(null);
