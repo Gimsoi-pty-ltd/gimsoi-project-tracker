@@ -1,6 +1,5 @@
 import { create } from "zustand";
-// Explicitly import both instances to avoid base URL confusion
-import { authAPI, resourceAPI } from "../api/api"; // Adjust path if your file is named API.js
+import { authAPI, resourceAPI } from "../api/api"; 
 
 export const useAuthStore = create((set, get) => ({
     user: null,
@@ -15,7 +14,7 @@ export const useAuthStore = create((set, get) => ({
     signup: async (email, password, fullName) => {
         set({ isLoading: true, error: null });
         try {
-            // Explicitly use authAPI for auth routes
+            
             const response = await authAPI.post("/signup", { email, password, fullName });
             set({ user: response.data.user || response.data, isAuthenticated: true, isLoading: false });
         } catch (error) {
@@ -54,7 +53,7 @@ export const useAuthStore = create((set, get) => ({
     verifyEmail: async (code) => {
         set({ isLoading: true, error: null });
         try {
-            const email = get().user?.email; // Use get() for cleaner state access
+            const email = get().user?.email; 
             const response = await authAPI.post("/verify-email", { code, email });
             set({ user: response.data.user || response.data, isAuthenticated: true, isLoading: false });
             return response.data;
@@ -114,11 +113,11 @@ export const useAuthStore = create((set, get) => ({
         }
     },
 
-    // ✅ NEW: Fetch fresh profile data from backend (useful after page reload or external changes)
+    
     fetchProfile: async () => {
         set({ isLoading: true, error: null });
         try {
-            const response = await resourceAPI.get("/users/me"); // Adjust path if your backend uses /profile
+            const response = await authAPI.get("/check-auth"); 
             const userData = response.data.user || response.data.data || response.data;
             set({ user: userData, isAuthenticated: true, isLoading: false, error: null });
             return userData;
@@ -128,20 +127,28 @@ export const useAuthStore = create((set, get) => ({
         }
     },
 
-    // ✅ UPDATED: Persist profile updates to backend AND keep local state perfectly fresh
-    updateProfile: async (profileUpdates) => {
+    
+     updateProfile: async (profileUpdates) => {
         set({ isLoading: true, error: null, message: null });
         try {
-            const response = await resourceAPI.patch("/users/me", profileUpdates); // Adjust path if needed
+            const currentVersion = get().user?.version;
+            if (currentVersion == null) {
+                throw new Error("Missing profile version — refresh your profile and try again.");
+            }
+
+            const response = await resourceAPI.patch("/users/me", {
+                ...profileUpdates,
+                version: currentVersion,
+            });
+
             
-            // Safely extract the updated user object regardless of backend wrapper (data.user, data.data, or just data)
-            const updatedUser = response.data.user || response.data.data || response.data;
-            
+            const updatedUser = response.data.data || response.data.user || response.data;
+
             set((state) => ({
                 user: {
                     ...state.user,
                     ...updatedUser,
-                    // Auto-generate initials if fullName was updated
+                    
                     initials: updatedUser.fullName
                         ? updatedUser.fullName.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase()
                         : state.user?.initials,
@@ -151,9 +158,9 @@ export const useAuthStore = create((set, get) => ({
             }));
             return updatedUser;
         } catch (error) {
-            set({ 
-                error: error.response?.data?.message || "Error updating profile", 
-                isLoading: false 
+            set({
+                error: error.response?.data?.message || error.message || "Error updating profile",
+                isLoading: false,
             });
             throw error;
         }

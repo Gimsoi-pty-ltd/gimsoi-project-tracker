@@ -19,7 +19,6 @@ export default function ReportsHub() {
         const state = useProjectStore.getState();
         const loader = state.ensureDashboardLoaded || state.fetchDashboard;
         if (typeof loader === "function") {
-          // call once on mount; loader manages internal loading guards
           await loader();
         }
       } catch (error) {
