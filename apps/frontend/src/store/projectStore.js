@@ -109,9 +109,7 @@ function buildPriorityHeatmap(sprintTasks) {
         priority: key,
         priorityLabel: label,
         values: statusOrder.map((status) =>
-            status === "REVIEW"
-                ? 0
-                : sprintTasks.filter((t) => t.priority === match && t.status === status).length
+            sprintTasks.filter((t) => t.priority === match && t.status === status).length
         ),
     }));
 }
@@ -155,9 +153,11 @@ function buildActiveSprintView(sprint, projectTasks, velocity, avgVelocity) {
 
 function buildDashboardCharts(sprintTasks) {
     return {
-        heatmap: buildPriorityHeatmap(sprintTasks),
-        distribution: buildPriorityDistribution(sprintTasks),
-        burndown: [],
+        charts: {
+            heatmap: buildPriorityHeatmap(sprintTasks),
+            distribution: buildPriorityDistribution(sprintTasks),
+            burndown: [],
+        },
     };
 }
 
@@ -167,6 +167,16 @@ const emptyDashboardData = {
         distribution: [],
         burndown: [],
     },
+};
+
+// Every project.controller.js response wraps the payload as { success: true, data }.
+// projectMember.controller.js uses a slightly different envelope ({ status: "success", data })
+// but the payload still lands under `.data`, so this one helper covers both.
+const normalizeProject = (response) => response?.data?.data ?? response?.data ?? null;
+const normalizeMember = (response) => response?.data?.data ?? response?.data ?? null;
+const normalizeMembers = (response) => {
+    const data = response?.data?.data ?? response?.data;
+    return Array.isArray(data) ? data : [];
 };
 
 const applySprintSelection = async (sprint, projectTasks, projectSprints) => {
@@ -445,7 +455,7 @@ export const useProjectStore = create((set, get) => ({
             if (filters.status) params.append("status", filters.status);
             
             const response = await resourceAPI.get(`/projects${params.toString() ? `?${params.toString()}` : ""}`);
-            const projectsData = response.data.projects || response.data.data || [];
+            const projectsData = Array.isArray(response?.data?.data) ? response.data.data : [];
             set({ projects: projectsData, isLoading: false });
             return response.data;
         } catch (error) {
@@ -463,9 +473,9 @@ export const useProjectStore = create((set, get) => ({
         set({ isLoading: true, error: null });
         try {
             const response = await resourceAPI.get(`/projects/${id}`);
-            const project = response.data?.data || response.data?.project || response.data;
+            const project = normalizeProject(response);
             set({ currentProject: project, isLoading: false });
-            return response.data;
+            return project;
         } catch (error) {
             set({ error: error.response?.data?.message || "Error fetching project", isLoading: false });
             throw error;
@@ -476,11 +486,12 @@ export const useProjectStore = create((set, get) => ({
         set({ isLoading: true, error: null });
         try {
             const response = await resourceAPI.post("/projects", projectData);
+            const project = normalizeProject(response);
             set((state) => ({
-                projects: [...state.projects, response.data.project || response.data],
+                projects: [...state.projects, project],
                 isLoading: false,
             }));
-            return response.data;
+            return project;
         } catch (error) {
             set({ error: error.response?.data?.message || "Error creating project", isLoading: false });
             throw error;
@@ -491,24 +502,73 @@ export const useProjectStore = create((set, get) => ({
         set({ isLoading: true, error: null });
         try {
             const response = await resourceAPI.patch(`/projects/${id}`, projectData);
+            const project = normalizeProject(response);
             set((state) => ({
-                projects: state.projects.map((project) => (project.id === id ? response.data.project || response.data : project)),
-                currentProject: response.data.project || response.data,
+                projects: state.projects.map((p) => (p.id === id ? project : p)),
+                currentProject: project,
                 isLoading: false,
             }));
-            return response.data;
+            return project;
         } catch (error) {
             set({ error: error.response?.data?.message || "Error updating project", isLoading: false });
             throw error;
         }
     },
 
+    // ─── Project Members ──────────────────────────────────────────────────
+    // Project has no `team` column — real membership lives in the ProjectMember
+    // join table via /projects/:id/members. These wrap that endpoint set.
+    getProjectMembers: async (projectId) => {
+        try {
+            const response = await resourceAPI.get(`/projects/${projectId}/members`);
+            return normalizeMembers(response);
+        } catch (error) {
+            console.error("Failed to fetch project members:", error);
+            return [];
+        }
+    },
+
+    addProjectMember: async (projectId, userId, role = "MEMBER") => {
+        const response = await resourceAPI.post(`/projects/${projectId}/members`, { userId, role });
+        return normalizeMember(response);
+    },
+
+    removeProjectMember: async (projectId, userId) => {
+        await resourceAPI.delete(`/projects/${projectId}/members/${userId}`);
+    },
+
+    updateProjectMemberRole: async (projectId, userId, role) => {
+        const response = await resourceAPI.patch(`/projects/${projectId}/members/${userId}`, { role });
+        return normalizeMember(response);
+    },
+
+    // Reconciles a project's real membership with a desired list of user ids —
+    // adds anyone newly selected and removes anyone unselected. Used by
+    // ProjectForm after create/update since the team picker isn't a real field
+    // on Project itself.
+    syncProjectMembers: async (projectId, desiredUserIds = [], currentUserIds = []) => {
+        const toAdd = desiredUserIds.filter((id) => !currentUserIds.includes(id));
+        const toRemove = currentUserIds.filter((id) => !desiredUserIds.includes(id));
+
+        const results = await Promise.allSettled([
+            ...toAdd.map((userId) => get().addProjectMember(projectId, userId)),
+            ...toRemove.map((userId) => get().removeProjectMember(projectId, userId)),
+        ]);
+
+        const failures = results.filter((r) => r.status === "rejected");
+        if (failures.length) {
+            console.error("Some project member changes failed:", failures.map((f) => f.reason));
+        }
+        return failures;
+    },
+
     getProjectProgress: async (id) => {
         set({ isLoading: true, error: null });
         try {
             const response = await resourceAPI.get(`/projects/${id}/progress`);
-            set({ projectProgress: response.data, isLoading: false });
-            return response.data;
+            const progress = response?.data?.data ?? response?.data ?? null;
+            set({ projectProgress: progress, isLoading: false });
+            return progress;
         } catch (error) {
             set({ error: error.response?.data?.message || "Error fetching project progress", isLoading: false });
             throw error;

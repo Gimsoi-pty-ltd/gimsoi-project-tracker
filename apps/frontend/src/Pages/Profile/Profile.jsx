@@ -17,7 +17,7 @@ const getInitials = (name) =>
 export default function ProjectTrackerProfilePage() {
   const user = useAuthStore((state) => state.user) || {};
   const projects = useProjectStore((state) => state.projects) || [];
-  // Load user data and activity log on component mount
+  // Load user data, activity log, and projects on component mount
   useEffect(() => {
     const auth = useAuthStore.getState();
     // Ensure auth state
@@ -26,13 +26,15 @@ export default function ProjectTrackerProfilePage() {
     }
     // Fetch user's activity log
     auth.fetchActivities();
+    // Fetch projects (scoped to this user by the backend for non-admin/PM roles)
+    useProjectStore.getState().fetchProjects({ limit: 50 });
   }, []);
 
   const [showEdit, setShowEdit] = useState(false);
   const [formValues, setFormValues] = useState({
     fullName: user.fullName || user.name || "",
     jobTitle: user.jobTitle || "",
-    // phone: user.phone || "",
+    phone: user.phone || "",
     email: user.email || "",
   });
 
@@ -40,7 +42,7 @@ export default function ProjectTrackerProfilePage() {
     setFormValues({
       fullName: user.fullName || user.name || "",
       jobTitle: user.jobTitle || "",
-      // phone: user.phone || "",
+      phone: user.phone || "",
       email: user.email || "",
     });
   }, [user]);
@@ -50,34 +52,30 @@ export default function ProjectTrackerProfilePage() {
     setFormValues((prev) => ({ ...prev, [name]: value }));
   };
 
+  const [saveError, setSaveError] = useState(null);
+
   const handleSave = async () => {
-    const auth = useAuthStore.getState();
-    // Optimistically update UI locally
-    auth.updateUserProfile({
-      fullName: formValues.fullName,
-      name: formValues.fullName,
-      jobTitle: formValues.jobTitle,
-      phone: formValues.phone,
-      email: formValues.email,
-    });
+    setSaveError(null);
     try {
-      await auth.updateProfile({
+      await useAuthStore.getState().updateProfile({
         fullName: formValues.fullName,
-        name: formValues.fullName,
         jobTitle: formValues.jobTitle,
         phone: formValues.phone,
         email: formValues.email,
-        version: user.version,
       });
       // Refresh activity logs after successful update
-      await auth.fetchActivities();
+      await useAuthStore.getState().fetchActivities();
+      setShowEdit(false);
     } catch (err) {
       console.error(err);
+      setSaveError(err.response?.data?.message || err.message || "Failed to save profile changes");
     }
-    setShowEdit(false);
   };
 
-  const assignedProjects = projects.filter((p) => p.assignedTo === user.name);
+  // Project has no `assignedTo` field — for non-admin/PM roles the backend
+  // already scopes GET /projects to projects the user is a member of, so the
+  // fetched list itself is "your projects" (see project.service.js getProjects).
+  const assignedProjects = projects;
 
   return (
     <div className="min-h-screen bg-white p-4 md:p-8 lg:p-10">
@@ -92,7 +90,7 @@ export default function ProjectTrackerProfilePage() {
             <div className="mt-3 text-xs md:text-sm text-gray-700 space-y-1">
               <p>📧 {user.email}</p>
               {/* <p><Phone className="inline-block w-4 h-4 mr-1" /> {user.phone}</p> */}
-              <p>📅 Joined {user.joinedDate ? new Date(user.joinedDate).toLocaleDateString("en-ZA", { year: "numeric", month: "long", day: "numeric" }) : "N/A"}</p>
+              <p>📅 Joined {user.createdAt ? new Date(user.createdAt).toLocaleDateString("en-ZA", { year: "numeric", month: "long", day: "numeric" }) : "N/A"}</p>
               <span className="inline-block mt-1 text-xs bg-orange-500 text-white px-3 py-1 rounded-full font-medium">
               {user.role}
             </span>
@@ -112,6 +110,9 @@ export default function ProjectTrackerProfilePage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <h2 className="text-xl font-semibold mb-4">Edit Profile</h2>
+            {saveError && (
+              <div className="mb-3 p-3 bg-red-50 text-red-600 rounded-lg text-sm">{saveError}</div>
+            )}
             <div className="space-y-3">
               <input
                 type="text"
@@ -168,12 +169,15 @@ export default function ProjectTrackerProfilePage() {
         <div className="bg-gray-100 rounded-2xl shadow-sm p-6">
           <h2 className="text-xl font-semibold text-black mb-4">Assigned Projects</h2>
           <div className="space-y-4 text-sm text-gray-800">
+            {assignedProjects.length === 0 && (
+              <p className="text-gray-500 italic">No projects yet</p>
+            )}
             {assignedProjects.map((project) => (
               <div key={project.id} className="flex items-center gap-3">
-                <div className={`w-2.5 h-2.5 rounded-full ${project.color}`} />
+                <div className="w-2.5 h-2.5 rounded-full bg-[#002D62] flex-shrink-0" />
                 <div>
                   <p className="font-medium">{project.name}</p>
-                  <p className="text-gray-500">Status: {project.status} · {project.progress}% complete</p>
+                  <p className="text-gray-500">Status: {project.status} · {project.percentComplete ?? 0}% complete</p>
                 </div>
               </div>
             ))}
@@ -187,7 +191,7 @@ export default function ProjectTrackerProfilePage() {
             <p><span className="font-medium">Job Title:</span> {user.jobTitle}</p>
             <p><span className="font-medium">Project Access:</span> All Projects</p>
             <p><span className="font-medium">Task Management:</span> Full Access</p>
-            <p><span className="font-medium">User Management:</span> {user.role === "Admin" ? "Full Access" : "View Only"}</p>
+            <p><span className="font-medium">User Management:</span> {user.role === "ADMIN" ? "Full Access" : "View Only"}</p>
           </div>
         </div>
 
@@ -196,8 +200,10 @@ export default function ProjectTrackerProfilePage() {
           <div className="space-y-3 text-sm text-gray-800">
             {user?.activityLog && user.activityLog.length > 0 ? (
               user.activityLog.map((entry, i) => (
-                <p key={i}>
-                  <span className="text-gray-500 text-xs">{entry.date}</span>
+                <p key={entry.id || i}>
+                  <span className="text-gray-500 text-xs">
+                    {entry.createdAt ? new Date(entry.createdAt).toLocaleString() : ""}
+                  </span>
                   <br />
                   {entry.action}
                 </p>

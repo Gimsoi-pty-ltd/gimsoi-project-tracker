@@ -237,11 +237,16 @@ const DEPRECATED_SAMPLE_COLUMNS = [
 
 // Main Kanban Component
 const Kanban = () => {
-  const { projects, switchProject, activeSprint, currentProject, isLoading, error } = useProjectStore();
+  const { projects, switchProject, activeSprint, currentProject, isLoading, error, fetchDashboard } = useProjectStore();
   const [selectedCard, setSelectedCard] = useState(null);
   const [draggedCard, setDraggedCard] = useState(null);
   const [apiError, setApiError] = useState(null);
   const updateTask = useTaskStore((state) => state.updateTask);
+
+  useEffect(() => {
+    if (!activeSprint) fetchDashboard();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Build columns from sprint tasks
   const columns = useMemo(() => {
@@ -360,6 +365,15 @@ const Kanban = () => {
              });
            });
         }
+
+        // Keep projectStore's activeSprint/dashboardData in sync — every other
+        // task-mutating flow (TaskModal, ActiveTasksCard) calls fetchDashboard()
+        // after a change; without this, Priority Heatmap / Task Distribution /
+        // the metric cards on /dashboard stay stale after a kanban move even
+        // though this board's own local columnState updates fine.
+        useProjectStore.getState().fetchDashboard().catch((err) => {
+          console.error("Failed to refresh dashboard after kanban move:", err);
+        });
       }
     } catch (err) {
       // Try to extract a useful error message from the backend

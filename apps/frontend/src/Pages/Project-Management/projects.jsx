@@ -9,12 +9,12 @@ import ErrorAlert from "../../Components/ErrorAlert";
 import LoadingSpinner from "../../Components/LoadingSpinner";
 
 // ─── Status config ────────────────────────────────────────────────────────────
+// Must match the backend's ProjectStatus enum exactly (see project.schema.js)
 const STATUS_CONFIG = {
+  DRAFT:     { label: "Draft",    dot: "bg-gray-400",    text: "text-gray-600",    bg: "bg-gray-100"   },
   ACTIVE:    { label: "Active",   dot: "bg-blue-500",    text: "text-blue-600",    bg: "bg-blue-50"    },
   COMPLETED: { label: "Complete", dot: "bg-emerald-500", text: "text-emerald-600", bg: "bg-emerald-50" },
-  "ON HOLD": { label: "On Hold",  dot: "bg-orange-400",  text: "text-orange-600",  bg: "bg-orange-50"  },
-  DRAFT:     { label: "Draft",    dot: "bg-gray-400",    text: "text-gray-600",    bg: "bg-gray-100"   },
-  PLANNING:  { label: "Planning", dot: "bg-purple-500",  text: "text-purple-600",  bg: "bg-purple-50"  },
+  ARCHIVED:  { label: "Archived", dot: "bg-slate-400",   text: "text-slate-600",   bg: "bg-slate-100"  },
 };
 
 const getStatusCfg = (status) =>
@@ -187,7 +187,7 @@ export default function Projects() {
   const handleStatusChange = async (projectId, newStatus) => {
     try {
       const project = projects.find((p) => p.id === projectId);
-      if (project) await updateProject(projectId, { ...project, status: newStatus });
+      if (project) await updateProject(projectId, { status: newStatus, version: project.version });
     } catch (err) {
       console.error("Status update failed:", err);
     }
