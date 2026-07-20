@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Info } from "lucide-react";
 import { useProjectStore } from "../../store/projectStore";
 
-const COLORS = ["#2563eb", "#f97316", "#6d28d9", "#3b82f6"];
+const COLORS = ["#e53935", "#f16f12", "#f1ee38", "#23d40c"];
 
 export default function TaskDistributionCard() {
   const [showInfo, setShowInfo] = useState(false);
@@ -22,8 +22,8 @@ export default function TaskDistributionCard() {
         }))
       : [];
 
-  const radius = 58;
-  const stroke = 24;
+  const radius = 100;
+  const stroke = 30;
   const circumference = radius * 2 * Math.PI;
 
   return (
@@ -56,7 +56,7 @@ export default function TaskDistributionCard() {
         </div>
       ) : (
         <div className="flex items-center gap-8">
-          <svg width="190" height="190" viewBox="0 0 190 190">
+          <svg width="190" height="190" viewBox="0 0 240 240">
             <g transform="rotate(-90 95 95)">
               {(() => {
                 let accumulatedOffset = 0;
@@ -68,8 +68,8 @@ export default function TaskDistributionCard() {
                   return (
                     <circle
                       key={i}
-                      cx="95"
-                      cy="95"
+                      cx="75"
+                      cy="115"
                       r={radius}
                       fill="transparent"
                       stroke={item.color}
@@ -89,7 +89,9 @@ export default function TaskDistributionCard() {
               <div key={item.label} className="flex min-w-[180px] items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="h-3 w-3 rounded-full" style={{ backgroundColor: item.color }} />
-                  <span className="text-[14px] capitalize text-gray-700">{item.label}</span>
+                 <span className="text-[14px] capitalize text-gray-700">
+                    {item.label === 'urgent' ? 'Critical' : item.label}
+                  </span>
                 </div>
                 <span className="text-[14px] text-gray-600">
                   {item.value} ({item.percent}%)
