@@ -6,6 +6,7 @@ const buildChartData = (tasks = []) => {
     Blocked: 0,
     "In Progress": 0,
     "To-do": 0,
+    
   };
 
   tasks.forEach((task) => {
@@ -31,7 +32,7 @@ const buildChartData = (tasks = []) => {
     label,
     value,
     pct: total ? Math.round((value / total) * 100) : 0,
-    color: ["#0047AB", "#f97316", "#10B981", "#9CA3AF"][index] || "#6B7280",
+    color: ["#E53935", "#16a34a", "#2563eb", "#9CA3AF"][index] || "#6B7280",
   }));
 };
 
@@ -39,30 +40,40 @@ const PieChart = ({ tasks = [] }) => {
   const canvasRef = useRef(null);
   const chartData = buildChartData(tasks);
 
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+ useEffect(() => {
+  const canvas = canvasRef.current;
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
 
-    const cx = 55;
-    const cy = 55;
-    const r = 48;
+  // Retina-sharp rendering
+  const dpr = window.devicePixelRatio || 1;
+  const size = 165;
+  canvas.width = size * dpr;
+  canvas.height = size * dpr;
+  canvas.style.width = `${size}px`;
+  canvas.style.height = `${size}px`;
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, size, size);
 
-    const toRad = (pct) => (pct / 100) * Math.PI * 2;
-    let startAngle = -Math.PI / 2;
+  const cx = size / 2;
+  const cy = size / 2;
+  const outerR = size / 2 - 10; 
+  const innerR = outerR * 0.77; 
 
-    chartData.forEach((segment) => {
-      const sweep = toRad(segment.pct);
-      ctx.beginPath();
-      ctx.moveTo(cx, cy);
-      ctx.arc(cx, cy, r, startAngle, startAngle + sweep);
-      ctx.closePath();
-      ctx.fillStyle = segment.color;
-      ctx.fill();
-      startAngle += sweep;
-    });
-  }, [chartData]);
+  const toRad = (pct) => (pct / 100) * Math.PI * 2;
+  let startAngle = -Math.PI / 2;
+
+  chartData.forEach((segment) => {
+    const sweep = toRad(segment.pct);
+    ctx.beginPath();
+    ctx.arc(cx, cy, outerR, startAngle, startAngle + sweep);
+    ctx.arc(cx, cy, innerR, startAngle + sweep, startAngle, true);
+    ctx.closePath();
+    ctx.fillStyle = segment.color;
+    ctx.fill();
+    startAngle += sweep;
+  });
+}, [chartData]);
 
   return (
     <div className="bg-gray-100 rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
