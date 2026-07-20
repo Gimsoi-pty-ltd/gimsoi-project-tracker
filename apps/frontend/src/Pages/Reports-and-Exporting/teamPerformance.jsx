@@ -90,7 +90,7 @@ const TeamPerformance = () => {
           <h2 className="text-2xl font-bold text-slate-900">Team Performance</h2>
           <nav className="flex mt-1 text-sm text-gray-500">
             <Link to="/reports" >
-            <span className="text-blue-600 hover:text-blue-500 cursor-pointer">Reports Hub</span>
+            <span className="text-blue-600 hover:text-slate-600 cursor-pointer">Reports Hub</span>
             </Link>
             <span className="mx-2">/</span>
             <span>Team Performance</span>

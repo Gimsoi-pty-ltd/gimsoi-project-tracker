@@ -23,7 +23,7 @@ const ProjectReport = () => {
           <h2 className="text-xl md:text-2xl font-bold text-slate-900">Project Report</h2>
           <nav className="flex mt-1 text-sm text-gray-500">
             <Link to="/reports">
-              <span className="text-slate-900 hover:text-slate-600 cursor-pointer">Reports Hub</span>
+              <span className="text-blue-600 hover:text-slate-600 cursor-pointer">Reports Hub</span>
             </Link>
             <span className="mx-2">/</span>
             <span>Project Report</span>
