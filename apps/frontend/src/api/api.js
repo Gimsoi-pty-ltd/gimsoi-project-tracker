@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const BASE_API_URL = import.meta.env.MODE === "development"
-    ? "http://localhost:5001"
+    ? ""
     : "https://backend-appsail-10123938533.development.catalystappsail.com";
 
 const AUTH_API_URL = `${BASE_API_URL}/api/auth`;
