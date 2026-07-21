@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { resourceAPI } from "../api/api";
 
-// phase.controller.js wraps every response as { success: true, data, nextCursor? }.
+
 const normalizeList = (response) => {
     const data = response?.data?.data;
     return Array.isArray(data) ? data : [];

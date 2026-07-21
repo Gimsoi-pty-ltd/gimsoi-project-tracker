@@ -8,18 +8,18 @@ export const useTaskStore = create((set, get) => ({
     isLoading: false,
     error: null,
     lastFetched: 0,
-    lastRateLimit: 0, // epoch ms of last 429 response
+    lastRateLimit: 0, 
 
     getTasks: async (filters = {}, retryCount = 0) => {
         const now = Date.now();
         const state = get();
-        // Skip if recently rate limited
+      
         if (state.lastRateLimit && now - state.lastRateLimit < 60000) {
             console.warn('Skipping getTasks due to recent rate limit');
             set({ error: 'Too many requests. Please try again later.', isLoading: false });
             return { tasks: [] };
         }
-        // Recently fetched within 5 minutes, reuse cached tasks
+       
         if (state.tasks && state.tasks.length > 0 && state.lastFetched && now - state.lastFetched < 300000) {
           return { tasks: state.tasks };
         }
@@ -36,16 +36,16 @@ export const useTaskStore = create((set, get) => ({
             return response.data;
         } catch (error) {
             if (error.response && error.response.status === 429) {
-                // Record rate limit timestamp
+              
                 set({ lastRateLimit: now });
             }
-            // Handle rate limiting gracefully without retry loops
+          
             const friendlyMsg = error.response && error.response.status === 429
                 ? 'Too many requests. Please try again later.'
                 : error.response?.data?.message || 'Error fetching tasks';
             console.error('getTasks failed:', error);
             set({ error: friendlyMsg, isLoading: false });
-            return { tasks: [] }; // Return empty list without throwing
+            return { tasks: [] }; 
         }
     },
 

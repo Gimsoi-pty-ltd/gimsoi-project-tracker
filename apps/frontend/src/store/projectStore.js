@@ -169,9 +169,6 @@ const emptyDashboardData = {
     },
 };
 
-// Every project.controller.js response wraps the payload as { success: true, data }.
-// projectMember.controller.js uses a slightly different envelope ({ status: "success", data })
-// but the payload still lands under `.data`, so this one helper covers both.
 const normalizeProject = (response) => response?.data?.data ?? response?.data ?? null;
 const normalizeMember = (response) => response?.data?.data ?? response?.data ?? null;
 const normalizeMembers = (response) => {
@@ -465,7 +462,7 @@ export const useProjectStore = create((set, get) => ({
     },
 
     getProjects: async (filters = {}) => {
-        // Alias for fetchProjects for backward compatibility
+       
         return useProjectStore.getState().fetchProjects(filters);
     },
 
@@ -515,9 +512,7 @@ export const useProjectStore = create((set, get) => ({
         }
     },
 
-    // ─── Project Members ──────────────────────────────────────────────────
-    // Project has no `team` column — real membership lives in the ProjectMember
-    // join table via /projects/:id/members. These wrap that endpoint set.
+    // ─── Project Members ───
     getProjectMembers: async (projectId) => {
         try {
             const response = await resourceAPI.get(`/projects/${projectId}/members`);
@@ -542,10 +537,6 @@ export const useProjectStore = create((set, get) => ({
         return normalizeMember(response);
     },
 
-    // Reconciles a project's real membership with a desired list of user ids —
-    // adds anyone newly selected and removes anyone unselected. Used by
-    // ProjectForm after create/update since the team picker isn't a real field
-    // on Project itself.
     syncProjectMembers: async (projectId, desiredUserIds = [], currentUserIds = []) => {
         const toAdd = desiredUserIds.filter((id) => !currentUserIds.includes(id));
         const toRemove = currentUserIds.filter((id) => !desiredUserIds.includes(id));

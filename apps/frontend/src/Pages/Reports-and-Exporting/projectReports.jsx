@@ -117,7 +117,7 @@ const ProjectReport = () => {
         <EmptyState title="No project selected" message="Create a project to see its report." />
       ) : (
         <>
-          {/* Stats Grid — real numbers from the project's task summary */}
+          {/* Stats Grid  */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6 md:mb-8">
             <ProjectStatCard title="Completion" value={`${prog.percentComplete ?? 0}%`} icon={<Check />} color="green" />
             <ProjectStatCard title="Health Score" value={`${prog.healthScore ?? 0}%`} icon={<HeartPulse />} color="blue" />
@@ -127,7 +127,7 @@ const ProjectReport = () => {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
 
-            {/* Pie Chart — real task status breakdown */}
+            {/* Pie Chart */}
             <div className="bg-white p-4 md:p-6 rounded-lg shadow-sm border border-gray-100 lg:col-span-1">
               <h3 className="text-base md:text-lg font-medium text-gray-900 mb-4">Task Status Distribution</h3>
               {taskData.length === 0 ? (
@@ -149,7 +149,7 @@ const ProjectReport = () => {
               )}
             </div>
 
-            {/* Milestones — real phases */}
+            {/* Milestones */}
             <div className="bg-white p-4 md:p-6 rounded-lg shadow-sm border border-gray-100 lg:col-span-2">
               <h3 className="text-base md:text-lg font-medium text-gray-900 mb-4">Project Phases</h3>
               {phases.length === 0 ? (
