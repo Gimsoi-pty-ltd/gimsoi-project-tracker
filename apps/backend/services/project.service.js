@@ -79,15 +79,42 @@ export const getProjects = async ({ limit = 50, cursor, search, status, createdB
     ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
     where,
     orderBy: { createdAt: 'desc' },
-    include: { client: true },
+    include: { client: true,
+      sprints: {
+        oderBy: { startDate: 'asc' },
+        include: { tasks: { select: { id: true } } },
+      },
+      members:{
+       include: { user: { select: { id: true, fullName: true } } },
+     },
+    },
   });
+  return projects.map(attachTeam);
 };
+
+const ROLE_LABEL = { OWNER: "Owner", MEMBER: "Member", VIEWER: "Viewer" };
+const attachTeam = (project) => ({
+  ...project,
+  team: (project.members || []).map(
+    (j) => `${j.user.fullName} (${ROLE_LABEL[j.role] || j.role})`
+  ),
+});
 
 export const getProjectById = async (id) => {
   return prisma.project.findUnique({
     where: { id: String(id) },
-    include: { client: true },
+    include: { client: true,
+      sprints: { 
+        oderBy: { startDate: 'asc' },
+        include: { tasks: { select: { id: true } } },
+      },
+      members: {
+        include: { user: { select: { id: true, fullName: true } } },
+      }
+     },
   });
+  if (!project) return project;
+  return attachTeam(project);
 };
 
 export const updateProject = async (id, data, userId, userRole) => {
