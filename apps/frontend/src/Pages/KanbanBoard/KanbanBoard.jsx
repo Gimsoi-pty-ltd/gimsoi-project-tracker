@@ -11,6 +11,14 @@ const COLUMN_TO_STATUS = {
   'done':        'DONE',
 };
 
+const ALLOWED_COLUMN_TRANSITIONS = {
+  'todo':        ['in-progress'],
+  'in-progress': ['review', 'blocked', 'done'],
+  'review':      ['in-progress', 'done'],
+  'blocked':     ['in-progress'],
+  'done':        ['in-progress', 'review'],
+};
+
 // Kanban Cards
 
 const DARK_CARD_COLORS = [
@@ -74,6 +82,7 @@ const KanbanCard = ({
   onDragStart,
   onDragEnd,
   isDragging,
+  readOnly = false,
 }) => {
   const textColor = getTextColors(cardColor);
   const priorityLabel = getPriorityLabel(priority, columnId);
@@ -91,11 +100,11 @@ const KanbanCard = ({
 
   return (
     <div
-      draggable
-      onDragStart={onDragStart}
-      onDragEnd={onDragEnd}
+      draggable={!readOnly}
+      onDragStart={readOnly ? undefined : onDragStart}
+      onDragEnd={readOnly ? undefined : onDragEnd}
       onClick={onClick}
-      className={`${cardColor} rounded-md p-3 cursor-grab active:cursor-grabbing hover:shadow-md transition-all duration-200 border ${textColor.border} ${isDragging ? 'opacity-40 scale-95' : ''}`}
+      className={`${cardColor} rounded-md p-3 ${readOnly ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'} hover:shadow-md transition-all duration-200 border ${textColor.border} ${isDragging ? 'opacity-40 scale-95' : ''}`}
     >
       <div className="flex justify-between items-start gap-2 mb-2">
         <h3 className={`min-w-0 flex-1 break-words font-semibold text-sm ${textColor.title}`}>{title}</h3>
@@ -136,6 +145,7 @@ const Column = ({
   onCardDragEnd,
   onDropCard,
   draggedCard,
+  readOnly = false,
 }) => {
   const [isOver, setIsOver] = useState(false);
   const isDragTarget = draggedCard && draggedCard.fromColumnId !== id;
@@ -143,10 +153,11 @@ const Column = ({
   return (
     <div
       className="flex min-w-0 w-full flex-col rounded-lg shadow-md max-h-[700px]"
-      onDragOver={(e) => { e.preventDefault(); setIsOver(true); }}
+      onDragOver={(e) => { if (!readOnly) { e.preventDefault(); setIsOver(true); } }}
       onDragLeave={() => setIsOver(false)}
       onDrop={(e) => { 
         e.preventDefault();
+        if (readOnly) return;
         const dropPromise = onDropCard?.(id);
         if (dropPromise && dropPromise.catch) dropPromise.catch(() => {});
         setIsOver(false); 
@@ -171,6 +182,7 @@ const Column = ({
             onClick={() => onCardClick?.(card)}
             onDragStart={() => onCardDragStart?.(id, card.id)}
             onDragEnd={onCardDragEnd}
+            readOnly={readOnly}
           />
         ))}
 
@@ -178,7 +190,7 @@ const Column = ({
           ${isOver && isDragTarget
             ? 'border-blue-400 bg-blue-50 text-blue-500 scale-105'
             : 'border-gray-300 bg-white text-gray-400'}`}>
-          {isOver && isDragTarget ? '📥 Drop here' : 'Drag cards here'}
+          {readOnly ? 'Read-only board' : isOver && isDragTarget ? '📥 Drop here' : 'Drag cards here'}
         </div>
       </div>
     </div>
@@ -242,6 +254,9 @@ const Kanban = () => {
   const [draggedCard, setDraggedCard] = useState(null);
   const [apiError, setApiError] = useState(null);
   const updateTask = useTaskStore((state) => state.updateTask);
+  const isBoardReadOnly =
+    ['COMPLETED', 'ARCHIVED'].includes(currentProject?.status) ||
+    activeSprint?.status === 'CLOSED';
 
   useEffect(() => {
     if (!activeSprint) fetchDashboard();
@@ -319,13 +334,33 @@ const Kanban = () => {
   const doneCards   = columnState.find((c) => c.id === 'done')?.cards.length ?? 0;
   const progressPct = totalCards ? Math.round((doneCards / totalCards) * 100) : 0;
 
-  const handleDragStart = (fromColumnId, cardId) => setDraggedCard({ fromColumnId, cardId });
+  const handleDragStart = (fromColumnId, cardId) => {
+    if (!isBoardReadOnly) setDraggedCard({ fromColumnId, cardId });
+  };
   const handleDragEnd   = () => setDraggedCard(null);
 
   const handleDrop = async (toColumnId) => {
     if (!draggedCard) return;
     const { fromColumnId, cardId } = draggedCard;
     if (fromColumnId === toColumnId) { setDraggedCard(null); return; }
+
+    if (isBoardReadOnly) {
+      setApiError('This Kanban board is read-only because its project or sprint is closed.');
+      setDraggedCard(null);
+      return;
+    }
+
+    if (!ALLOWED_COLUMN_TRANSITIONS[fromColumnId]?.includes(toColumnId)) {
+      setApiError(`Tasks cannot move directly from ${fromColumnId} to ${toColumnId}. Move them through the workflow columns.`);
+      setDraggedCard(null);
+      return;
+    }
+
+    if (toColumnId === 'done' && activeSprint?.status !== 'ACTIVE') {
+      setApiError('Tasks can only be completed in an active sprint.');
+      setDraggedCard(null);
+      return;
+    }
 
     const card = columnState.find((col) => col.id === fromColumnId)?.cards.find((c) => c.id === cardId);
     if (!card) return;
@@ -348,7 +383,11 @@ const Kanban = () => {
     try {
       const targetStatus = COLUMN_TO_STATUS[toColumnId];
       if (targetStatus) {
-        const response = await updateTask(cardId, { status: targetStatus, version: card.version });
+        const response = await updateTask(cardId, {
+          status: targetStatus,
+          isBlocked: targetStatus === 'BLOCKED',
+          version: card.version,
+        });
         
         // Update the card's version with the new version from the backend
         // This prevents Optimistic Locking (P2025) errors if they move the same card again
@@ -401,6 +440,12 @@ const Kanban = () => {
         {apiError && (
           <div className="mb-4 p-4 rounded-lg bg-red-50 border border-red-200 text-sm text-red-800">
             {apiError}
+          </div>
+        )}
+
+        {isBoardReadOnly && (
+          <div className="mb-4 p-4 rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-800">
+            This board is read-only because the selected project is completed/archived or the sprint is closed.
           </div>
         )}
 
@@ -488,6 +533,7 @@ const Kanban = () => {
               onCardDragEnd={handleDragEnd}
               onDropCard={handleDrop}
               draggedCard={draggedCard}
+              readOnly={isBoardReadOnly}
             />
           ))}
         </div>

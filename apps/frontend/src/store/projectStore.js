@@ -44,6 +44,15 @@ function pickDefaultSprint(sprints) {
     );
 }
 
+function pickDefaultProject(projects) {
+    return (
+        projects.find((project) => project.status === "ACTIVE") ||
+        projects.find((project) => project.status === "DRAFT") ||
+        projects[0] ||
+        null
+    );
+}
+
 function findPreviousSprint(sprints, currentSprint) {
     const sorted = [...sprints].sort(
         (a, b) => new Date(a.startDate || 0) - new Date(b.startDate || 0)
@@ -314,9 +323,12 @@ export const useProjectStore = create((set, get) => ({
                 if (savedPid) pid = savedPid;
             }
 
-            const projectExists = get().projects.some((p) => p.id === pid);
-            if (!pid || !projectExists) {
-                pid = get().projects[0]?.id;
+            const selectedProject = get().projects.find((project) => project.id === pid);
+            const shouldReplaceReadOnlyDefault =
+                !projectId && ["COMPLETED", "ARCHIVED"].includes(selectedProject?.status);
+
+            if (!pid || !selectedProject || shouldReplaceReadOnlyDefault) {
+                pid = pickDefaultProject(get().projects)?.id;
             }
 
             if (pid) {
