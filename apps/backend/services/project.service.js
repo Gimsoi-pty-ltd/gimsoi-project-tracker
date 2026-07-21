@@ -74,14 +74,14 @@ export const getProjects = async ({ limit = 50, cursor, search, status, createdB
     };
   }
 
-  return prisma.project.findMany({
+  const projects = await prisma.project.findMany({
     take: take + 1,         // fetch one extra to detect whether there's a next page
     ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
     where,
     orderBy: { createdAt: 'desc' },
     include: { client: true,
       sprints: {
-        oderBy: { startDate: 'asc' },
+        orderBy: { startDate: 'asc' },
         include: { tasks: { select: { id: true } } },
       },
       members:{
@@ -101,11 +101,11 @@ const attachTeam = (project) => ({
 });
 
 export const getProjectById = async (id) => {
-  return prisma.project.findUnique({
+  const project = await prisma.project.findUnique({
     where: { id: String(id) },
     include: { client: true,
       sprints: { 
-        oderBy: { startDate: 'asc' },
+        orderBy: { startDate: 'asc' },
         include: { tasks: { select: { id: true } } },
       },
       members: {

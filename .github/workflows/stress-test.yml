@@ -1,0 +1,140 @@
+name: Shared Database Stress Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_reset:
+        description: "Type RESET-STRESS-DATABASE to authorize destructive reset"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gimsoi-shared-stress-database
+  cancel-in-progress: false
+
+jobs:
+  stress-test:
+    name: Staged stress test
+    if: ${{ inputs.confirm_reset == 'RESET-STRESS-DATABASE' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: stress-testing
+    defaults:
+      run:
+        working-directory: apps/backend
+    env:
+      DATABASE_URL: ${{ secrets.STRESS_DATABASE_URL }}
+      STRESS_DATABASE_URL: ${{ secrets.STRESS_DATABASE_URL }}
+      STRESS_DATABASE_FINGERPRINT: ${{ secrets.STRESS_DATABASE_FINGERPRINT }}
+      JWT_SECRET: ${{ secrets.STRESS_JWT_SECRET }}
+      CSRF_SECRET: ${{ secrets.STRESS_CSRF_SECRET }}
+      NODE_ENV: stress
+      DISABLE_EXTERNAL_SERVICES: "true"
+      CLIENT_URL: http://localhost:5173
+      PORT: "5001"
+      BASE_URL: http://127.0.0.1:5001
+
+    steps:
+      - name: Checkout selected branch
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: apps/backend/package-lock.json
+
+      - name: Install backend dependencies
+        run: npm ci --omit=optional
+
+      - name: Generate and validate Prisma client
+        run: |
+          npx prisma generate
+          npx prisma validate
+
+      - name: Verify exact stress database target
+        run: npm run stress:guard
+
+      - name: Apply committed migrations
+        run: npx prisma migrate deploy
+
+      - name: Run integration-branch regression preflight
+        env:
+          NODE_ENV: test
+          ALLOW_STRESS_DB_RESET: "true"
+          CSRF_SECRET: ${{ secrets.STRESS_CSRF_SECRET }}
+        run: npx playwright test tests/api/projects.spec.js --workers=2
+
+      - name: Reset disposable stress database
+        env:
+          ALLOW_STRESS_DB_RESET: "true"
+        run: npm run stress:reset
+
+      - name: Seed deterministic stress dataset
+        run: npm run stress:seed
+
+      - name: Capture initial counts and integrity
+        run: |
+          mkdir -p stress-artifacts
+          npm run stress:counts | tee stress-artifacts/counts-initial.json
+          npm run stress:integrity | tee stress-artifacts/integrity-initial.json
+
+      - name: Start backend
+        run: |
+          node server.js > stress-artifacts/backend.log 2>&1 &
+          echo $! > stress-artifacts/backend.pid
+          for attempt in {1..60}; do
+            if curl --fail --silent "$BASE_URL/api/status" > /dev/null; then
+              echo "Backend is ready"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Backend did not become ready"
+          tail -100 stress-artifacts/backend.log
+          exit 1
+
+      - name: Setup k6
+        uses: grafana/setup-k6-action@v1
+
+      - name: Run staged load and publish live counts
+        shell: bash
+        run: |
+          for profile in smoke users10 users25 users50 users100 recovery; do
+            echo "## Starting stage: $profile" | tee -a stress-artifacts/live-summary.md
+            STRESS_PROFILE="$profile" k6 run stress/k6/project-tracker.js
+            npm run stress:counts | tee "stress-artifacts/counts-$profile.json"
+          done
+
+      - name: Run final integrity checks
+        if: always()
+        run: |
+          npm run stress:counts | tee stress-artifacts/counts-final.json
+          npm run stress:integrity | tee stress-artifacts/integrity-final.json
+
+      - name: Add summaries to workflow
+        if: always()
+        run: |
+          {
+            echo "# Gimsoi staged stress test"
+            echo
+            for report in stress-artifacts/k6-*.md; do
+              test -f "$report" && cat "$report"
+            done
+            echo "## Final record counts"
+            echo '```json'
+            tail -1 stress-artifacts/counts-final.json 2>/dev/null || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload stress-test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stress-test-${{ github.run_id }}
+          path: apps/backend/stress-artifacts/
+          retention-days: 14

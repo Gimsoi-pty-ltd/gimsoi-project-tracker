@@ -4,7 +4,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import pkg from "./generated/prisma/index.js";
 const { Prisma, PrismaClient } = pkg;
 
-const pool = new pg.Pool({
+export const databasePool = new pg.Pool({
   connectionString: process.env.DATABASE_URL,
   max: Number(process.env.DB_POOL_MAX || 10),
   connectionTimeoutMillis: Number(process.env.DB_CONNECTION_TIMEOUT_MS || 30000),
@@ -12,7 +12,7 @@ const pool = new pg.Pool({
   keepAlive: true,
   keepAliveInitialDelayMillis: 10000,
 });
-const adapter = new PrismaPg(pool);
+const adapter = new PrismaPg(databasePool);
 const basePrisma = new PrismaClient({ adapter });
 
 const SOFT_DELETE_MODELS = ["User", "Client", "Project", "Sprint", "Task", "Phase", "Report", "Comment"];
