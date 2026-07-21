@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Info } from "lucide-react";
 import { useProjectStore } from "../../store/projectStore";
 
-const COLORS = ["#e53935", "#f16f12", "#f1ee38", "#23d40c"];
+const COLORS = ["#ef4444", "#f97316", "#f59e0b", "#10b981"];
 
 export default function TaskDistributionCard() {
   const [showInfo, setShowInfo] = useState(false);
@@ -55,8 +55,11 @@ export default function TaskDistributionCard() {
           </p>
         </div>
       ) : (
-        <div className="flex items-center gap-8">
-          <svg width="190" height="190" viewBox="0 0 240 240">
+        <div className="flex items-center ">
+          <svg width="100%"
+           height="100%"
+            viewBox="0 0 240 240"
+            >
             <g transform="rotate(-90 95 95)">
               {(() => {
                 let accumulatedOffset = 0;
@@ -84,7 +87,7 @@ export default function TaskDistributionCard() {
             </g>
           </svg>
 
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-8">
             {data.map((item) => (
               <div key={item.label} className="flex min-w-[180px] items-center justify-between">
                 <div className="flex items-center gap-3">

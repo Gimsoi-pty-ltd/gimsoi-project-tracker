@@ -21,25 +21,24 @@ const PriorityHeatmap = () => {
     const heatmap = heatmapRaw ?? [];
 
     const getCellClass = (value, index) => {
-        if (value === 0) return "bg-slate-50 text-slate-300 border border-slate-100";
-        if (index === 4) { // Blocked
-            return "bg-red-500 text-white font-bold border border-red-600 shadow-sm";
-        }
-        if (index === 3) { // Done
-            return "bg-green-500 text-white font-bold border border-green-600 shadow-sm";
-        }
-        if (index === 2) { // Review
-            return "bg-orange-400 text-white font-bold border border-orange-500 shadow-sm";
-        }
-        // Todo & In Progress
-        if (value <= 2) {
-            return "bg-blue-100 text-blue-800 border border-blue-200 font-medium";
-        }
-        if (value <= 5) {
-            return "bg-blue-300 text-blue-900 border border-blue-400 font-semibold";
-        }
-        return "bg-blue-600 text-white border border-blue-700 font-bold shadow-sm";
-    };
+    if (value === 0) return "bg-slate-50 text-slate-300 border border-slate-100";
+    if (index === 4) { // Blocked
+        return "bg-red-500 text-white font-bold border border-red-600 shadow-sm";
+    }
+    if (index === 3) { // Done
+        return "bg-green-500 text-white font-bold border border-green-600 shadow-sm";
+    }
+    if (index === 2) { // Review
+        return "bg-orange-400 text-white font-bold border border-orange-500 shadow-sm";
+    }
+    if (index === 0) { // Todo
+        return "bg-blue-600 text-white font-bold border border-blue-700 shadow-sm";
+    }
+    if (index === 1) { // In Progress
+        return "bg-blue-400 text-white font-semibold border border-blue-500 shadow-sm";
+    }
+    return "bg-slate-50 text-slate-300 border border-slate-100";
+};
 
     const heatmapData = heatmap.map((row) => ({
         priority: row.priorityLabel || (row.priority ? row.priority.charAt(0).toUpperCase() + row.priority.slice(1) : "Medium"),
