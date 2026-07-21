@@ -3,6 +3,7 @@ import { defineConfig } from '@playwright/test';
 export default defineConfig({
     testDir: './tests/api',
     globalSetup: './tests/setup/globalSetup.js',
+    globalTeardown: './tests/setup/globalTeardown.js',
     fullyParallel: false,
     workers: 6,
     use: {

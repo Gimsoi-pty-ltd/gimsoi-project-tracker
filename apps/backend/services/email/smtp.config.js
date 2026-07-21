@@ -3,8 +3,10 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-// Create a reusable SMTP client or a dummy for testing
-export const smtpClient = process.env.NODE_ENV === "test"
+const externalServicesDisabled = process.env.DISABLE_EXTERNAL_SERVICES === "true";
+
+// Create a reusable SMTP client or a dummy for tests and isolated stress runs.
+export const smtpClient = process.env.NODE_ENV === "test" || externalServicesDisabled
     ? nodemailer.createTransport({
         jsonTransport: true,
     })
@@ -24,7 +26,7 @@ export const smtpClient = process.env.NODE_ENV === "test"
     });
 
 // Optional: verify connection
-if (process.env.NODE_ENV !== "test") {
+if (process.env.NODE_ENV !== "test" && !externalServicesDisabled) {
     smtpClient.verify((err, success) => {
         if (err) {
             // Log at ERROR level so monitoring systems capture it.

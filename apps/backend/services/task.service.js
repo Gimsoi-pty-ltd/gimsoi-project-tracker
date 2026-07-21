@@ -159,24 +159,32 @@ export const createTask = async ({ taskData, context, requestingUser }) => {
     validatePriority(priority);
 
     try {
-        const task = await prisma.task.create({
-            data: {
-                title,
-                description,
-                projectId,
-                sprintId,
-                phaseId,
-                parentTaskId: parentTaskId || null,
-                reporterId,
-                assigneeId,
-                ownerIds: normalizedOwnerIds,
-                teamIds: normalizedTeamIds,
-                status: TASK_STATUS.TODO,
-                storyPoints: storyPoints !== undefined ? Number(storyPoints) : null,
-                priority: priority || 'MEDIUM',
-                isBlocked: isBlocked || false,
-                dueDate: dueDate ? new Date(dueDate) : null
-            }
+        const task = await prisma.$transaction(async (tx) => {
+            const createdTask = await tx.task.create({
+                data: {
+                    title,
+                    description,
+                    projectId,
+                    sprintId,
+                    phaseId,
+                    parentTaskId: parentTaskId || null,
+                    reporterId,
+                    assigneeId,
+                    ownerIds: normalizedOwnerIds,
+                    teamIds: normalizedTeamIds,
+                    status: TASK_STATUS.TODO,
+                    storyPoints: storyPoints !== undefined ? Number(storyPoints) : null,
+                    priority: priority || 'MEDIUM',
+                    isBlocked: isBlocked || false,
+                    dueDate: dueDate ? new Date(dueDate) : null
+                }
+            });
+            await tx.projectAnalytics.upsert({
+                where: { projectId },
+                update: { totalTasks: { increment: 1 } },
+                create: { projectId, totalTasks: 1 },
+            });
+            return createdTask;
         });
 
         // Wave 4: Trigger phase completion check if phaseId is provided
@@ -850,4 +858,3 @@ export const bulkDeleteTasks = async (projectId, tasks, userId, userRole) => {
         throw err;
     }
 };
-

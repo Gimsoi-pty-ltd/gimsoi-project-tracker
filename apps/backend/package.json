@@ -10,7 +10,12 @@
     "start": "node server.js",
     "test:api": "cross-env CSRF_SECRET=mocked_test_secret npx playwright test --workers=6",
     "db:setup": "npx prisma generate && npx prisma db push --force-reset && node prisma/seed.js",
-    "db:seed": "node prisma/seed.js"
+    "db:seed": "node prisma/seed.js",
+    "stress:guard": "node scripts/stress/guard.js",
+    "stress:reset": "node scripts/stress/reset.js",
+    "stress:seed": "node scripts/stress/seed.js",
+    "stress:counts": "node scripts/stress/counts.js",
+    "stress:integrity": "node scripts/stress/integrity.js"
   },
   "type": "module",
   "keywords": [],

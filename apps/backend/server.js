@@ -162,8 +162,9 @@ let server;
 const gracefulShutdown = async (signal) => {
   console.log(`[server] ${signal} received. Shutting down...`);
   server?.close(async () => {
-    const { default: prisma } = await import("./lib/prisma.js");
+    const { default: prisma, databasePool } = await import("./lib/prisma.js");
     await prisma.$disconnect();
+    await databasePool.end();
     console.log("[server] Clean exit.");
     process.exit(0);
   });

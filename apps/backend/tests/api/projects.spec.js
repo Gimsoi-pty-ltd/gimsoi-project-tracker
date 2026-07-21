@@ -16,6 +16,35 @@ test.describe('Project Lifecycle & Ownership Validation', () => {
         expect(json.data.id).toBeDefined();
     });
 
+    test('project list and detail include ordered sprints and member-derived team labels', async ({ pmApi, testProject }) => {
+        await pmApi.post('/api/sprints', {
+            data: {
+                name: 'Later sprint',
+                projectId: testProject.id,
+                startDate: '2026-08-01T00:00:00.000Z',
+            },
+        });
+        await pmApi.post('/api/sprints', {
+            data: {
+                name: 'Earlier sprint',
+                projectId: testProject.id,
+                startDate: '2026-07-01T00:00:00.000Z',
+            },
+        });
+
+        const detailResponse = await pmApi.get(`/api/projects/${testProject.id}`);
+        expect(detailResponse.status()).toBe(200);
+        const detail = (await detailResponse.json()).data;
+        expect(detail.sprints.map((sprint) => sprint.name)).toEqual(['Earlier sprint', 'Later sprint']);
+        expect(detail.team.some((label) => label.includes('(Owner)'))).toBe(true);
+
+        const listResponse = await pmApi.get('/api/projects?limit=100');
+        expect(listResponse.status()).toBe(200);
+        const listed = (await listResponse.json()).data.find((project) => project.id === testProject.id);
+        expect(listed).toBeDefined();
+        expect(listed.team.some((label) => label.includes('(Owner)'))).toBe(true);
+    });
+
     test('PM can successfully activate a DRAFT project', async ({ pmApi, testProject }) => {
         const response = await pmApi.patch(`/api/projects/${testProject.id}`, {
             data: { status: "ACTIVE", version: testProject.version }

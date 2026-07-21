@@ -1,11 +1,15 @@
 import { rawPrisma as prisma } from '../../lib/prisma.js';
+import { assertStressDatabase } from '../../scripts/stress/guard-lib.js';
 
 export default async function globalSetup() {
+    if (process.env.STRESS_DATABASE_URL) {
+        assertStressDatabase({ destructive: true });
+    }
     // SAFETY GUARD: in CI environments, refuse to wipe any database that doesn't look like
     // a local test database. GitHub Actions sets CI=true automatically.
     // Not enforced locally because developers may use a remote Prisma-hosted test database.
     // To enforce locally: set STRICT_DB_GUARD=true in your environment.
-    const shouldGuard = process.env.CI === 'true' || process.env.STRICT_DB_GUARD === 'true';
+    const shouldGuard = !process.env.STRESS_DATABASE_URL && (process.env.CI === 'true' || process.env.STRICT_DB_GUARD === 'true');
     if (shouldGuard) {
         const dbUrl = process.env.DATABASE_URL ?? '';
         const localPatterns = ['localhost', '127.0.0.1', process.env.TEST_DB_IDENTIFIER].filter(Boolean);
