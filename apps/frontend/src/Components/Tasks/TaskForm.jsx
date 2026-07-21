@@ -5,6 +5,8 @@ export default function TaskForm({
   setFormData,
   userOptions = [],
   parentTaskOptions = [],
+  sprintOptions = [],
+  phaseOptions = [],
 }) {
   const toggleSelection = (field, value) => {
     setFormData((prev) => {
@@ -133,6 +135,48 @@ export default function TaskForm({
 
       {/* Right Column */}
       <div className="space-y-4">
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Sprint
+            </label>
+            <select
+              className="w-full border border-gray-300 rounded-lg p-2.5 text-sm bg-white"
+              value={formData.sprintId || ''}
+              onChange={(e) =>
+                setFormData({ ...formData, sprintId: e.target.value || null })
+              }
+            >
+              <option value="">No sprint (backlog)</option>
+              {sprintOptions.map((sprint) => (
+                <option key={sprint.id} value={sprint.id}>
+                  {sprint.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Phase
+            </label>
+            <select
+              className="w-full border border-gray-300 rounded-lg p-2.5 text-sm bg-white"
+              value={formData.phaseId || ''}
+              onChange={(e) =>
+                setFormData({ ...formData, phaseId: e.target.value || null })
+              }
+            >
+              <option value="">No phase</option>
+              {phaseOptions.map((phase) => (
+                <option key={phase.id} value={phase.id}>
+                  {phase.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">

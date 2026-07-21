@@ -53,7 +53,7 @@ export const useTaskStore = create((set, get) => ({
         set({ isLoading: true, error: null });
         try {
             const response = await resourceAPI.get(`/tasks/${id}`);
-            set({ currentTask: response.data.task || response.data, isLoading: false });
+            set({ currentTask: response.data?.data ?? response.data, isLoading: false });
             return response.data;
         } catch (error) {
             set({ error: error.response?.data?.message || "Error fetching task", isLoading: false });
@@ -68,7 +68,7 @@ export const useTaskStore = create((set, get) => ({
         try {
             const response = await resourceAPI.post("/tasks", taskData);
             set((state) => ({
-                tasks: [...state.tasks, response.data.task || response.data],
+                tasks: [...state.tasks, response.data?.data ?? response.data],
                 isLoading: false,
             }));
             return response.data;
@@ -82,9 +82,10 @@ export const useTaskStore = create((set, get) => ({
         set({ isLoading: true, error: null });
         try {
             const response = await resourceAPI.patch(`/tasks/${id}`, taskData);
+            const updated = response.data?.data ?? response.data;
             set((state) => ({
-                tasks: state.tasks.map((task) => (task.id === id ? response.data.task || response.data : task)),
-                currentTask: response.data.task || response.data,
+                tasks: state.tasks.map((task) => (task.id === id ? updated : task)),
+                currentTask: updated,
                 isLoading: false,
             }));
             return response.data;

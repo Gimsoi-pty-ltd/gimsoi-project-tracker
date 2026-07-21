@@ -79,6 +79,8 @@ function ProjectRow({ project, onNavigate, onDelete, onStatusChange }) {
   }, []);
 
   const clientName = typeof project.client === "object" ? project.client?.name : project.client;
+  const sprints = Array.isArray(project.sprints) ? project.sprints : [];
+  const displaySprint = sprints.find((s) => s.status === "ACTIVE") || sprints[sprints.length - 1];
   return (
     <div
       className="grid grid-cols-[1fr_1.2fr_1fr_0.8fr_1.4fr_44px] items-center px-6 py-4 hover:bg-slate-50 transition-colors cursor-pointer border-b border-gray-100 last:border-0 group"
@@ -92,8 +94,8 @@ function ProjectRow({ project, onNavigate, onDelete, onStatusChange }) {
       </div>
 
       <div className="text-sm text-gray-500 pr-4">
-        {project.sprint
-          ? <span className="px-2 py-1 bg-gray-100 rounded-lg text-xs font-medium text-gray-600">{project.sprint}</span>
+        {displaySprint
+          ? <span className="px-2 py-1 bg-gray-100 rounded-lg text-xs font-medium text-gray-600">{displaySprint.name}</span>
           : "—"}
       </div>
 

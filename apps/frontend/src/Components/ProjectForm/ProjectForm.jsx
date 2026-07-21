@@ -2,11 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { X, AlertCircle, ChevronDown, Check, Calendar } from "lucide-react";
 import NavyButton from "../Buttons";
 import { useProjectStore } from "../../store/projectStore";
-import { useSprintStore } from "../../store/sprintStore";
-import { useTaskStore } from "../../store/taskStore";
-
 import { resourceAPI } from "../../api/api";
-import TaskForm from "../../Components/Tasks/TaskForm";
 
 const STATUS_OPTIONS = [
   { value: "PLANNED",   label: "Planned"   },
@@ -152,8 +148,6 @@ function MultiSelect({ value = [], onChange, teamOptions = [] }) {
 // ─── Main Form ────────────────────────────────────────────────────────────────
 export default function ProjectForm({ isOpen, onClose, project = null, onSuccess = null }) {
   const { createProject, updateProject, isLoading, error } = useProjectStore();
-  const { createSprint } = useSprintStore();
-  const { createTask } = useTaskStore();
 
   const empty = {
     name: "",
@@ -167,17 +161,9 @@ export default function ProjectForm({ isOpen, onClose, project = null, onSuccess
   };
 
   const [formData, setFormData] = useState(empty);
-  const [queuedSprints, setQueuedSprints] = useState([]);
   const [formError, setFormError] = useState(null);
   const [clientOptions, setClientOptions] = useState([]);
   const [teamOptions, setTeamOptions] = useState([]);
-  const [userOptionsFull, setUserOptionsFull] = useState([]);
-
-  const [taskModalOpen, setTaskModalOpen] = useState(false);
-  const [taskModalSprintIdx, setTaskModalSprintIdx] = useState(null);
-  const [taskFormData, setTaskFormData] = useState({
-    title: '', description: '', status: 'TODO', priority: 'MEDIUM', dueDate: '', storyPoints: '', parentTaskId: '', assigneeId: '', ownerIds: [], teamIds: []
-  });
 
   useEffect(() => {
     if (!isOpen) return;
@@ -187,11 +173,10 @@ export default function ProjectForm({ isOpen, onClose, project = null, onSuccess
           resourceAPI.get('/clients'),
           resourceAPI.get('/users')
         ]);
-        const clients = clientsRes.data.clients || clientsRes.data.data || [];
-        const users = usersRes.data.users || usersRes.data.data || [];
+        const clients = clientsRes.data?.data ?? clientsRes.data.clients ?? [];
+        const users = usersRes.data?.data ?? usersRes.data.users ?? [];
         setClientOptions(clients);
         setTeamOptions(users.map(u => u.fullName || u.email || 'Unknown'));
-        setUserOptionsFull(users.map(u => ({ id: u.id, label: u.fullName || u.email || 'Unknown' })));
       } catch (err) {
         console.error("Failed to fetch form options:", err);
       }
@@ -211,8 +196,6 @@ export default function ProjectForm({ isOpen, onClose, project = null, onSuccess
         team:        project.team        || [],
         milestones:  project.milestones   || [],
       });
-      // if editing an existing project, clear any queued sprints
-      setQueuedSprints([]);
     } else {
       setFormData(empty);
     }
@@ -232,41 +215,10 @@ export default function ProjectForm({ isOpen, onClose, project = null, onSuccess
     }
 
     try {
-      let createdProjectResp = null;
       if (project?.id) {
-        createdProjectResp = await updateProject(project.id, formData);
+        await updateProject(project.id, formData);
       } else {
-        createdProjectResp = await createProject(formData);
-      }
-
-      // If there are queued sprints (added while creating project), create them now
-      const pid = project?.id || createdProjectResp?.project?.id || createdProjectResp?.id;
-      if (queuedSprints.length && pid) {
-        for (const s of queuedSprints) {
-          try {
-            const sprintRes = await createSprint({
-              projectId: pid,
-              name: s.name,
-              startDate: s.startDate,
-              endDate: s.endDate,
-              status: s.status || 'PLANNED',
-            });
-            const sprintId = sprintRes?.sprint?.id || sprintRes?.id;
-            if (s.tasks && sprintId) {
-              for (const t of s.tasks) {
-                await createTask({
-                  projectId: pid,
-                  sprintId,
-                  title: t.title,
-                  storyPoints: Number(t.storyPoints) || 0,
-                  status: t.status || 'TODO',
-                });
-              }
-            }
-          } catch (err) {
-            console.error('Failed creating queued sprint or its tasks', err);
-          }
-        }
+        await createProject(formData);
       }
       onClose();
       if (onSuccess) onSuccess();
@@ -275,62 +227,17 @@ export default function ProjectForm({ isOpen, onClose, project = null, onSuccess
     }
   };
 
-  // Sprint & Task helpers
-  const addSprint = () => {
-    setQueuedSprints((s) => [...s, { id: Math.random().toString(36).slice(2, 8), name: '', startDate: '', endDate: '', status: 'PLANNED', tasks: [] }]);
-  };
-
-  const updateSprintField = (idx, field, value) => {
-    setQueuedSprints((s) => s.map((sp, i) => (i === idx ? { ...sp, [field]: value } : sp)));
-  };
-
-  const removeSprint = (idx) => setQueuedSprints((s) => s.filter((_, i) => i !== idx));
-
-  const addTaskToSprint = (sprintIdx) => {
-    // open task modal for queued sprint to capture full task details
-    setTaskFormData({ title: '', description: '', status: 'TODO', priority: 'MEDIUM', dueDate: '', storyPoints: '', parentTaskId: '', assigneeId: '', ownerIds: [], teamIds: [] });
-    setTaskModalSprintIdx(sprintIdx);
-    setTaskModalOpen(true);
-  };
-
-  const updateTaskInSprint = (sprintIdx, taskIdx, field, value) => {
-    setQueuedSprints((s) => s.map((sp, i) => {
-      if (i !== sprintIdx) return sp;
-      const tasks = sp.tasks.map((t, ti) => ti === taskIdx ? { ...t, [field]: value } : t);
-      return { ...sp, tasks };
-    }));
-  };
-
-  const removeTaskFromSprint = (sprintIdx, taskIdx) => {
-    setQueuedSprints((s) => s.map((sp, i) => i === sprintIdx ? { ...sp, tasks: sp.tasks.filter((_, ti) => ti !== taskIdx) } : sp));
-  };
-
-  const handleTaskFormSaveForQueuedSprint = (data) => {
-    // Append to queued sprint tasks
-    if (taskModalSprintIdx == null) return;
-    const newTask = {
-      id: Math.random().toString(36).slice(2,8),
-      title: data.title,
-      description: data.description,
-      storyPoints: Number(data.storyPoints) || 0,
-      status: data.status || 'TODO'
-    };
-    setQueuedSprints((s) => s.map((sp, i) => i === taskModalSprintIdx ? { ...sp, tasks: [...sp.tasks, newTask] } : sp));
-    setTaskModalOpen(false);
-    setTaskModalSprintIdx(null);
-  };
-
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-start justify-center z-50 p-4 pt-12 overflow-y-auto">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
 
         {/* Header */}
-        <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100">
+        <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100 flex-shrink-0">
           <div>
             <p className="text-xs font-semibold text-blue-600 uppercase tracking-wider mb-0.5">
-              {project ? "Edit Project" : "+ Create / Edit Project"}
+              {project ? "Edit Project" : "Create Project"}
             </p>
             <h2 className="text-lg font-bold text-gray-900">
               {project ? project.name : "New Project"}
@@ -344,215 +251,142 @@ export default function ProjectForm({ isOpen, onClose, project = null, onSuccess
           </button>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
+        {/* Form — scrollable body, header/footer stay fixed so Save is always reachable */}
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+          <div className="px-6 py-5 space-y-4 overflow-y-auto flex-1">
 
-          {/* Error */}
-          {(formError || error) && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-xl flex gap-3">
-              <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-red-700">{formError || error}</p>
-            </div>
-          )}
+            {/* Error */}
+            {(formError || error) && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-xl flex gap-3">
+                <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-red-700">{formError || error}</p>
+              </div>
+            )}
 
-          {/* Project Name */}
-          <div>
-            <label className={labelCls}>Project Name</label>
-            <input
-              type="text"
-              value={formData.name}
-              onChange={(e) => set("name", e.target.value)}
-              placeholder="e.g. Website Redesign"
-              className={inputCls}
-            />
-          </div>
-
-          {/* Client */}
-          <div>
-            <label className={labelCls}>Client</label>
-            <Dropdown
-              value={formData.clientId}
-              onChange={(v) => set("clientId", v)}
-              options={clientOptions}
-              placeholder="Acme Corp, TechStart Inc..."
-            />
-          </div>
-
-          {/* Start + End Date */}
-          <div className="grid grid-cols-2 gap-3">
+            {/* Project Name */}
             <div>
-              <label className={labelCls}>Start Date</label>
-              <div className="relative">
+              <label className={labelCls}>Project Name</label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => set("name", e.target.value)}
+                placeholder="e.g. Website Redesign"
+                className={inputCls}
+              />
+            </div>
+
+            {/* Client */}
+            <div>
+              <label className={labelCls}>Client</label>
+              <Dropdown
+                value={formData.clientId}
+                onChange={(v) => set("clientId", v)}
+                options={clientOptions}
+                placeholder="Acme Corp, TechStart Inc..."
+              />
+            </div>
+
+            {/* Start + End Date */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={labelCls}>Start Date</label>
+                <div className="relative">
+                  <input
+                    type="date"
+                    value={formData.startDate}
+                    onChange={(e) => set("startDate", e.target.value)}
+                    className={inputCls}
+                  />
+                </div>
+              </div>
+              <div>
+                <label className={labelCls}>End Date</label>
                 <input
                   type="date"
-                  value={formData.startDate}
-                  onChange={(e) => set("startDate", e.target.value)}
+                  value={formData.endDate}
+                  onChange={(e) => set("endDate", e.target.value)}
                   className={inputCls}
                 />
               </div>
             </div>
+
+            {/* Description */}
             <div>
-              <label className={labelCls}>End Date</label>
+              <label className={labelCls}>Description</label>
               <input
-                type="date"
-                value={formData.endDate}
-                onChange={(e) => set("endDate", e.target.value)}
+                type="text"
+                value={formData.description}
+                onChange={(e) => set("description", e.target.value)}
+                placeholder="Brief project description..."
                 className={inputCls}
               />
             </div>
-          </div>
 
-          {/* Description */}
-          <div>
-            <label className={labelCls}>Description</label>
-            <input
-              type="text"
-              value={formData.description}
-              onChange={(e) => set("description", e.target.value)}
-              placeholder="Brief project description..."
-              className={inputCls}
-            />
-          </div>
-
-          {/* Milestones */}
-          <div>
-            <label className={labelCls}>Milestones</label>
-            <div className="space-y-2">
-              {formData.milestones?.map((m, idx) => (
-                <div key={idx} className="flex items-center gap-2">
-                  <input 
-                    type="text" 
-                    value={m}
-                    onChange={(e) => {
-                      const newMilestones = [...formData.milestones];
-                      newMilestones[idx] = e.target.value;
+            {/* Milestones */}
+            <div>
+              <label className={labelCls}>Milestones</label>
+              <div className="space-y-2">
+                {formData.milestones?.map((m, idx) => (
+                  <div key={idx} className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={m}
+                      onChange={(e) => {
+                        const newMilestones = [...formData.milestones];
+                        newMilestones[idx] = e.target.value;
+                        set("milestones", newMilestones);
+                      }}
+                      className="flex-1 px-3 py-2 border border-gray-200 rounded-md text-sm" />
+                    <button type="button" onClick={() => {
+                      const newMilestones = formData.milestones.filter((_, i) => i !== idx);
                       set("milestones", newMilestones);
-                    }} 
-                    className="flex-1 px-3 py-2 border border-gray-200 rounded-md text-sm" />
-                  <button type="button" onClick={() => {
-                    const newMilestones = formData.milestones.filter((_, i) => i !== idx);
-                    set("milestones", newMilestones);
-                  }} className="text-red-500 ml-2">Remove</button>
-                </div>
-              ))}
-            </div>
-            <button
-              type="button"
-              className="mt-3 text-sm font-semibold text-blue-600 hover:text-blue-800"
-              onClick={() => set("milestones", [...(formData.milestones || []), ""])}
-            >
-              + Add milestone
-            </button>
-          </div>
-
-          {/* Status */}
-          <div>
-            <label className={labelCls}>Status</label>
-            <Dropdown
-              value={formData.status}
-              onChange={(v) => set("status", v)}
-              options={STATUS_OPTIONS}
-              placeholder="Select status"
-            />
-          </div>
-
-          {/* Assign Team */}
-          <div>
-            <label className={labelCls}>Assign Team</label>
-            <MultiSelect
-              value={formData.team}
-              onChange={(v) => set("team", v)}
-              teamOptions={teamOptions}
-            />
-          </div>
-
-          {/* Sprints (queued while creating project) */}
-<div className="w-full">
-  <div className="flex items-center justify-between">
-    <label className={labelCls}>Sprints (optional)</label>
-    <button
-      type="button"
-      onClick={addSprint}
-      className="text-sm text-blue-600"
-    >
-      + Add Sprint
-    </button>
-  </div>
-
-  <div className="space-y-3 mt-2">
-    {queuedSprints.map((sp, idx) => (
-      <div
-        key={sp.id}
-        className="w-full bg-gray-50 border border-gray-100 rounded-xl p-3"
-      >
-        {/* Name + Remove */}
-        <div className="flex flex-col sm:flex-row gap-2">
-          <input
-            type="text"
-            value={sp.name}
-            onChange={(e) =>
-              updateSprintField(idx, "name", e.target.value)
-            }
-            placeholder="Sprint name"
-            className="flex-1 min-w-0 px-3 py-2 border border-gray-200 rounded-md text-sm"
-          />
-
-          <button
-            type="button"
-            onClick={() => removeSprint(idx)}
-            className="sm:w-auto w-full px-3 py-2 text-red-500 border border-red-200 rounded-md hover:bg-red-50"
-          >
-            Remove
-          </button>
-        </div>
-
-        {/* Dates */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
-          <input
-            type="date"
-            value={sp.startDate}
-            onChange={(e) =>
-              updateSprintField(idx, "startDate", e.target.value)
-            }
-            className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm"
-          />
-
-          <input
-            type="date"
-            value={sp.endDate}
-            onChange={(e) =>
-              updateSprintField(idx, "endDate", e.target.value)
-            }
-            className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm"
-          />
-        </div>
-
-                  <div className="mt-3">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium text-gray-600">Tasks</p>
-                      <button type="button" onClick={() => addTaskToSprint(idx)} className="text-sm text-blue-600">+ Add Task</button>
-                    </div>
-                    <div className="space-y-2 mt-2">
-                      {sp.tasks.map((t, ti) => (
-                        <div key={t.id} className="flex items-center gap-2">
-                          <div className="flex-1">
-                            <div className="text-sm font-medium">{t.title}</div>
-                            <div className="text-xs text-gray-500">{t.description || ''}</div>
-                          </div>
-                          <div className="w-[60px] text-sm text-gray-700">{t.storyPoints}</div>
-                          <button type="button" onClick={() => removeTaskFromSprint(idx, ti)} className="text-red-500">✕</button>
-                        </div>
-                      ))}
-                      {sp.tasks.length === 0 && <p className="text-xs text-gray-400">No tasks added</p>}
-                    </div>
+                    }} className="text-red-500 ml-2">Remove</button>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
+              <button
+                type="button"
+                className="mt-3 text-sm font-semibold text-blue-600 hover:text-blue-800"
+                onClick={() => set("milestones", [...(formData.milestones || []), ""])}
+              >
+                + Add milestone
+              </button>
             </div>
+
+            {/* Status */}
+            <div>
+              <label className={labelCls}>Status</label>
+              <Dropdown
+                value={formData.status}
+                onChange={(v) => set("status", v)}
+                options={STATUS_OPTIONS}
+                placeholder="Select status"
+              />
+            </div>
+
+            {/* Assign Team */}
+            <div>
+              <label className={labelCls}>Assign Team</label>
+              <MultiSelect
+                value={formData.team}
+                onChange={(v) => set("team", v)}
+                teamOptions={teamOptions}
+              />
+            </div>
+
+            {/* Where to go next — sprints/phases/tasks live on their own pages,
+                not bundled into this form, so this modal stays short. */}
+            {project && (
+              <div className="p-3 bg-blue-50 border border-blue-100 rounded-xl text-xs text-blue-700 leading-relaxed">
+                Manage sprints from this project's Overview page, phases from the
+                Phases page, and tasks (linked to a sprint and/or phase) from the
+                Dashboard's "+ Add Task" button.
+              </div>
+            )}
           </div>
 
-          {/* Actions */}
-          <div className="flex gap-3 pt-2 pb-1">
+          {/* Actions — always visible, never scrolls away */}
+          <div className="flex gap-3 px-6 py-4 border-t border-gray-100 flex-shrink-0">
             <button
               type="button"
               onClick={onClose}
@@ -572,26 +406,6 @@ export default function ProjectForm({ isOpen, onClose, project = null, onSuccess
           </div>
         </form>
       </div>
-      {taskModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center p-6 border-b border-gray-100">
-              <h2 className="text-xl font-bold text-gray-800">Create Task</h2>
-              <button onClick={() => setTaskModalOpen(false)} className="text-gray-400 hover:text-gray-600">
-                <X size={20} />
-              </button>
-            </div>
-            <div className="p-6">
-              <TaskForm formData={taskFormData} setFormData={setTaskFormData} userOptions={userOptionsFull} parentTaskOptions={[]} />
-
-              <div className="mt-6 flex justify-end gap-3">
-                <button type="button" onClick={() => setTaskModalOpen(false)} className="px-4 py-2 rounded-lg border">Cancel</button>
-                <button type="button" onClick={() => handleTaskFormSaveForQueuedSprint(taskFormData)} className="px-4 py-2 rounded-lg bg-blue-600 text-white">Save Task</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
