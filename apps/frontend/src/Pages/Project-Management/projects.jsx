@@ -70,7 +70,7 @@ function StatusBadge({ status, onChange }) {
 function ProjectRow({ project, onNavigate, onDelete, onStatusChange }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
-  const pct = project.progress || 0;
+  const pct = project.percentComplete || 0;
 
   useEffect(() => {
     const h = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false); };

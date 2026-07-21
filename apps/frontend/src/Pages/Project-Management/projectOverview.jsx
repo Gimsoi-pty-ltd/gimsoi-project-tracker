@@ -164,7 +164,7 @@ export default function ProjectOverview() {
 
   const pct = prog?.totalTasks > 0
     ? Math.round((prog.completedTasks / prog.totalTasks) * 100)
-    : (p.progress || 0);
+    : (p.percentComplete || 0);
 
   const progressBarColor =
     pct >= 100 ? "bg-emerald-500" : pct >= 60 ? "bg-blue-500" : "bg-orange-400";

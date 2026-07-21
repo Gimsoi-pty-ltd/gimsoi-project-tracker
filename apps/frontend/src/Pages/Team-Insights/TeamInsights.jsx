@@ -1,13 +1,37 @@
 // src/Pages/Team Insights/teamInsights.jsx
-import React from "react";
+import React, { useEffect } from "react";
 import { Users, Activity, CheckCircle, Clock, Bell } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { useProjectStore } from "../../store/projectStore";
 
 function TeamInsights() {
-  const { activeSprint, currentProject } = useProjectStore((state) => state);
+  const { activeSprint, currentProject, dashboardLoading } = useProjectStore((state) => state);
+
+  // Unlike Phases / Sprint Report, this page never loaded its own data before —
+  // it silently relied on another page (e.g. Dashboard) having already hydrated
+  // the store. Landing here directly (fresh reload, direct link) always showed
+  // "No Active Project" even when the backend had real data.
+  useEffect(() => {
+    const hydrate = async () => {
+      try {
+        const state = useProjectStore.getState();
+        const loader = state.ensureDashboardLoaded || state.fetchDashboard;
+        if (typeof loader === "function") await loader();
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    hydrate();
+  }, []);
 
   if (!currentProject) {
+    if (dashboardLoading) {
+      return (
+        <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 text-gray-500">
+          <p className="text-sm text-gray-400">Loading team insights...</p>
+        </div>
+      );
+    }
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 text-gray-500">
         <Users size={48} className="mb-4 text-gray-300" />
@@ -36,14 +60,13 @@ function TeamInsights() {
   }));
 
   const memberStats = teamMembers.map((member) => {
-    const firstName = member.name.split(" ")[0];
-    const memberTasks = tasks.filter((t) => t.assignee === firstName);
+    const memberTasks = tasks.filter((t) => t.assignee === member.name);
     const completed = memberTasks.filter((t) => t.status === "done").length;
     const velocity = memberTasks
       .filter((t) => t.status === "done")
-      .reduce((sum, t) => sum + t.storyPoints, 0);
+      .reduce((sum, t) => sum + (t.storyPoints || 0), 0);
     const active = memberTasks.filter((t) => t.status !== "done").length;
-    return { ...member, firstName, velocity, completed, active };
+    return { ...member, velocity, completed, active };
   });
 
   const sprintActivity = (activeSprint?.charts?.burndown ?? []).map((d) => ({
