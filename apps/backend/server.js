@@ -22,13 +22,12 @@ import zohoRoutes from "./routes/zoho.route.js";
 
 import { swaggerSpec } from "./lib/swagger.js";
 import swaggerUi from "swagger-ui-express";
-import { healthLimiter, authLimiter } from "./middleware/rate-limiter.middleware.js";
+import { healthLimiter } from "./middleware/rate-limiter.middleware.js";
 import { ZodError } from "zod";
 import pkg from "./lib/generated/prisma/index.js";
 const { Prisma } = pkg;
 import { validateEnv } from "./utils/validateEnv.js";
-import { csrfProtection, csrfErrorHandler, generateCsrfToken } from "./middleware/csrf.middleware.js";
-import { verifyToken } from "./middleware/verify-token.middleware.js";
+import { csrfErrorHandler } from "./middleware/csrf.middleware.js";
 import registerTestingRoutes from "./utils/registerTestingRoutes.js";
 
 dotenv.config();
@@ -36,7 +35,9 @@ dotenv.config();
 validateEnv();
 // CLIENT_URL is only required in production
 if (process.env.NODE_ENV === "production" && !process.env.CLIENT_URL) {
-  throw new Error("Missing required env var: CLIENT_URL (required in production for CORS)");
+  throw new Error(
+    "Missing required env var: CLIENT_URL (required in production for CORS)",
+  );
 }
 
 const app = express();
@@ -45,49 +46,43 @@ app.disable("x-powered-by");
 app.set("trust proxy", 1);
 
 // CORS Configuration
-app.use(cors({
-  origin: process.env.NODE_ENV === "production"
-    ? process.env.CLIENT_URL
-    : ["http://localhost:5173", "http://127.0.0.1:5173"],
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "x-csrf-token"],
-
-}));
+app.use(
+  cors({
+    origin:
+      process.env.NODE_ENV === "production"
+        ? process.env.CLIENT_URL
+        : ["http://localhost:5173", "http://127.0.0.1:5173"],
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "x-csrf-token"],
+  }),
+);
 // Middleware
 app.use(express.json());
-app.use(express.urlencoded({ extended: true, limit: "100kb", parameterLimit: 1000 }));
+app.use(
+  express.urlencoded({ extended: true, limit: "100kb", parameterLimit: 1000 }),
+);
 app.use(cookieParser());
-app.use(methodOverride(function (req, res) {
-  if (req.body && typeof req.body === 'object' && '_method' in req.body) {
-    const method = req.body._method;
-    delete req.body._method;
-    return method;
-  }
-}));
+app.use(
+  methodOverride(function (req, res) {
+    if (req.body && typeof req.body === "object" && "_method" in req.body) {
+      const method = req.body._method;
+      delete req.body._method;
+      return method;
+    }
+  }),
+);
 
 // Health endpoint — registered before CSRF so probes require no session token
 app.use("/api/health", healthLimiter, healthRoute);
 
 // Swagger UI
-const isNonProd = process.env.NODE_ENV !== "production" || process.env.PRODUCTION === "false";
+const isNonProd =
+  process.env.NODE_ENV !== "production" || process.env.PRODUCTION === "false";
 if (isNonProd) {
   app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
   app.get("/api/docs.json", (req, res) => res.json(swaggerSpec));
 }
-
-// Register the public CSRF token endpoint before the global CSRF protection
-app.get("/api/auth/csrf-token", authLimiter, verifyToken, (req, res) => {
-    try {
-        if (!req.user || !req.user.id) {
-            return res.json({ success: true, csrfToken: null, message: "No active session; CSRF not required." });
-        }
-        const token = generateCsrfToken(req, res);
-        res.json({ success: true, csrfToken: token });
-    } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
-    }
-});
 
 // Global CSRF protection skipped here; applied at route level for session-aware validation
 
@@ -117,12 +112,17 @@ app.use((err, req, res, next) => {
   let message = err.message || "Internal Server Error";
 
   // Semantic Mapping: Zod Validation Errors
-  if (err instanceof ZodError || err.name === 'ZodError') {
+  if (err instanceof ZodError || err.name === "ZodError") {
     statusCode = 400;
-    message = err.errors?.[0]?.message || err.message;
-  } 
+    message =
+      err.issues?.[0]?.message || err.errors?.[0]?.message || err.message;
+  }
   // Semantic Mapping: Prisma Database Errors
-  else if (err.name === 'PrismaClientKnownRequestError' || (err.constructor && err.constructor.name === 'PrismaClientKnownRequestError')) {
+  else if (
+    err.name === "PrismaClientKnownRequestError" ||
+    (err.constructor &&
+      err.constructor.name === "PrismaClientKnownRequestError")
+  ) {
     if (err.code === "P2002") {
       statusCode = 409;
       message = "A resource with that value already exists.";
@@ -152,10 +152,8 @@ app.use((err, req, res, next) => {
 await registerTestingRoutes(app);
 
 // Start
-const PORT = 
-  process.env.X_ZOHO_CATALYST_LISTEN_PORT ||
-  process.env.PORT ||
-  5001;
+const PORT =
+  process.env.X_ZOHO_CATALYST_LISTEN_PORT || process.env.PORT || 5001;
 
 // Graceful Shutdown
 let server;
@@ -182,24 +180,24 @@ process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
 process.on("SIGINT", () => gracefulShutdown("SIGINT"));
 
 (async () => {
-  const prisma = (await import('./lib/prisma.js')).default;
+  const prisma = (await import("./lib/prisma.js")).default;
   try {
     await prisma.$queryRaw`SELECT 1`;
-    console.log('[db] Connected.');
+    console.log("[db] Connected.");
 
     server = app.listen(PORT, "0.0.0.0", () => {
       console.log(`[server] Running on port ${PORT}`);
     });
 
-    server.on('error', (err) => {
+    server.on("error", (err) => {
       console.error(`\n[server] Failed to start: ${err.message}\n`);
       process.exit(1);
     });
   } catch (err) {
     console.error(
       `\n[db] Cannot connect to the database.\n` +
-      `     Check DATABASE_URL in your .env file.\n` +
-      `     Reason: ${err.message}\n`
+        `     Check DATABASE_URL in your .env file.\n` +
+        `     Reason: ${err.message}\n`,
     );
     process.exit(1);
   }
