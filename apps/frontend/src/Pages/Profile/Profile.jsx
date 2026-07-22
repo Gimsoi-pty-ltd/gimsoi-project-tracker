@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useAuthStore } from "../../store/authStore";
 import { useProjectStore } from "../../store/projectStore";
+import NavyButton from "../../Components/Buttons";
 import {
   CalendarDays,
   Camera,
@@ -218,7 +219,7 @@ export default function ProjectTrackerProfilePage() {
     <div className="min-h-screen bg-white p-4 md:p-8 lg:p-10">
       <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 md:gap-6 mb-8 md:mb-12">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 md:gap-6 w-full">
-          <div className="flex flex-col items-start sm:items-center gap-2 flex-shrink-0">
+          <div className="flex flex-col items-start sm:items-center gap-2 shrink-0">
             <div className="w-20 md:w-28 h-20 md:h-28 rounded-full bg-[#002D62] flex items-center justify-center text-white text-2xl md:text-4xl font-bold shadow-md overflow-hidden">
               {user.avatarUrl ? (
                 <img
@@ -242,7 +243,7 @@ export default function ProjectTrackerProfilePage() {
                 type="button"
                 onClick={() => avatarInputRef.current?.click()}
                 disabled={isAvatarLoading}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium bg-blue-900 hover:bg-blue-800 text-white transitio disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
               >
                 <Camera className="h-3.5 w-3.5" aria-hidden="true" />
                 {isAvatarLoading
@@ -258,7 +259,7 @@ export default function ProjectTrackerProfilePage() {
                   disabled={isAvatarLoading}
                   className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                  <Trash2 className="h-3.5 w-3.5" aria-hidden="true" cursor-pointer />
                   Remove
                 </button>
               )}
@@ -273,24 +274,26 @@ export default function ProjectTrackerProfilePage() {
             <h1 className="text-2xl md:text-3xl font-semibold text-black">
               {user.fullName || user.name}
             </h1>
-            <p className="text-base md:text-lg text-gray-700 mt-1">
-              {user.jobTitle}
-            </p>
+            
             <span className="inline-block mt-1 text-xs bg-blue-600 text-white px-3 py-1 rounded-full font-medium">
+              {user.jobTitle}
+            </span>
+            <br />
+            <span className="inline-block mt-1 text-xs bg-orange-500 text-white px-3 py-1 rounded-full font-medium">
               {user.role}
             </span>
             <div className="mt-3 text-xs md:text-sm text-gray-700 space-y-1">
               <p className="flex items-center gap-1.5">
-                <Mail className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
+                <Mail className="h-4 w-4 shrink-0" aria-hidden="true" />
                 <span>{user.email}</span>
               </p>
               <p className="flex items-center gap-1.5">
-                <Phone className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
+                <Phone className="h-4 w-4 shrink-0" aria-hidden="true" />
                 <span>{user.phone || "Not provided"}</span>
               </p>
               <p className="flex items-center gap-1.5">
                 <CalendarDays
-                  className="h-4 w-4 flex-shrink-0"
+                  className="h-4 w-4 shrink-0"
                   aria-hidden="true"
                 />
                 <span>Joined {formatDate(joinedDate)}</span>
@@ -298,14 +301,14 @@ export default function ProjectTrackerProfilePage() {
             </div>
           </div>
         </div>
-        <button
+        <NavyButton
           ref={editButtonRef}
           type="button"
-          className="rounded-2xl px-4 md:px-6 py-2 text-sm md:text-base bg-blue-600 text-white hover:bg-blue-700 transition w-full sm:w-auto"
+          className="rounded-2xl px-4 md:px-6 py-2 text-sm md:text-base  text-white transition w-full sm:w-auto cursor-pointer"
           onClick={openEditDialog}
         >
           Edit Profile
-        </button>
+        </NavyButton>
       </div>
 
       {/* Edit Profile Modal */}
