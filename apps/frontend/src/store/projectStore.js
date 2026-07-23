@@ -569,7 +569,21 @@ export const useProjectStore = create((set, get) => ({
         set({ isLoading: true, error: null });
         try {
             const response = await resourceAPI.get(`/projects/${id}/progress`);
-            const progress = response?.data?.data ?? response?.data ?? null;
+            const raw = response?.data?.data ?? response?.data ?? null;
+            // Backend returns { TODO, IN_PROGRESS, DONE, BLOCKED, CANCELLED, total, percentComplete, healthScore }
+            // (see aggregateTasksByStatus in task.service.js). Map to the camelCase shape the UI reads.
+            const progress = raw
+                ? {
+                    ...raw,
+                    totalTasks: raw.total ?? 0,
+                    completedTasks: raw.DONE ?? 0,
+                    inProgressTasks: raw.IN_PROGRESS ?? 0,
+                    blockedTasks: raw.BLOCKED ?? (raw.blockedCount ?? 0),
+                    todoTasks: raw.TODO ?? 0,
+                    cancelledTasks: raw.CANCELLED ?? 0,
+                    percentComplete: raw.percentComplete ?? 0,
+                }
+                : null;
             set({ projectProgress: progress, isLoading: false });
             return progress;
         } catch (error) {
