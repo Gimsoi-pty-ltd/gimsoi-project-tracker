@@ -10,7 +10,7 @@ import {
   Trash2,
 } from "lucide-react";
 
-const MAX_AVATAR_SIZE = 2 * 1024 * 1024;
+const MAX_AVATAR_SIZE = 5 * 1024 * 1024;
 
 const getProfileFormValues = (user) => ({
   fullName: user.fullName || user.name || "",
