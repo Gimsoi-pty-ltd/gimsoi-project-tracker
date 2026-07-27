@@ -23,6 +23,20 @@ const STATUS_CONFIG = {
 const getStatusCfg = (status) =>
   STATUS_CONFIG[(status || "DRAFT").toUpperCase()] || STATUS_CONFIG.DRAFT;
 
+// milestones is stored on the backend as a single JSON-stringified String/null
+// column, and each entry is just a plain title string (no status/date), so
+// normalize whatever shape we get back into a simple array of strings.
+function parseMilestones(raw) {
+  if (Array.isArray(raw)) return raw;
+  if (typeof raw !== "string" || !raw.trim()) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [raw];
+  } catch {
+    return [raw];
+  }
+}
+
 const MILESTONE_CONFIG = {
   Done:        { icon: CheckCircle2, color: "text-emerald-500", bg: "bg-emerald-50" },
   "In Progress": { icon: Clock,      color: "text-blue-500",    bg: "bg-blue-50"    },
@@ -161,6 +175,7 @@ export default function ProjectOverview() {
   const p   = currentProject;
   const prog = projectProgress;
   const cfg  = getStatusCfg(p.status);
+  const milestones = parseMilestones(p.milestones);
 
   const pct = prog?.totalTasks > 0
     ? Math.round((prog.completedTasks / prog.totalTasks) * 100)
@@ -283,14 +298,18 @@ export default function ProjectOverview() {
         )}
 
         {/* ── Milestones ── */}
-        {p.milestones?.length > 0 ? (
+        {milestones.length > 0 ? (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
             <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wider mb-5">
               Milestones (Timeline View)
             </h2>
             <div className="space-y-3">
-              {p.milestones.map((m, i) => {
-                const mc   = MILESTONE_CONFIG[m.status] || MILESTONE_CONFIG.Upcoming;
+              {milestones.map((m, i) => {
+                const isObj  = m && typeof m === "object";
+                const label  = isObj ? m.label : m;
+                const status = isObj ? m.status : undefined;
+                const date   = isObj ? m.date : undefined;
+                const mc   = MILESTONE_CONFIG[status] || MILESTONE_CONFIG.Upcoming;
                 const Icon = mc.icon;
                 return (
                   <div key={i} className="flex items-center gap-4">
@@ -299,12 +318,12 @@ export default function ProjectOverview() {
                     </div>
                     <div className="flex-1 flex items-center justify-between flex-wrap gap-2">
                       <span className="text-sm font-medium text-gray-800">
-                        {m.label}
-                        <span className={`ml-2 text-xs font-semibold ${mc.color}`}>— {m.status}</span>
+                        {label}
+                        {status && <span className={`ml-2 text-xs font-semibold ${mc.color}`}>— {status}</span>}
                       </span>
-                      {m.date && (
+                      {date && (
                         <span className="text-xs text-gray-400 bg-gray-50 px-2 py-1 rounded-lg border border-gray-100">
-                          {m.date}
+                          {date}
                         </span>
                       )}
                     </div>
@@ -456,10 +475,9 @@ export default function ProjectOverview() {
                 try {
                   if (!sprintDraft.name.trim()) return;
                   await createSprint({ projectId: p.id, ...sprintDraft });
-                  // refresh project view and dashboard to pick up new sprint
                   await getProjectById(p.id);
                   await getProjectProgress(p.id);
-                  // Ensure dashboard sprints/tasks are reloaded
+                 
                   const { fetchDashboard } = useProjectStore.getState();
                   if (typeof fetchDashboard === 'function') await fetchDashboard(p.id);
                 } catch (err) {

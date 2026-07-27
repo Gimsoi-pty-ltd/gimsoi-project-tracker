@@ -5,10 +5,10 @@ import { useProjectStore } from "../../store/projectStore";
 import { resourceAPI } from "../../api/api";
 
 const STATUS_OPTIONS = [
-  { value: "PLANNED",   label: "Planned"   },
+  { value: "DRAFT",   label: "Draft"   },
   { value: "ACTIVE",    label: "Active"    },
-  { value: "ON_HOLD",   label: "On Hold"   },
-  { value: "COMPLETED", label: "Completed" },
+  { value: "COMPLETED",   label: "Completed"   },
+  { value: "ARCHIVED", label: "Archived" },
 ];
 
 // ─── Shared input style ───────────────────────────────────────────────────────
@@ -65,86 +65,6 @@ function Dropdown({ label, value, onChange, options, placeholder }) {
   );
 }
 
-// ─── Multi-select Team ────────────────────────────────────────────────────────
-function MultiSelect({ value = [], onChange, teamOptions = [] }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef(null);
-
-  useEffect(() => {
-    const h = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
-  }, []);
-
-  const toggle = (member) => {
-    onChange(
-      value.includes(member) ? value.filter((m) => m !== member) : [...value, member]
-    );
-  };
-
-  return (
-    <div ref={ref} className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((p) => !p)}
-        className={`${inputCls} flex items-center justify-between text-left min-h-[42px]`}
-      >
-        <div className="flex flex-wrap gap-1.5 flex-1">
-          {value.length === 0 ? (
-            <span className="text-gray-400">Select team members...</span>
-          ) : (
-            value.map((m) => (
-              <span
-                key={m}
-                className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 rounded-lg text-xs font-medium"
-              >
-                {m}
-                <span
-                  role="button"
-                  tabIndex={0}
-                  onClick={(e) => { e.stopPropagation(); toggle(m); }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      toggle(m);
-                    }
-                  }}
-                  className="hover:text-blue-900 cursor-pointer"
-                >
-                  <X className="w-3 h-3" />
-                </span>
-              </span>
-            ))
-          )}
-        </div>
-        <ChevronDown className={`w-4 h-4 text-gray-400 flex-shrink-0 ml-2 transition-transform ${open ? "rotate-180" : ""}`} />
-      </button>
-
-      {open && (
-        <div className="absolute left-0 right-0 top-full mt-1 z-40 bg-white border border-gray-200 rounded-xl shadow-lg py-1 max-h-52 overflow-y-auto">
-          {teamOptions.map((member) => {
-            const selected = value.includes(member);
-            return (
-              <button
-                key={member}
-                type="button"
-                onClick={() => toggle(member)}
-                className={`flex items-center justify-between w-full px-4 py-2.5 text-sm transition-colors ${
-                  selected ? "bg-blue-50 text-blue-600 font-medium" : "text-gray-700 hover:bg-gray-50"
-                }`}
-              >
-                {member}
-                {selected && <Check className="w-4 h-4" />}
-              </button>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
-
 // ─── Main Form ────────────────────────────────────────────────────────────────
 export default function ProjectForm({ isOpen, onClose, project = null, onSuccess = null }) {
   const { createProject, updateProject, isLoading, error } = useProjectStore();
@@ -155,28 +75,21 @@ export default function ProjectForm({ isOpen, onClose, project = null, onSuccess
     startDate: "",
     endDate: "",
     description: "",
-    status: "PLANNED",
-    team: [],
+    status: "DRAFT",
     milestones: [],
   };
 
   const [formData, setFormData] = useState(empty);
   const [formError, setFormError] = useState(null);
   const [clientOptions, setClientOptions] = useState([]);
-  const [teamOptions, setTeamOptions] = useState([]);
 
   useEffect(() => {
     if (!isOpen) return;
     const fetchOptions = async () => {
       try {
-        const [clientsRes, usersRes] = await Promise.all([
-          resourceAPI.get('/clients'),
-          resourceAPI.get('/users')
-        ]);
+        const clientsRes = await resourceAPI.get('/clients');
         const clients = clientsRes.data?.data ?? clientsRes.data.clients ?? [];
-        const users = usersRes.data?.data ?? usersRes.data.users ?? [];
         setClientOptions(clients);
-        setTeamOptions(users.map(u => u.fullName || u.email || 'Unknown'));
       } catch (err) {
         console.error("Failed to fetch form options:", err);
       }
@@ -186,15 +99,30 @@ export default function ProjectForm({ isOpen, onClose, project = null, onSuccess
 
   useEffect(() => {
     if (project) {
+      // milestones is stored as a single String/null column on the backend,
+      // so an existing project may hand us back a JSON string (or, for older
+      // rows saved before this change, a plain-text value). Normalize it
+      // back into an array for the UI either way.
+      let parsedMilestones = [];
+      if (Array.isArray(project.milestones)) {
+        parsedMilestones = project.milestones;
+      } else if (typeof project.milestones === "string" && project.milestones.trim() !== "") {
+        try {
+          const parsed = JSON.parse(project.milestones);
+          parsedMilestones = Array.isArray(parsed) ? parsed : [project.milestones];
+        } catch {
+          parsedMilestones = [project.milestones]; // fallback for legacy plain-text values
+        }
+      }
+
       setFormData({
         name:        project.name        || "",
         clientId:    project.clientId    || "",
         startDate:   project.startDate ? new Date(project.startDate).toISOString().split('T')[0] : "",
         endDate:     project.endDate ? new Date(project.endDate).toISOString().split('T')[0] : "",
         description: project.description || "",
-        status:      project.status      || "PLANNED",
-        team:        project.team        || [],
-        milestones:  project.milestones   || [],
+        status:      project.status      || "DRAFT",
+        milestones:  parsedMilestones,
       });
     } else {
       setFormData(empty);
@@ -214,11 +142,28 @@ export default function ProjectForm({ isOpen, onClose, project = null, onSuccess
       return;
     }
 
+    // Only send fields the backend's Zod schema actually accepts
+    // (createProjectSchema / updateProjectSchema). Anything else — like the
+    // old `team` field — gets dropped here instead of causing a 400.
+    // `milestones` is stored as a single String/null column, so serialize
+    // the array rather than sending it as-is.
+    const payload = {
+      name: formData.name,
+      clientId: formData.clientId,
+      description: formData.description || undefined,
+      status: formData.status,
+      startDate: formData.startDate || null,
+      endDate: formData.endDate || null,
+      milestones: formData.milestones?.length
+        ? JSON.stringify(formData.milestones.filter((m) => m.trim() !== ""))
+        : null,
+    };
+
     try {
       if (project?.id) {
-        await updateProject(project.id, formData);
+        await updateProject(project.id, payload);
       } else {
-        await createProject(formData);
+        await createProject(payload);
       }
       onClose();
       if (onSuccess) onSuccess();
@@ -361,16 +306,6 @@ export default function ProjectForm({ isOpen, onClose, project = null, onSuccess
                 onChange={(v) => set("status", v)}
                 options={STATUS_OPTIONS}
                 placeholder="Select status"
-              />
-            </div>
-
-            {/* Assign Team */}
-            <div>
-              <label className={labelCls}>Assign Team</label>
-              <MultiSelect
-                value={formData.team}
-                onChange={(v) => set("team", v)}
-                teamOptions={teamOptions}
               />
             </div>
 
