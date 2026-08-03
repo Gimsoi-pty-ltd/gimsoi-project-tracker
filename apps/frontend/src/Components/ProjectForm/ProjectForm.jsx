@@ -149,7 +149,6 @@ export default function ProjectForm({ isOpen, onClose, project = null, onSuccess
     // the array rather than sending it as-is.
     const payload = {
       name: formData.name,
-      clientId: formData.clientId,
       description: formData.description || undefined,
       status: formData.status,
       startDate: formData.startDate || null,
@@ -157,6 +156,7 @@ export default function ProjectForm({ isOpen, onClose, project = null, onSuccess
       milestones: formData.milestones?.length
         ? JSON.stringify(formData.milestones.filter((m) => m.trim() !== ""))
         : null,
+      ...(project?.id ? { version: project.version } : { clientId: formData.clientId }),
     };
 
     try {

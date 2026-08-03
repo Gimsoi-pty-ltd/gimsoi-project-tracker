@@ -7,6 +7,7 @@ import { X } from 'lucide-react';
 const UI_TO_STATUS = {
   todo: 'TODO',
   inProgress: 'IN_PROGRESS',
+  review: 'REVIEW',
   done: 'DONE',
   blocked: 'BLOCKED',
   cancelled: 'CANCELLED'

@@ -183,6 +183,7 @@ export default function ActiveTasksCard() {
           setEditingTask(null);
         }} 
         task={editingTask}
+        initialSprintId={activeSprint?.id}
       />
 
       {/* Filters */}
