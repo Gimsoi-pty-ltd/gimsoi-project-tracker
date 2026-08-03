@@ -18,7 +18,7 @@ const STATUS_CONFIG = {
   "ON HOLD": { label: "On Hold",  dot: "bg-orange-400",  badge: "bg-orange-50 text-orange-700 border-orange-200"   },
   ON_HOLD:   { label: "On Hold",  dot: "bg-orange-400",  badge: "bg-orange-50 text-orange-700 border-orange-200"   },
   DRAFT:     { label: "Draft",    dot: "bg-gray-400",    badge: "bg-gray-50 text-gray-700 border-gray-200"          },
-  PLANNED:   { label: "Planned",  dot: "bg-purple-400",  badge: "bg-purple-50 text-purple-700 border-purple-200"   },
+  PLANNING:  { label: "Planned",  dot: "bg-purple-400",  badge: "bg-purple-50 text-purple-700 border-purple-200"   },
 };
 const getStatusCfg = (status) =>
   STATUS_CONFIG[(status || "DRAFT").toUpperCase()] || STATUS_CONFIG.DRAFT;
@@ -106,7 +106,8 @@ export default function ProjectOverview() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteLoading, setDeleteLoading]   = useState(false);
   const [showSprintModal, setShowSprintModal] = useState(false);
-  const [sprintDraft, setSprintDraft] = useState({ name: '', startDate: '', endDate: '', status: 'PLANNED' });
+  const [sprintDraft, setSprintDraft] = useState({ name: '', startDate: '', endDate: '', status: 'PLANNING' });
+  const [sprintError, setSprintError] = useState(null);
 
   const createSprint = useSprintStore((s) => s.createSprint);
   
@@ -462,6 +463,12 @@ export default function ProjectOverview() {
       }
     />
   </div>
+
+  {sprintError && (
+    <div className="mt-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+      {sprintError}
+    </div>
+  )}
 </div>
 
             <div className="mt-4">
@@ -472,19 +479,30 @@ export default function ProjectOverview() {
               <div className="mt-6 flex justify-end gap-3">
               <button className="px-4 py-2 rounded border" onClick={() => setShowSprintModal(false)}>Cancel</button>
               <button className="px-4 py-2 rounded bg-blue-900 hover:bg-blue-600 text-white" onClick={async () => {
+                setSprintError(null);
                 try {
-                  if (!sprintDraft.name.trim()) return;
-                  await createSprint({ projectId: p.id, ...sprintDraft });
+                  if (!sprintDraft.name.trim()) {
+                    setSprintError('Sprint name is required.');
+                    return;
+                  }
+                  await createSprint({
+                    projectId: p.id,
+                    name: sprintDraft.name.trim(),
+                    status: sprintDraft.status || 'PLANNING',
+                    startDate: sprintDraft.startDate || null,
+                    endDate: sprintDraft.endDate || null,
+                  });
                   await getProjectById(p.id);
                   await getProjectProgress(p.id);
                  
                   const { fetchDashboard } = useProjectStore.getState();
                   if (typeof fetchDashboard === 'function') await fetchDashboard(p.id);
-                } catch (err) {
-                  console.error('Failed creating sprint', err);
-                } finally {
                   setShowSprintModal(false);
                   setSprintDraft({ name: '', startDate: '', endDate: '', status: 'PLANNED' });
+                } catch (err) {
+                  const message = err?.response?.data?.message || err?.message || 'Failed creating sprint';
+                  console.error('Failed creating sprint', message);
+                  setSprintError(message);
                 }
               }}>Create Sprint</button>
             </div>

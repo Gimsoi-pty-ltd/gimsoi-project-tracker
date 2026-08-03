@@ -1,6 +1,41 @@
 import { create } from "zustand";
 import { resourceAPI } from "../api/api";
 
+const STORAGE_KEYS = {
+  documents: (projectId) => `gimsoi_documents_${projectId || 'global'}`,
+  calendar: (projectId) => `gimsoi_calendar_events_${projectId || 'global'}`,
+};
+
+const loadStoredJson = (key) => {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : null;
+  } catch (error) {
+    console.error('Failed to parse stored JSON for', key, error);
+    return null;
+  }
+};
+
+const saveStoredJson = (key, value) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch (error) {
+    console.error('Failed to persist JSON for', key, error);
+  }
+};
+
+const loadPersistedDocuments = (projectId) =>
+  loadStoredJson(STORAGE_KEYS.documents(projectId)) || null;
+
+const persistDocuments = (projectId, documents) =>
+  saveStoredJson(STORAGE_KEYS.documents(projectId), documents || []);
+
+const loadPersistedCalendarEvents = (projectId) =>
+  loadStoredJson(STORAGE_KEYS.calendar(projectId)) || [];
+
+const persistCalendarEvents = (projectId, events) =>
+  saveStoredJson(STORAGE_KEYS.calendar(projectId), events || []);
+
 const STATUS_UI = {
     TODO: "todo",
     IN_PROGRESS: "inProgress",
@@ -185,13 +220,13 @@ const normalizeMembers = (response) => {
     return Array.isArray(data) ? data : [];
 };
 
-const applySprintSelection = async (sprint, projectTasks, projectSprints) => {
+const applySprintSelection = async (sprint, projectTasks, projectSprints, persistedEvents = []) => {
     const velocity = await fetchSprintVelocity(sprint.id);
     const previous = findPreviousSprint(projectSprints, sprint);
     const avgVelocity = previous ? await fetchSprintVelocity(previous.id) : 0;
     const sprintTasks = projectTasks.filter((t) => t.sprintId === sprint.id);
 
-    const calendarEvents = projectTasks
+    const calendarEventsFallback = projectTasks
         .filter((t) => t.dueDate)
         .map((t) => ({
             id: t.id,
@@ -200,6 +235,13 @@ const applySprintSelection = async (sprint, projectTasks, projectSprints) => {
             type: "task",
             time: "",
         }));
+
+    const calendarEvents = [
+        ...calendarEventsFallback,
+        ...persistedEvents.filter(
+            (event) => !calendarEventsFallback.some((e) => e.id === event.id)
+        ),
+    ];
 
     return {
         activeSprint: buildActiveSprintView(sprint, projectTasks, velocity, avgVelocity),
@@ -229,7 +271,12 @@ export const useProjectStore = create((set, get) => ({
         try {
             const pid = projectId || get().currentProject?.id;
             const params = pid ? `?projectId=${pid}` : "";
-            
+            const persisted = pid ? loadPersistedDocuments(pid) : null;
+            if (persisted !== null && Array.isArray(persisted)) {
+                set({ documents: persisted, isLoading: false });
+                return;
+            }
+
             const [aiRes, teamRes] = await Promise.all([
                 resourceAPI.get(`/analytics/ai-context${params}`).catch(() => ({ data: {} })),
                 resourceAPI.get(`/analytics/team`).catch(() => ({ data: {} })),
@@ -281,6 +328,7 @@ export const useProjectStore = create((set, get) => ({
                 }
             ];
 
+            if (pid) persistDocuments(pid, docs);
             set({ documents: docs, isLoading: false });
         } catch (error) {
             set({ error: "Failed to fetch documents", isLoading: false });
@@ -288,9 +336,11 @@ export const useProjectStore = create((set, get) => ({
     },
 
     createDocument: async (newDoc) => {
+        const pid = newDoc.projectId || get().currentProject?.id;
         set((state) => {
             const doc = {
                 id: Math.random().toString(36).substring(2, 9),
+                projectId: pid,
                 title: newDoc.title,
                 createdBy: "Current User",
                 status: "draft",
@@ -299,14 +349,19 @@ export const useProjectStore = create((set, get) => ({
                 type: newDoc.type,
                 content: "",
             };
-            return { documents: [doc, ...state.documents] };
+            const nextDocs = [doc, ...state.documents];
+            if (pid) persistDocuments(pid, nextDocs);
+            return { documents: nextDocs };
         });
     },
 
-    deleteDocument: async (id) => {
-        set((state) => ({
-            documents: state.documents.filter((d) => d.id !== id)
-        }));
+    deleteDocument: async (id, projectId) => {
+        const pid = projectId || get().currentProject?.id;
+        set((state) => {
+            const nextDocs = state.documents.filter((d) => d.id !== id);
+            if (pid) persistDocuments(pid, nextDocs);
+            return { documents: nextDocs };
+        });
     },
 
     fetchDashboard: async (projectId) => {
@@ -374,12 +429,20 @@ export const useProjectStore = create((set, get) => ({
                     time: "",
                 }));
 
+            const persistedEvents = pid ? loadPersistedCalendarEvents(pid) : [];
+            const mergedCalendarEvents = [
+                ...calendarEventsFallback,
+                ...persistedEvents.filter(
+                    (event) => !calendarEventsFallback.some((e) => e.id === event.id)
+                ),
+            ];
+
             if (!defaultSprint) {
                 set({
                     currentProject: get().currentProject || { id: pid },
                     projectSprints,
                     projectTasks,
-                    calendarEvents: calendarEventsFallback,
+                    calendarEvents: mergedCalendarEvents,
                     activeSprint: null,
                     dashboardData: emptyDashboardData,
                     dashboardLoading: false,
@@ -390,7 +453,8 @@ export const useProjectStore = create((set, get) => ({
             const { activeSprint, dashboardData, calendarEvents } = await applySprintSelection(
                 defaultSprint,
                 projectTasks,
-                projectSprints
+                projectSprints,
+                persistedEvents
             );
 
             set({
@@ -620,18 +684,20 @@ export const useProjectStore = create((set, get) => ({
     },
 
     addCalendarEvent: (event) => {
-        set((state) => ({
-            calendarEvents: [
-                ...state.calendarEvents,
-                {
-                    id: event.id || Math.random().toString(36).substring(2, 9),
-                    title: event.title,
-                    date: event.date,
-                    type: event.type,
-                    time: event.time || "",
-                }
-            ]
-        }));
+        const pid = get().currentProject?.id;
+        set((state) => {
+            const nextEvent = {
+                id: event.id || Math.random().toString(36).substring(2, 9),
+                title: event.title,
+                date: event.date,
+                type: event.type,
+                time: event.time || "",
+                userCreated: true,
+            };
+            const nextEvents = [...state.calendarEvents, nextEvent];
+            if (pid) persistCalendarEvents(pid, nextEvents.filter((e) => e.userCreated));
+            return { calendarEvents: nextEvents };
+        });
     },
 
     clearCurrentProject: () => set({ currentProject: null }),
