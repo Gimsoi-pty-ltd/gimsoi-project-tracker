@@ -112,13 +112,15 @@ const SprintReport = () => {
         <button 
           onClick={async () => {
             try {
-              const createRes = await fetch('/api/reports', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: `Sprint Report ${selectedSprint?.id || ''} ${new Date().toISOString()}`, type: 'SPRINT', projectId: selectedSprint?.projectId || null }) });
-              const createData = await createRes.json();
-              const reportId = createData?.data?.id || createData?.id;
+              const createRes = await resourceAPI.post('/reports', {
+                name: `Sprint Report ${selectedSprint?.id || ''} ${new Date().toISOString()}`,
+                type: 'SPRINT',
+                projectId: selectedSprint?.projectId || null,
+              });
+              const reportId = createRes.data?.data?.id || createRes.data?.id;
               if (!reportId) throw new Error('No report id returned');
-              const pdfRes = await fetch(`/api/reports/${reportId}/pdf`);
-              const arrayBuffer = await pdfRes.arrayBuffer();
-              const blob = new Blob([arrayBuffer], { type: 'application/pdf' });
+              const pdfRes = await resourceAPI.get(`/reports/${reportId}/pdf`, { responseType: 'arraybuffer' });
+              const blob = new Blob([pdfRes.data], { type: 'application/pdf' });
               const url = URL.createObjectURL(blob);
               const a = document.createElement('a');
               a.href = url;
