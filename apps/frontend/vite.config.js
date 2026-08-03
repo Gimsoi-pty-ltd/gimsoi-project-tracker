@@ -9,7 +9,7 @@ export default defineConfig({
         port: 5173,
         proxy: {
             '/api': {
-                target: 'http://localhost:5001', // <-- Added the missing comma here!
+                target: 'http://localhost:5001',
                 changeOrigin: true,
                 secure: false,
             }

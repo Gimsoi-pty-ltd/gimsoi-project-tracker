@@ -20,9 +20,8 @@ const Calendar = () => {
   const daysInPrevMonth = new Date(currentYear, currentMonth, 0).getDate();
 
   // Get events for a specific date
-  const getEventsForDate = (day) => {
-    const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    return calendarEvents.filter(e => e.date === dateStr);
+  const getEventsForDate = (dayObj) => {
+    return calendarEvents.filter((e) => e.date === dayObj.date);
   };
 
   // Handle month navigation
@@ -64,18 +63,21 @@ const Calendar = () => {
 
   // Add previous month's days
   for (let i = firstDay - 1; i >= 0; i--) {
-    calendarDays.push({ day: daysInPrevMonth - i, currentMonth: false });
+    const date = new Date(currentYear, currentMonth, -i);
+    calendarDays.push({ day: date.getDate(), currentMonth: false, date: date.toISOString().slice(0, 10) });
   }
 
   // Add current month's days
   for (let i = 1; i <= daysInMonth; i++) {
-    calendarDays.push({ day: i, currentMonth: true });
+    const date = new Date(currentYear, currentMonth, i);
+    calendarDays.push({ day: i, currentMonth: true, date: date.toISOString().slice(0, 10) });
   }
 
   // Add next month's days
   const remainingDays = 42 - calendarDays.length;
   for (let i = 1; i <= remainingDays; i++) {
-    calendarDays.push({ day: i, currentMonth: false });
+    const date = new Date(currentYear, currentMonth + 1, i);
+    calendarDays.push({ day: date.getDate(), currentMonth: false, date: date.toISOString().slice(0, 10) });
   }
 
   // Split into weeks (rows of 7) so each row can flex evenly
@@ -175,11 +177,10 @@ const Calendar = () => {
               <div key={weekIdx} className="flex-1 grid grid-cols-7 min-h-0">
                 {week.map((dayObj, idx) => {
                   const isCurrentMonth = dayObj.currentMonth;
-                  const date = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(dayObj.day).padStart(2, '0')}`;
-                  const dayEvents = isCurrentMonth ? getEventsForDate(dayObj.day) : [];
-                  const isToday = isCurrentMonth && dayObj.day === new Date().getDate() &&
-                                 currentMonth === new Date().getMonth() &&
-                                 currentYear === new Date().getFullYear();
+                  const date = dayObj.date;
+                  const dayEvents = getEventsForDate(dayObj);
+                  const todayStr = new Date().toISOString().slice(0, 10);
+                  const isToday = dayObj.date === todayStr;
 
                   return (
                     <div
