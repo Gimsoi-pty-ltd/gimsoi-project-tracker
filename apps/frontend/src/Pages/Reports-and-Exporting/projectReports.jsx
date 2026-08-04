@@ -6,7 +6,7 @@ import { Calendar, HeartPulse, AlertCircle, Users, Check, Loader2, Download } fr
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
 import { useProjectStore } from '../../store/projectStore';
 import { usePhaseStore } from '../../store/phaseStore';
-import { resourceAPI } from '../../api/api';
+import { exportReportPdf } from '../../utils/exportReport';
 
 const STATUS_COLORS = {
   DONE: '#10b981',
@@ -49,23 +49,11 @@ const ProjectReport = () => {
     if (!currentProject) return;
     setExporting(true);
     try {
-      const createRes = await resourceAPI.post('/reports', {
+      await exportReportPdf({
         name: `${currentProject.name} — Project Report ${new Date().toISOString().slice(0, 10)}`,
         type: 'PROJECT',
         projectId: currentProject.id,
       });
-      const reportId = createRes.data?.data?.id || createRes.data?.id;
-      if (!reportId) throw new Error('No report id returned');
-      const pdfRes = await resourceAPI.get(`/reports/${reportId}/pdf`, { responseType: 'arraybuffer' });
-      const blob = new Blob([pdfRes.data], { type: 'application/pdf' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `project-report-${currentProject.name.replace(/\s+/g, '-')}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
     } catch (err) {
       console.error('Failed to export project report', err);
     } finally {
