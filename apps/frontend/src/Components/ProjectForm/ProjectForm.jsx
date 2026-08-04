@@ -77,6 +77,7 @@ export default function ProjectForm({ isOpen, onClose, project = null, onSuccess
     description: "",
     status: "DRAFT",
     milestones: [],
+    setupNotes: "",
   };
 
   const [formData, setFormData] = useState(empty);
@@ -123,6 +124,7 @@ export default function ProjectForm({ isOpen, onClose, project = null, onSuccess
         description: project.description || "",
         status:      project.status      || "DRAFT",
         milestones:  parsedMilestones,
+        setupNotes:  project.setupNotes  || "",
       });
     } else {
       setFormData(empty);
@@ -142,6 +144,11 @@ export default function ProjectForm({ isOpen, onClose, project = null, onSuccess
       return;
     }
 
+    if (!project?.id && !formData.clientId) {
+      setFormError("Client is required");
+      return;
+    }
+
     // Only send fields the backend's Zod schema actually accepts
     // (createProjectSchema / updateProjectSchema). Anything else — like the
     // old `team` field — gets dropped here instead of causing a 400.
@@ -149,6 +156,7 @@ export default function ProjectForm({ isOpen, onClose, project = null, onSuccess
     // the array rather than sending it as-is.
     const payload = {
       name: formData.name,
+      clientId: formData.clientId,
       description: formData.description || undefined,
       status: formData.status,
       startDate: formData.startDate || null,
@@ -156,12 +164,16 @@ export default function ProjectForm({ isOpen, onClose, project = null, onSuccess
       milestones: formData.milestones?.length
         ? JSON.stringify(formData.milestones.filter((m) => m.trim() !== ""))
         : null,
-      ...(project?.id ? { version: project.version } : { clientId: formData.clientId }),
+      setupNotes: formData.setupNotes || null,
     };
 
     try {
       if (project?.id) {
-        await updateProject(project.id, payload);
+        // updateProjectSchema requires `version` for optimistic locking —
+        // without it the backend 400s with "expected number, received undefined".
+        // clientId isn't part of updateProjectSchema, so drop it on updates.
+        const { clientId, ...updatePayload } = payload;
+        await updateProject(project.id, { ...updatePayload, version: project.version });
       } else {
         await createProject(payload);
       }
@@ -176,7 +188,7 @@ export default function ProjectForm({ isOpen, onClose, project = null, onSuccess
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
 
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100 flex-shrink-0">
@@ -198,126 +210,148 @@ export default function ProjectForm({ isOpen, onClose, project = null, onSuccess
 
         {/* Form — scrollable body, header/footer stay fixed so Save is always reachable */}
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
-          <div className="px-6 py-5 space-y-4 overflow-y-auto flex-1">
+          <div className="px-6 py-5 overflow-y-auto flex-1">
 
             {/* Error */}
             {(formError || error) && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-xl flex gap-3">
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl flex gap-3">
                 <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
                 <p className="text-sm text-red-700">{formError || error}</p>
               </div>
             )}
 
-            {/* Project Name */}
-            <div>
-              <label className={labelCls}>Project Name</label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => set("name", e.target.value)}
-                placeholder="e.g. Website Redesign"
-                className={inputCls}
-              />
-            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-            {/* Client */}
-            <div>
-              <label className={labelCls}>Client</label>
-              <Dropdown
-                value={formData.clientId}
-                onChange={(v) => set("clientId", v)}
-                options={clientOptions}
-                placeholder="Acme Corp, TechStart Inc..."
-              />
-            </div>
-
-            {/* Start + End Date */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className={labelCls}>Start Date</label>
-                <div className="relative">
+              {/* Left column */}
+              <div className="space-y-4">
+                {/* Project Name */}
+                <div>
+                  <label className={labelCls}>Project Name *</label>
                   <input
-                    type="date"
-                    value={formData.startDate}
-                    onChange={(e) => set("startDate", e.target.value)}
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => set("name", e.target.value)}
+                    placeholder="e.g. Website Redesign"
                     className={inputCls}
                   />
                 </div>
-              </div>
-              <div>
-                <label className={labelCls}>End Date</label>
-                <input
-                  type="date"
-                  value={formData.endDate}
-                  onChange={(e) => set("endDate", e.target.value)}
-                  className={inputCls}
-                />
-              </div>
-            </div>
 
-            {/* Description */}
-            <div>
-              <label className={labelCls}>Description</label>
-              <input
-                type="text"
-                value={formData.description}
-                onChange={(e) => set("description", e.target.value)}
-                placeholder="Brief project description..."
-                className={inputCls}
-              />
-            </div>
+                {/* Client */}
+                <div>
+                  <label className={labelCls}>Client {!project && "*"}</label>
+                  <Dropdown
+                    value={formData.clientId}
+                    onChange={(v) => set("clientId", v)}
+                    options={clientOptions}
+                    placeholder="Acme Corp, TechStart Inc..."
+                  />
+                  {project && (
+                    <p className="mt-1 text-xs text-gray-400">Client can't be changed after a project is created.</p>
+                  )}
+                </div>
 
-            {/* Milestones */}
-            <div>
-              <label className={labelCls}>Milestones</label>
-              <div className="space-y-2">
-                {formData.milestones?.map((m, idx) => (
-                  <div key={idx} className="flex items-center gap-2">
+                {/* Status */}
+                <div>
+                  <label className={labelCls}>Status</label>
+                  <Dropdown
+                    value={formData.status}
+                    onChange={(v) => set("status", v)}
+                    options={STATUS_OPTIONS}
+                    placeholder="Select status"
+                  />
+                </div>
+
+                {/* Description */}
+                <div>
+                  <label className={labelCls}>Description</label>
+                  <textarea
+                    value={formData.description}
+                    onChange={(e) => set("description", e.target.value)}
+                    placeholder="Brief project description..."
+                    rows={4}
+                    className={`${inputCls} resize-none`}
+                  />
+                </div>
+              </div>
+
+              {/* Right column */}
+              <div className="space-y-4">
+                {/* Start + End Date */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className={labelCls}>Start Date</label>
                     <input
-                      type="text"
-                      value={m}
-                      onChange={(e) => {
-                        const newMilestones = [...formData.milestones];
-                        newMilestones[idx] = e.target.value;
-                        set("milestones", newMilestones);
-                      }}
-                      className="flex-1 px-3 py-2 border border-gray-200 rounded-md text-sm" />
-                    <button type="button" onClick={() => {
-                      const newMilestones = formData.milestones.filter((_, i) => i !== idx);
-                      set("milestones", newMilestones);
-                    }} className="text-red-500 ml-2">Remove</button>
+                      type="date"
+                      value={formData.startDate}
+                      onChange={(e) => set("startDate", e.target.value)}
+                      className={inputCls}
+                    />
                   </div>
-                ))}
-              </div>
-              <button
-                type="button"
-                className="mt-3 text-sm font-semibold text-blue-600 hover:text-blue-800"
-                onClick={() => set("milestones", [...(formData.milestones || []), ""])}
-              >
-                + Add milestone
-              </button>
-            </div>
+                  <div>
+                    <label className={labelCls}>End Date</label>
+                    <input
+                      type="date"
+                      value={formData.endDate}
+                      onChange={(e) => set("endDate", e.target.value)}
+                      className={inputCls}
+                    />
+                  </div>
+                </div>
 
-            {/* Status */}
-            <div>
-              <label className={labelCls}>Status</label>
-              <Dropdown
-                value={formData.status}
-                onChange={(v) => set("status", v)}
-                options={STATUS_OPTIONS}
-                placeholder="Select status"
-              />
-            </div>
+                {/* Setup Notes */}
+                <div>
+                  <label className={labelCls}>Setup Notes</label>
+                  <textarea
+                    value={formData.setupNotes}
+                    onChange={(e) => set("setupNotes", e.target.value)}
+                    placeholder="Internal notes about getting this project up and running..."
+                    rows={3}
+                    className={`${inputCls} resize-none`}
+                  />
+                </div>
 
-            {/* Where to go next — sprints/phases/tasks live on their own pages,
-                not bundled into this form, so this modal stays short. */}
-            {project && (
-              <div className="p-3 bg-blue-50 border border-blue-100 rounded-xl text-xs text-blue-700 leading-relaxed">
-                Manage sprints from this project's Overview page, phases from the
-                Phases page, and tasks (linked to a sprint and/or phase) from the
-                Dashboard's "+ Add Task" button.
+                {/* Milestones */}
+                <div>
+                  <label className={labelCls}>Milestones</label>
+                  <div className="space-y-2">
+                    {formData.milestones?.map((m, idx) => (
+                      <div key={idx} className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={m}
+                          onChange={(e) => {
+                            const newMilestones = [...formData.milestones];
+                            newMilestones[idx] = e.target.value;
+                            set("milestones", newMilestones);
+                          }}
+                          className="flex-1 px-3 py-2 border border-gray-200 rounded-md text-sm" />
+                        <button type="button" onClick={() => {
+                          const newMilestones = formData.milestones.filter((_, i) => i !== idx);
+                          set("milestones", newMilestones);
+                        }} className="text-red-500 ml-2">Remove</button>
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    className="mt-3 text-sm font-semibold text-blue-600 hover:text-blue-800"
+                    onClick={() => set("milestones", [...(formData.milestones || []), ""])}
+                  >
+                    + Add milestone
+                  </button>
+                </div>
+
+                {/* Where to go next — sprints/phases/tasks live on their own pages,
+                    not bundled into this form, so this modal stays focused. */}
+                {project && (
+                  <div className="p-3 bg-blue-50 border border-blue-100 rounded-xl text-xs text-blue-700 leading-relaxed">
+                    Manage sprints from this project's Overview page, phases from the
+                    Phases page, and tasks (linked to a sprint and/or phase) from the
+                    Dashboard's "+ Add Task" button.
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </div>
 
           {/* Actions — always visible, never scrolls away */}
