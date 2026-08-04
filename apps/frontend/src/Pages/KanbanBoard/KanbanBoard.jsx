@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useProjectStore } from '../../store/projectStore';
 import { useTaskStore } from '../../store/taskStore';
+import TaskModal from '../../Dashboard/Metrics/TaskModal';
 
 // BLOCKED goes to 'blocked' if we had one, but QA goes to 'review'
 const COLUMN_TO_STATUS = {
@@ -253,7 +254,10 @@ const Kanban = () => {
   const [selectedCard, setSelectedCard] = useState(null);
   const [draggedCard, setDraggedCard] = useState(null);
   const [apiError, setApiError] = useState(null);
+  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState(null);
   const updateTask = useTaskStore((state) => state.updateTask);
+  const getTaskById = useTaskStore((state) => state.getTaskById);
   const isBoardReadOnly =
     ['COMPLETED', 'ARCHIVED'].includes(currentProject?.status) ||
     activeSprint?.status === 'CLOSED';
@@ -453,20 +457,31 @@ const Kanban = () => {
         <div className="pb-6 border-b border-gray-200 mb-6">
           <div className="flex justify-between items-center">
             <h1 className="text-2xl font-bold">Sprint Task-Progress {currentProject?.name && `— ${currentProject.name}`}</h1>
-            {projects && projects.length > 0 && (
-              <select
-                className="w-full bg-white border border-gray-300 text-gray-700 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block px-3 py-2 shadow-sm font-medium lg:w-auto"
-                value={currentProject?.id || ''}
-                onChange={(e) => switchProject(e.target.value)}
-              >
-                <option value="" disabled>Select a project</option>
-                {projects.map(p => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} {p.status ? `(${p.status})` : ''}
-                  </option>
-                ))}
-              </select>
-            )}
+            <div className="flex items-center gap-3">
+              {projects && projects.length > 0 && (
+                <select
+                  className="w-full bg-white border border-gray-300 text-gray-700 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block px-3 py-2 shadow-sm font-medium lg:w-auto"
+                  value={currentProject?.id || ''}
+                  onChange={(e) => switchProject(e.target.value)}
+                >
+                  <option value="" disabled>Select a project</option>
+                  {projects.map(p => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} {p.status ? `(${p.status})` : ''}
+                    </option>
+                  ))}
+                </select>
+              )}
+              {!isBoardReadOnly && (
+                <button
+                  type="button"
+                  onClick={() => { setEditingTask(null); setIsTaskModalOpen(true); }}
+                  className="px-3 py-2 rounded-lg bg-blue-900 hover:bg-blue-600 text-white text-sm font-medium whitespace-nowrap"
+                >
+                  + Add Task
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="flex flex-col gap-4 mt-4 xl:flex-row xl:items-center xl:justify-between">
@@ -528,7 +543,17 @@ const Kanban = () => {
               title={col.title}
               headerColor={col.headerColor}
               cards={col.cards}
-              onCardClick={setSelectedCard}
+              onCardClick={async (card) => {
+                setSelectedCard(card);
+                setIsTaskModalOpen(true);
+                setEditingTask(card); // shows something immediately while the full record loads
+                try {
+                  const res = await getTaskById(card.id);
+                  setEditingTask(res?.data ?? res);
+                } catch (err) {
+                  console.error('Failed to load task details:', err);
+                }
+              }}
               onCardDragStart={handleDragStart}
               onCardDragEnd={handleDragEnd}
               onDropCard={handleDrop}
@@ -539,6 +564,18 @@ const Kanban = () => {
         </div>
 
       </div>
+
+      <TaskModal
+        isOpen={isTaskModalOpen}
+        task={editingTask}
+        initialSprintId={activeSprint?.id || null}
+        onClose={() => {
+          setIsTaskModalOpen(false);
+          setEditingTask(null);
+          setSelectedCard(null);
+          fetchDashboard().catch((err) => console.error('Failed to refresh dashboard:', err));
+        }}
+      />
     </div>
   );
 };
