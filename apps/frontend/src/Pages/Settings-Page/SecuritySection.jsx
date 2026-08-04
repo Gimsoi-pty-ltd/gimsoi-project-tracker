@@ -63,7 +63,7 @@ export default function SecuritySection() {
         <div className="flex items-center justify-between gap-4">
           <div className="min-w-0">
             <p className="font-medium text-sm truncate">Password</p>
-            <p className="text-xs text-gray-400">Last changed 2 months ago</p>
+            <p className="text-xs text-gray-400">Change your account password</p>
           </div>
           <button 
             onClick={() => setShowPasswordModal(true)}

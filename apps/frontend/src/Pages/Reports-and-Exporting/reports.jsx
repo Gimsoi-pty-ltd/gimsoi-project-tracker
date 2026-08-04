@@ -1,6 +1,6 @@
 // src/Pages/Reports and Exporting/reports.jsx
 import React, { useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Download } from "lucide-react";
 import { useProjectStore } from "../../store/projectStore";
 import EmptyState from "../../Components/EmptyState";
@@ -19,7 +19,6 @@ export default function ReportsHub() {
         const state = useProjectStore.getState();
         const loader = state.ensureDashboardLoaded || state.fetchDashboard;
         if (typeof loader === "function") {
-          // call once on mount; loader manages internal loading guards
           await loader();
         }
       } catch (error) {
@@ -59,6 +58,8 @@ export default function ReportsHub() {
   const metrics = activeSprint?.metrics ?? {};
   const projectName = currentProject?.name ?? "No project";
   const sprintName = activeSprint?.name ?? "No sprint";
+
+  const navigate = useNavigate();
 
   const reports = [
     {
@@ -101,7 +102,7 @@ export default function ReportsHub() {
               <p>Completion: {report.completion}</p>
               <p>Contribution: {report.contribution}</p>
             </div>
-            <button className="mt-3 inline-flex items-center gap-2 text-blue-600 text-sm"><Download size={16} /> Download PDF</button>
+            <button onClick={() => navigate(report.path)} className="mt-3 inline-flex items-center gap-2 text-blue-600 text-sm"><Download size={16} /> Download PDF</button>
           </div>
         ))}
       </div>
@@ -135,7 +136,7 @@ export default function ReportsHub() {
                     }`}>{report.contribution}</span>
                   </td>
                   <td className="px-6 py-4">
-                    <button className="inline-flex items-center gap-2 text-blue-600 text-sm hover:underline"><Download size={16} /> Download PDF</button>
+                    <button onClick={() => navigate(report.path)} className="inline-flex items-center gap-2 text-blue-600 text-sm hover:underline"><Download size={16} /> Download PDF</button>
                   </td>
                 </tr>
               ))}

@@ -36,7 +36,7 @@ export default function BurnDownCard() {
     burndown.map((d, i) => `${i === 0 ? "M" : "L"} ${getX(i)} ${getY(d[key])}`).join(" ");
 
   return (
-    <div className="min-h-[390px] bg-white p-5 border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-all">
+    <div className="min-h-[390px] flex flex-col bg-white p-5 border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-all">
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <h3 className="text-sm font-bold text-sky-500 uppercase">BURN-DOWN CHART</h3>
@@ -51,7 +51,7 @@ export default function BurnDownCard() {
       </div>
 
       {!hasChartData ? (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
+        <div className="flex-1 flex flex-col items-center justify-center py-16 text-center">
           <p className="text-sm font-medium text-gray-600">No burndown data yet</p>
           <p className="text-xs text-gray-400 mt-2 max-w-xs">
             Burndown chart requires a backend endpoint that is not available yet.
@@ -71,7 +71,7 @@ export default function BurnDownCard() {
             </div>
           </div>
 
-          <svg width="100%" viewBox={`0 0 ${width} ${height}`}>
+          <svg width="100%" viewBox={`0 0 ${width} ${height}`} className="flex-1 min-h-0 w-full">
             <line x1={padding} y1={padding} x2={padding} y2={height - padding} stroke="#d1d5db" />
             <line
               x1={padding}
@@ -91,18 +91,22 @@ export default function BurnDownCard() {
             {burndown.map((d, i) => (
               <circle key={i} cx={getX(i)} cy={getY(d.actual)} r="4.8" fill="#16a34a" />
             ))}
-            {burndown.map((d, i) => (
-              <text
-                key={i}
-                x={getX(i)}
-                y={height - 12}
-                textAnchor="middle"
-                fontSize="10"
-                fill="#6b7280"
-              >
-                {d.day}
-              </text>
-            ))}
+            {burndown.map((d, i) => {
+              const step = Math.ceil(burndown.length / 6);
+              if (i % step !== 0 && i !== burndown.length - 1) return null;
+              return (
+                <text
+                  key={i}
+                  x={getX(i)}
+                  y={height - 12}
+                  textAnchor="middle"
+                  fontSize="10"
+                  fill="#6b7280"
+                >
+                  {d.day}
+                </text>
+              );
+            })}
             {[0, 10, 20, 30, 40].map((v) => (
               <text key={v} x="12" y={getY(v) + 4} fontSize="10" fill="#6b7280">
                 {v}

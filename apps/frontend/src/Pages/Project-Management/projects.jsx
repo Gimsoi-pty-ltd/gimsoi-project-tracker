@@ -9,12 +9,12 @@ import ErrorAlert from "../../Components/ErrorAlert";
 import LoadingSpinner from "../../Components/LoadingSpinner";
 
 // ─── Status config ────────────────────────────────────────────────────────────
+// Must match the backend's ProjectStatus enum exactly (see project.schema.js)
 const STATUS_CONFIG = {
+  DRAFT:     { label: "Draft",    dot: "bg-gray-400",    text: "text-gray-600",    bg: "bg-gray-100"   },
   ACTIVE:    { label: "Active",   dot: "bg-blue-500",    text: "text-blue-600",    bg: "bg-blue-50"    },
   COMPLETED: { label: "Complete", dot: "bg-emerald-500", text: "text-emerald-600", bg: "bg-emerald-50" },
-  "ON HOLD": { label: "On Hold",  dot: "bg-orange-400",  text: "text-orange-600",  bg: "bg-orange-50"  },
-  DRAFT:     { label: "Draft",    dot: "bg-gray-400",    text: "text-gray-600",    bg: "bg-gray-100"   },
-  PLANNING:  { label: "Planning", dot: "bg-purple-500",  text: "text-purple-600",  bg: "bg-purple-50"  },
+  ARCHIVED:  { label: "Archived", dot: "bg-slate-400",   text: "text-slate-600",   bg: "bg-slate-100"  },
 };
 
 const getStatusCfg = (status) =>
@@ -70,7 +70,7 @@ function StatusBadge({ status, onChange }) {
 function ProjectRow({ project, onNavigate, onDelete, onStatusChange }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
-  const pct = project.progress || 0;
+  const pct = project.percentComplete || 0;
 
   useEffect(() => {
     const h = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false); };
@@ -79,6 +79,8 @@ function ProjectRow({ project, onNavigate, onDelete, onStatusChange }) {
   }, []);
 
   const clientName = typeof project.client === "object" ? project.client?.name : project.client;
+  const sprints = Array.isArray(project.sprints) ? project.sprints : [];
+  const displaySprint = sprints.find((s) => s.status === "ACTIVE") || sprints[sprints.length - 1];
   return (
     <div
       className="grid grid-cols-[1fr_1.2fr_1fr_0.8fr_1.4fr_44px] items-center px-6 py-4 hover:bg-slate-50 transition-colors cursor-pointer border-b border-gray-100 last:border-0 group"
@@ -92,8 +94,8 @@ function ProjectRow({ project, onNavigate, onDelete, onStatusChange }) {
       </div>
 
       <div className="text-sm text-gray-500 pr-4">
-        {project.sprint
-          ? <span className="px-2 py-1 bg-gray-100 rounded-lg text-xs font-medium text-gray-600">{project.sprint}</span>
+        {displaySprint
+          ? <span className="px-2 py-1 bg-gray-100 rounded-lg text-xs font-medium text-gray-600">{displaySprint.name}</span>
           : "—"}
       </div>
 
@@ -187,7 +189,7 @@ export default function Projects() {
   const handleStatusChange = async (projectId, newStatus) => {
     try {
       const project = projects.find((p) => p.id === projectId);
-      if (project) await updateProject(projectId, { ...project, status: newStatus });
+      if (project) await updateProject(projectId, { status: newStatus, version: project.version });
     } catch (err) {
       console.error("Status update failed:", err);
     }

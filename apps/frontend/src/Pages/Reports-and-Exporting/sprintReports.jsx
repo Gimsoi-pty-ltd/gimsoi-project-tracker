@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { useProjectStore } from "../../store/projectStore";
 import { Download, TrendingUp, CheckCircle2, AlertCircle, LineChart } from "lucide-react";
 import EmptyState from "../../Components/EmptyState";
@@ -98,20 +99,28 @@ const SprintReport = () => {
 
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-blue-900">Sprint Report</h1>
-          <p className="text-sm text-slate-500 mt-1">{selectedSprint.name}</p>
-        </div>
+         <div>
+           <h2 className="text-xl md:text-2xl font-bold text-slate-900">Sprint Report</h2>
+             <nav className="flex mt-1 text-sm text-gray-500">
+               <Link to="/reports">
+                 <span className="text-blue-600 hover:text-slate-400 cursor-pointer">Reports Hub</span>
+              </Link>
+                  <span className="mx-2">/</span>
+                    <span>Sprint Report</span>
+                  </nav>
+                </div>
         <button 
           onClick={async () => {
             try {
-              const createRes = await fetch('/api/reports', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: `Sprint Report ${selectedSprint?.id || ''} ${new Date().toISOString()}`, type: 'SPRINT', projectId: selectedSprint?.projectId || null }) });
-              const createData = await createRes.json();
-              const reportId = createData?.data?.id || createData?.id;
+              const createRes = await resourceAPI.post('/reports', {
+                name: `Sprint Report ${selectedSprint?.id || ''} ${new Date().toISOString()}`,
+                type: 'SPRINT',
+                projectId: selectedSprint?.projectId || null,
+              });
+              const reportId = createRes.data?.data?.id || createRes.data?.id;
               if (!reportId) throw new Error('No report id returned');
-              const pdfRes = await fetch(`/api/reports/${reportId}/pdf`);
-              const arrayBuffer = await pdfRes.arrayBuffer();
-              const blob = new Blob([arrayBuffer], { type: 'application/pdf' });
+              const pdfRes = await resourceAPI.get(`/reports/${reportId}/pdf`, { responseType: 'arraybuffer' });
+              const blob = new Blob([pdfRes.data], { type: 'application/pdf' });
               const url = URL.createObjectURL(blob);
               const a = document.createElement('a');
               a.href = url;

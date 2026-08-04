@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Info } from "lucide-react";
 import { useProjectStore } from "../../store/projectStore";
 
-const COLORS = ["#2563eb", "#f97316", "#6d28d9", "#3b82f6"];
+const COLORS = ["#ef4444", "#f97316", "#f59e0b", "#10b981"];
 
 export default function TaskDistributionCard() {
   const [showInfo, setShowInfo] = useState(false);
@@ -22,8 +22,8 @@ export default function TaskDistributionCard() {
         }))
       : [];
 
-  const radius = 58;
-  const stroke = 24;
+  const radius = 100;
+  const stroke = 30;
   const circumference = radius * 2 * Math.PI;
 
   return (
@@ -55,8 +55,11 @@ export default function TaskDistributionCard() {
           </p>
         </div>
       ) : (
-        <div className="flex items-center gap-8">
-          <svg width="190" height="190" viewBox="0 0 190 190">
+        <div className="flex items-center ">
+          <svg width="100%"
+           height="100%"
+            viewBox="0 0 240 240"
+            >
             <g transform="rotate(-90 95 95)">
               {(() => {
                 let accumulatedOffset = 0;
@@ -68,8 +71,8 @@ export default function TaskDistributionCard() {
                   return (
                     <circle
                       key={i}
-                      cx="95"
-                      cy="95"
+                      cx="75"
+                      cy="115"
                       r={radius}
                       fill="transparent"
                       stroke={item.color}
@@ -84,12 +87,14 @@ export default function TaskDistributionCard() {
             </g>
           </svg>
 
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-8">
             {data.map((item) => (
               <div key={item.label} className="flex min-w-[180px] items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="h-3 w-3 rounded-full" style={{ backgroundColor: item.color }} />
-                  <span className="text-[14px] capitalize text-gray-700">{item.label}</span>
+                 <span className="text-[14px] capitalize text-gray-700">
+                    {item.label === 'urgent' ? 'Critical' : item.label}
+                  </span>
                 </div>
                 <span className="text-[14px] text-gray-600">
                   {item.value} ({item.percent}%)
