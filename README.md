@@ -1,178 +1,165 @@
 # Gimsoi Project Tracker
-Internal delivery and client transparency system for Gimsoi (Pty) Ltd
 
----
+Gimsoi Project Tracker is a full-stack project delivery platform for managing projects, sprints, tasks, teams, clients, reports, and delivery analytics.
 
-## Project Tracker Setup
+## Tech stack
 
-Guide on how to set up the app
+| Area     | Technologies                                                        |
+| -------- | ------------------------------------------------------------------- |
+| Frontend | React 19, Vite 8, Tailwind CSS 4, React Router 7, Zustand, Recharts |
+| Backend  | Node.js, Express 5, Zod 4, JWT authentication, Playwright API tests |
+| Database | Prisma ORM 7, Prisma Postgres, PostgreSQL driver adapter            |
 
-> **Mac user?** The download links below are for Windows - paste them into ChatGPT and ask for the Mac equivalents.
+## Repository layout
 
-## Step 1 - Install the Required Tools
+```text
+apps/
+  frontend/       React web application
+  backend/        Express API, Prisma schema, migrations, and seed data
+docs/              Architecture, API, product, security, and onboarding notes
+infra/             CI, deployment, security, and hosting configuration
+packages/shared/   Shared package workspace
+```
 
-Download and install each of these (skip any you already have):
+## Prerequisites
 
-| Tool | What it does | Download |
-|------|-------------|----------|
-| Node.js | Runs the app | [Download Node](https://nodejs.org) |
-| Git | Copies the code to your computer | [Download Git](https://git-scm.com) |
-| VS Code | Code editor (where you'll work) | [Download VS Code](https://code.visualstudio.com) |
+- Node.js 22.12 or newer
+- npm
+- Git
+- Access to the project's PostgreSQL database, or another development database
 
+## Quick start
 
-## Step 2 - Copy the Repo to Your Computer
-
-1. Go to the company repo on GitHub
-2. Click the green `< Code >` button and copy the link shown
-3. Open a terminal in VS Code and run these commands one by one:
+Clone the repository:
 
 ```bash
 git clone https://github.com/Gimsoi-pty-ltd/gimsoi-project-tracker.git
 cd gimsoi-project-tracker
 ```
 
-> 💡 **Need a specific branch?**
-> ```bash
-> # Pull the latest changes
-> git fetch origin main
-> 
-> # Switch to a specific branch (replace <branch> with the branch name)
-> git checkout <branch>
-> ```
-
-
-## Step 3 - Run the Frontend
-
-Open a terminal and run:
-
-```bash
-cd apps/frontend
-npm install       # installs dependencies
-npm run dev       # starts the app
-```
-
-Then click the localhost link that appears in the terminal.
-
----
-
-## Step 4 - Run the Backend
-
-Open a **second terminal** (keep the frontend one running) and run:
+### 1. Configure and start the backend
 
 ```bash
 cd apps/backend
-npm install       # installs dependencies
 ```
 
-###  First time only - Set up your `.env` file
+Copy `apps/backend/.env.example` to `apps/backend/.env`, then replace every placeholder. Never commit `.env` or paste its values into logs or issues.
 
-The backend needs a config file with your credentials. Create it by running:
+Create `.env` before installing because the backend's post-install step loads the Prisma configuration and generates the client. Then install the locked dependencies:
 
 ```bash
-touch .env
+npm ci
 ```
 
-Then open the new `.env` file and add each of the following values:
+Required for local development:
 
+| Variable       | Purpose                                                 |
+| -------------- | ------------------------------------------------------- |
+| `DATABASE_URL` | PostgreSQL connection string used by Prisma and the API |
+| `JWT_SECRET`   | Secret used to sign authentication tokens               |
 
-### `.env` Field Reference
+Common optional settings:
 
-#### `PORT`
-The port the backend API runs on. Leave this as-is unless something else on your machine is already using port 5001.
-```
-PORT=5001
-```
+| Variable                   | Default or purpose                                |
+| -------------------------- | ------------------------------------------------- |
+| `PORT`                     | Backend port; defaults to `5001`                  |
+| `NODE_ENV`                 | Use `development` locally                         |
+| `CLIENT_URL`               | Frontend origin; normally `http://localhost:5173` |
+| `GMAIL_USER`               | Gmail account used for application email          |
+| `GMAIL_APP_PASSWORD`       | Gmail app password, not the account password      |
+| `CSRF_SECRET`              | Required in production                            |
+| `DB_POOL_MAX`              | Maximum PostgreSQL pool size                      |
+| `DB_CONNECTION_TIMEOUT_MS` | Database connection timeout                       |
+| `DB_IDLE_TIMEOUT_MS`       | Idle connection timeout                           |
 
-
-#### `NODE_ENV`
-Tells the app which mode it's running in. Leave this as `development` on your local machine.
-```
-NODE_ENV=development
-```
-
-
-#### `JWT_SECRET`
-A secret key used to sign login tokens. This must be a long, random string — **never share it or commit it to Git.**
-
-Generate one by running this command in your terminal:
-```bash
-node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
-```
-Copy the output and paste it as the value:
-```
-JWT_SECRET="paste-your-generated-string-here"
-```
-
-
-#### `DATABASE_URL`
-The connection string for your Prisma database.
-
-To get it:
-1. Go to [console.prisma.io](https://console.prisma.io)
-2. Open your project
-3. Click **Connect**
-4. Copy the connection string and paste it in:
-
-```
-DATABASE_URL=your-connection-string-here
-```
-
-
-#### `GMAIL_USER`
-The Gmail address the app uses to send emails (e.g. for password resets or notifications).
-```
-GMAIL_USER=youremail@gmail.com
-```
-
-
-#### `GMAIL_APP_PASSWORD`
-A special password that lets the app send emails via Gmail. **This is NOT your regular Gmail password.**
-
-To generate one:
-1. Go to [myaccount.google.com](https://myaccount.google.com/apppasswords)
-2. Navigate to **Security → 2-Step Verification → App passwords**
-3. Create a new app password and paste it in:
-
-```
-GMAIL_APP_PASSWORD=your-16-character-app-password
-```
-
-> 2-Step Verification must be enabled on your Google account before App Passwords will appear.
-
-
-#### `CLIENT_URL`
-The address of the frontend app. Leave this as-is for local development — it matches the default Vite dev server port.
-```
-CLIENT_URL=http://localhost:5173
-```
-
-
-### Your completed `.env` should look like this:
-
-```
-PORT=5001
-NODE_ENV=development
-JWT_SECRET="your-generated-secret"
-DATABASE_URL=your-prisma-connection-string
-GMAIL_USER=youremail@gmail.com
-GMAIL_APP_PASSWORD=your-16-character-app-password
-CLIENT_URL=http://localhost:5173
-```
-
-> **Still stuck?** Copy the contents of `.env.example` into ChatGPT and ask it to walk you through each field.
-
-
-### Start the backend
+Validate the Prisma setup and start the API:
 
 ```bash
-npm start          # runs the API
-# or
-npm run test:api   # tests the API
+npx prisma validate
+npx prisma generate
+npm run dev
 ```
 
+The API runs at http://localhost:5001/api. Useful development endpoints:
 
-## You're Done!
+- Health: http://localhost:5001/api/health
+- Swagger UI: http://localhost:5001/api/docs
 
-With both terminals running, open the frontend link in your browser. You can now create an account and log in.
+### 2. Start the frontend
 
-> **Something not working?** Copy the error message into ChatGPT - it'll help you fix it fast.
+Open another terminal from the repository root:
+
+```bash
+cd apps/frontend
+npm ci
+npm run dev
+```
+
+Open http://localhost:5173. Vite proxies `/api` requests to the backend on port `5001`.
+
+## Prisma workflow
+
+Run Prisma commands from `apps/backend` so the CLI finds `prisma.config.ts`.
+
+```bash
+npx prisma validate     # validate prisma/schema.prisma
+npx prisma generate     # regenerate the client in lib/generated/prisma
+npx prisma studio       # inspect the configured database
+npx prisma db seed      # write the configured starter data
+```
+
+The seed command runs `node prisma/seed.js`, as configured in `prisma.config.ts`.
+
+### Database safety
+
+- `npm run db:setup` uses `prisma db push --force-reset` and deletes existing data.
+- `npm run test:api` resets and truncates database tables during test setup.
+- `npx prisma db seed` clears existing domain data and writes demo records to the selected database.
+- Never run these commands against the shared or production database. Use a disposable test database.
+- The legacy migration history needs cleanup before it can be safely replayed on a completely fresh database.
+
+## Available commands
+
+### Frontend (`apps/frontend`)
+
+| Command           | Purpose                           |
+| ----------------- | --------------------------------- |
+| `npm run dev`     | Start the Vite development server |
+| `npm run lint`    | Run ESLint                        |
+| `npm run build`   | Create a production build         |
+| `npm run preview` | Preview the production build      |
+
+### Backend (`apps/backend`)
+
+| Command            | Purpose                                         |
+| ------------------ | ----------------------------------------------- |
+| `npm run dev`      | Start the API with automatic restart            |
+| `npm start`        | Start the API with Node.js                      |
+| `npm run db:seed`  | Run the JavaScript seed directly                |
+| `npm run db:setup` | Force-reset, synchronize, and seed the database |
+| `npm run test:api` | Run the destructive API integration suite       |
+
+## Verification
+
+Safe checks for the configured development environment:
+
+```bash
+cd apps/backend
+npm ls --depth=0
+npx prisma validate
+npx prisma generate
+
+cd ../frontend
+npm ls --depth=0
+npm run lint
+npm run build
+```
+
+## Documentation
+
+- [Architecture](docs/architecture/README.md)
+- [API](docs/api/README.md)
+- [Product](docs/product/README.md)
+- [Onboarding](docs/onboarding/README.md)
+- [Security baseline](docs/SECURITY_BASELINE.md)
+- [Contributing](CONTRIBUTING.md)

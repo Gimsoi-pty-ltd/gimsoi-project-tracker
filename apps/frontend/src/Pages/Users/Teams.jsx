@@ -1,275 +1,361 @@
 // src/Pages/Users/Teams.jsx
-import React, { useState, useMemo } from "react";
+//
+// NOTE: the backend has no standalone "Team" model — Project and User are
+// connected only through ProjectMember (see prisma schema.prisma). So "team"
+// here means a project's real member list, managed through
+// /api/projects/:id/members (getProjectMembers / addProjectMember /
+// updateProjectMemberRole / removeProjectMember in projectStore.js).
+// This page lets you pick a project, then add/remove/re-role its members.
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { Search, Plus, Download, Upload } from "lucide-react";
+import { Search, Plus, X, Check } from "lucide-react";
 import { useProjectStore } from "../../store/projectStore";
+import { resourceAPI } from "../../api/api";
 
-const statusColor = (status) => {
-  if (status === "Active") return "bg-green-100 text-green-700";
-  if (status === "On Hold") return "bg-yellow-100 text-yellow-700";
-  if (status === "Archived") return "bg-gray-200 text-gray-600";
-  return "bg-gray-100 text-gray-600";
+const ROLE_OPTIONS = ["OWNER", "MEMBER", "VIEWER"];
+
+const roleBadge = (role) => {
+  if (role === "OWNER") return "bg-blue-100 text-blue-700";
+  if (role === "VIEWER") return "bg-gray-100 text-gray-600";
+  return "bg-emerald-100 text-emerald-700";
 };
 
-// Build teams from projects + team members
-const buildTeams = (projects = []) =>
-  projects.map((project) => {
-    const teamMembers = (project.team || []).map((name) => ({
-      name: name.split("(")[0]?.trim() || "Team Member",
-      initials:
-        name
-          .split("(")[0]
-          ?.trim()
-          .split(" ")
-          .map((n) => n[0])
-          .join("")
-          .toUpperCase()
-          .slice(0, 2) || "?",
-    }));
-
-    const clientName =
-      typeof project.client === "object" && project.client !== null
-        ? project.client.name ?? "N/A"
-        : project.client || "N/A";
-
-    return {
-      name: `${project.name} Team`,
-      project: project.name,
-      client: clientName,
-      dept: "Engineering",
-      lead: teamMembers[0]?.name || "Unassigned",
-      members: teamMembers.length,
-      status: project.status || "Active",
-      _teamMembers: teamMembers,
-    };
-  });
+const initialsFor = (name) =>
+  (name || "?")
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
 
 export default function Teams() {
-  const { projects = [] } = useProjectStore((state) => state);
+  const {
+    projects = [],
+    fetchProjects,
+    getProjectMembers,
+    addProjectMember,
+    removeProjectMember,
+    updateProjectMemberRole,
+  } = useProjectStore();
 
   const [search, setSearch] = useState("");
+  const [selectedProjectId, setSelectedProjectId] = useState("");
+  const [members, setMembers] = useState([]);
+  const [membersLoading, setMembersLoading] = useState(false);
+  const [membersError, setMembersError] = useState(null);
 
-  // ✅ ADDED STATES ONLY
-  const [showModal, setShowModal] = useState(false);
+  const [allUsers, setAllUsers] = useState([]);
+
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [addUserId, setAddUserId] = useState("");
+  const [addRole, setAddRole] = useState("MEMBER");
   const [saving, setSaving] = useState(false);
+  const [addError, setAddError] = useState(null);
 
-  const [form, setForm] = useState({
-    name: "",
-    project: "",
-    client: "",
-    lead: "",
-    status: "Active",
-  });
+  const [removingId, setRemovingId] = useState(null);
+  const [roleSavingId, setRoleSavingId] = useState(null);
 
-  const teams = useMemo(() => buildTeams(projects), [projects]).filter(
-    (t) =>
-      t.name.toLowerCase().includes(search.toLowerCase()) ||
-      t.project.toLowerCase().includes(search.toLowerCase())
+  useEffect(() => {
+    if (!projects.length) fetchProjects({ limit: 50 });
+  }, [projects.length, fetchProjects]);
+
+  useEffect(() => {
+    resourceAPI.get("/users")
+      .then((res) => setAllUsers(res.data?.data || res.data?.users || []))
+      .catch((err) => console.error("Failed to load users:", err));
+  }, []);
+
+  useEffect(() => {
+    if (!selectedProjectId && projects.length) {
+      setSelectedProjectId(projects[0].id);
+    }
+  }, [projects, selectedProjectId]);
+
+  const loadMembers = useCallback(async (projectId) => {
+    if (!projectId) return;
+    setMembersLoading(true);
+    setMembersError(null);
+    try {
+      const data = await getProjectMembers(projectId);
+      setMembers(data);
+    } catch (err) {
+      setMembersError("Failed to load members for this project");
+    } finally {
+      setMembersLoading(false);
+    }
+  }, [getProjectMembers]);
+
+  useEffect(() => {
+    if (selectedProjectId) loadMembers(selectedProjectId);
+  }, [selectedProjectId, loadMembers]);
+
+  const filteredProjects = useMemo(
+    () => projects.filter((p) => p.name?.toLowerCase().includes(search.toLowerCase())),
+    [projects, search]
   );
 
-  // ✅ SAVE TEAM (CLIENT STYLE BEHAVIOR)
-  const handleSaveTeam = async () => {
-    if (!form.name) return;
+  const selectedProject = projects.find((p) => p.id === selectedProjectId);
 
+  const availableUsers = useMemo(
+    () => allUsers.filter((u) => !members.some((m) => (m.userId || m.user?.id) === u.id)),
+    [allUsers, members]
+  );
+
+  const openAddModal = () => {
+    setAddUserId(availableUsers[0]?.id || "");
+    setAddRole("MEMBER");
+    setAddError(null);
+    setShowAddModal(true);
+  };
+
+  const handleAddMember = async () => {
+    if (!addUserId || !selectedProjectId) return;
     setSaving(true);
-
+    setAddError(null);
     try {
-      console.log("Team created:", form);
-
-      setShowModal(false);
-
-      setForm({
-        name: "",
-        project: "",
-        client: "",
-        lead: "",
-        status: "Active",
-      });
+      await addProjectMember(selectedProjectId, addUserId, addRole);
+      setShowAddModal(false);
+      await loadMembers(selectedProjectId);
     } catch (err) {
-      console.error("Error saving team:", err);
+      setAddError(err.response?.data?.message || "Failed to add member");
     } finally {
       setSaving(false);
     }
   };
 
+  const handleRemoveMember = async (userId) => {
+    if (!window.confirm("Remove this member from the project?")) return;
+    setRemovingId(userId);
+    try {
+      await removeProjectMember(selectedProjectId, userId);
+      setMembers((prev) => prev.filter((m) => (m.userId || m.user?.id) !== userId));
+    } catch (err) {
+      console.error("Failed to remove member:", err);
+      alert(err.response?.data?.message || "Failed to remove member");
+    } finally {
+      setRemovingId(null);
+    }
+  };
+
+  const handleRoleChange = async (userId, role) => {
+    setRoleSavingId(userId);
+    try {
+      const updated = await updateProjectMemberRole(selectedProjectId, userId, role);
+      setMembers((prev) =>
+        prev.map((m) => ((m.userId || m.user?.id) === userId ? { ...m, role: updated?.role || role } : m))
+      );
+    } catch (err) {
+      console.error("Failed to update role:", err);
+      alert(err.response?.data?.message || "Failed to update role");
+    } finally {
+      setRoleSavingId(null);
+    }
+  };
+
   return (
     <div className="p-4 md:p-8 bg-gray-50 min-h-screen">
-
       {/* Header */}
       <div className="flex flex-col gap-4 mb-6 md:flex-row md:items-center md:justify-between">
-
         <div>
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-6">
-            Manage Teams
-          </h2>
-
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-6">Manage Teams</h2>
           <nav className="flex mt-1 text-sm text-gray-500">
             <Link to="/users">
-              <span className="text-slate-900 hover:text-slate-600 cursor-pointer">
-                User Management
-              </span>
+              <span className="text-slate-900 hover:text-slate-600 cursor-pointer">User Management</span>
             </Link>
             <span className="mx-2">/</span>
             <span>Teams</span>
           </nav>
+          <p className="text-xs text-gray-400 mt-1 max-w-md">
+            There's no separate "team" concept on the backend — this manages each project's real members.
+          </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2 md:gap-3">
-
-          {/* SEARCH (UNCHANGED) */}
-          <div className="flex items-center bg-white border rounded-lg px-3 py-2 flex-1 min-w-[180px] md:w-72">
+          <div className="flex items-center bg-white border rounded-lg px-3 py-2 flex-1 min-w-[180px] md:w-64">
             <Search size={15} className="text-gray-400 mr-2 flex-shrink-0" />
             <input
               className="outline-none w-full text-sm"
-              placeholder="Search teams..."
+              placeholder="Search projects..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
 
-
-          {/*  ADD TEAM BUTTON */}
           <button
-            onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 bg-[#002D62] text-white px-3 md:px-4 py-2 rounded-lg hover:bg-[#001f44] text-sm"
+            onClick={openAddModal}
+            disabled={!selectedProjectId}
+            className="flex items-center gap-2 bg-[#002D62] text-white px-3 md:px-4 py-2 rounded-lg hover:bg-[#001f44] text-sm disabled:opacity-50"
           >
-            <Plus size={15} /> Add Team
+            <Plus size={15} /> Add Member
           </button>
-
-          {/*  IMPORT BUTTON */}
-          <button
-            onClick={() => alert("Import Data action triggered - this would open the CSV upload interface.")}
-            className="px-4 py-2 border text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            <Download size={16} className="inline mr-1" /> Import
-          </button>
-
-          {/*  EXPORT BUTTON */}
-          <button
-            onClick={() => alert("Export Data action triggered - this would open the CSV download interface.")}
-            className="px-4 py-2 border text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            <Upload size={16} className="inline mr-1" /> Export
-          </button>
-
         </div>
       </div>
 
-      {/* TABLE (UNCHANGED) */}
-      <div className="bg-white border rounded-xl shadow-sm overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-100 text-gray-600 text-left">
-            <tr className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-              <th className="px-6 py-4">Team</th>
-              <th className="px-6 py-4">Project</th>
-              <th className="px-6 py-4">Client</th>
-              <th className="px-6 py-4">Lead</th>
-              <th className="px-6 py-4">Members</th>
-              <th className="px-6 py-4">Status</th>
-            </tr>
-          </thead>
-
-          <tbody className="divide-y divide-gray-100">
-            {teams.length > 0 && teams[0]?._teamMembers?.length > 0 ? (
-              teams[0]._teamMembers.map((member, idx) => (
-                <tr key={idx} className="hover:bg-gray-50 transition">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-[#002D62] text-white flex items-center justify-center text-xs font-bold">{member.initials || '?'}</div>
-                      <span className="font-medium text-gray-900">{member.name}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`text-xs font-medium px-2.5 py-1 rounded-full bg-gray-100 text-gray-600`}>Developer</span>
-                  </td>
-                  <td className="px-6 py-4 text-gray-600">Developer</td>
-                  <td className="px-6 py-4 text-gray-500">—</td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="4" className="px-6 py-8 text-center text-gray-500">
-                  No team members assigned
-                </td>
-              </tr>
+      <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] gap-6">
+        {/* Project list */}
+        <div className="bg-white border rounded-xl shadow-sm overflow-hidden self-start">
+          <div className="px-4 py-3 border-b bg-gray-50 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+            Projects
+          </div>
+          <div className="max-h-[520px] overflow-y-auto">
+            {filteredProjects.length === 0 && (
+              <div className="px-4 py-6 text-sm text-gray-400 text-center">No projects found</div>
             )}
-          </tbody>
-        </table>
+            {filteredProjects.map((p) => (
+              <button
+                key={p.id}
+                onClick={() => setSelectedProjectId(p.id)}
+                className={`w-full text-left px-4 py-3 border-b last:border-b-0 text-sm transition-colors ${
+                  p.id === selectedProjectId ? "bg-blue-50 text-blue-700 font-medium" : "hover:bg-gray-50 text-gray-700"
+                }`}
+              >
+                {p.name}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Members table */}
+        <div className="bg-white border rounded-xl shadow-sm overflow-hidden">
+          <div className="px-4 py-3 border-b bg-gray-50 flex items-center justify-between">
+            <span className="text-sm font-semibold text-gray-700">
+              {selectedProject ? `${selectedProject.name} — Members` : "Select a project"}
+            </span>
+            {selectedProject && (
+              <span className="text-xs text-gray-400">{members.length} member{members.length !== 1 ? "s" : ""}</span>
+            )}
+          </div>
+
+          {membersError && (
+            <div className="m-4 p-3 bg-red-50 text-red-600 rounded-lg text-sm">{membersError}</div>
+          )}
+
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 text-gray-500 text-left text-xs uppercase tracking-wider">
+              <tr>
+                <th className="px-6 py-3">Member</th>
+                <th className="px-6 py-3">Email</th>
+                <th className="px-6 py-3">Role</th>
+                <th className="px-6 py-3">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {membersLoading && (
+                <tr>
+                  <td colSpan={4} className="text-center py-10 text-gray-400">Loading members...</td>
+                </tr>
+              )}
+              {!membersLoading && selectedProjectId && members.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="text-center py-10 text-gray-400">No members assigned yet</td>
+                </tr>
+              )}
+              {!membersLoading && !selectedProjectId && (
+                <tr>
+                  <td colSpan={4} className="text-center py-10 text-gray-400">Pick a project on the left</td>
+                </tr>
+              )}
+              {!membersLoading && members.map((m) => {
+                const userId = m.userId || m.user?.id;
+                const name = m.user?.fullName || m.user?.email || "Unknown";
+                return (
+                  <tr key={userId} className="hover:bg-gray-50 transition">
+                    <td className="px-6 py-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-[#002D62] text-white flex items-center justify-center text-xs font-bold">
+                          {initialsFor(m.user?.fullName)}
+                        </div>
+                        <span className="font-medium text-gray-900">{name}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-3 text-gray-600">{m.user?.email || "—"}</td>
+                    <td className="px-6 py-3">
+                      <select
+                        value={m.role}
+                        disabled={roleSavingId === userId}
+                        onChange={(e) => handleRoleChange(userId, e.target.value)}
+                        className={`text-xs font-medium px-2.5 py-1 rounded-full border-0 ${roleBadge(m.role)} disabled:opacity-50`}
+                      >
+                        {ROLE_OPTIONS.map((r) => (
+                          <option key={r} value={r}>{r}</option>
+                        ))}
+                      </select>
+                    </td>
+                    <td className="px-6 py-3">
+                      <button
+                        onClick={() => handleRemoveMember(userId)}
+                        disabled={removingId === userId}
+                        className="border px-3 py-1 rounded text-xs text-red-500 hover:bg-red-50 transition disabled:opacity-50"
+                      >
+                        {removingId === userId ? "Removing..." : "Remove"}
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      {/* ✅ MODAL (ADDED ONLY) */}
-      {showModal && (
+      {/* Add Member Modal */}
+      {showAddModal && (
         <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-
-          <div className="bg-white w-[500px] rounded-xl shadow-lg p-6">
-
-            <h2 className="text-xl font-semibold mb-4">Add New Team</h2>
-
-            <div className="grid gap-3">
-
-              <input
-                placeholder="Team Name"
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                className="border p-2 rounded"
-              />
-
-              <input
-                placeholder="Project"
-                value={form.project}
-                onChange={(e) => setForm({ ...form, project: e.target.value })}
-                className="border p-2 rounded"
-              />
-
-              <input
-                placeholder="Client"
-                value={form.client}
-                onChange={(e) => setForm({ ...form, client: e.target.value })}
-                className="border p-2 rounded"
-              />
-
-              <input
-                placeholder="Lead"
-                value={form.lead}
-                onChange={(e) => setForm({ ...form, lead: e.target.value })}
-                className="border p-2 rounded"
-              />
-
-              <select
-                value={form.status}
-                onChange={(e) => setForm({ ...form, status: e.target.value })}
-                className="border p-2 rounded"
-              >
-                <option value="Active">Active</option>
-                <option value="On Hold">On Hold</option>
-                <option value="Archived">Archived</option>
-              </select>
-
+          <div className="bg-white w-[440px] rounded-xl shadow-lg p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold">Add Member</h2>
+              <button onClick={() => setShowAddModal(false)} className="text-gray-400 hover:text-gray-600">
+                <X size={18} />
+              </button>
             </div>
+            <p className="text-sm text-gray-500 mb-4">
+              Adding to <span className="font-medium text-gray-700">{selectedProject?.name}</span>
+            </p>
 
-            <div className="flex justify-end gap-3 mt-5">
+            {addError && (
+              <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-lg text-sm">{addError}</div>
+            )}
 
-              <button
-                onClick={() => setShowModal(false)}
-                className="px-4 py-2 border rounded"
-              >
+            {availableUsers.length === 0 ? (
+              <p className="text-sm text-gray-400 py-4 text-center">Everyone is already a member of this project.</p>
+            ) : (
+              <div className="space-y-3">
+                <select
+                  value={addUserId}
+                  onChange={(e) => setAddUserId(e.target.value)}
+                  className="border p-2 rounded w-full text-sm"
+                >
+                  {availableUsers.map((u) => (
+                    <option key={u.id} value={u.id}>{u.fullName || u.email}</option>
+                  ))}
+                </select>
+                <select
+                  value={addRole}
+                  onChange={(e) => setAddRole(e.target.value)}
+                  className="border p-2 rounded w-full text-sm"
+                >
+                  {ROLE_OPTIONS.map((r) => (
+                    <option key={r} value={r}>{r}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-3 mt-6">
+              <button onClick={() => setShowAddModal(false)} className="px-4 py-2 border rounded">
                 Cancel
               </button>
-
               <button
-                onClick={handleSaveTeam}
-                disabled={saving || !form.name}
-                className="px-4 py-2 bg-[#002D62]  text-white rounded disabled:opacity-50"
+                onClick={handleAddMember}
+                disabled={saving || !addUserId}
+                className="px-4 py-2 bg-[#002D62] text-white rounded disabled:opacity-50 flex items-center gap-2"
               >
-                {saving ? "Saving..." : "Save Team"}
+                {saving ? "Adding..." : (<><Check size={14} /> Add Member</>)}
               </button>
-
             </div>
-
           </div>
         </div>
       )}
-
     </div>
   );
 }

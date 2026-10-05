@@ -3,12 +3,14 @@
 import "dotenv/config";
 import { defineConfig } from "prisma/config";
 
+const DATABASE_URL = process.env.DATABASE_URL || "postgresql://ci:ci@localhost:5432/ci_placeholder";
 export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {
     path: "prisma/migrations",
+    seed: "node prisma/seed.js",
   },
   datasource: {
-    url: process.env["DATABASE_URL"],
+    url: DATABASE_URL,
   },
 });

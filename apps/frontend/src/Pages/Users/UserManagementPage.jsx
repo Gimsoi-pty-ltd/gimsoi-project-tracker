@@ -1,7 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { resourceAPI } from "../../api/api";
-import { useAuthStore } from "../../store/authStore";
+import { useDashboardStore } from "../../store/dashboardStore";
 
 const SectionCard = ({ section }) => {
   const navigate = useNavigate();
@@ -40,39 +39,13 @@ const SectionCard = ({ section }) => {
 };
 
 export default function UserManagement() {
-  const [usersCount, setUsersCount] = useState(0);
-  const [clientsCount, setClientsCount] = useState(0);
-  const [activeProjects, setActiveProjects] = useState(0);
-  const [onHoldProjects, setOnHoldProjects] = useState(0);
-  const { userActivities = [], fetchActivities } = useAuthStore((state) => state);
+  const { activities, isLoading, error, fetchOverview, getCounts } = useDashboardStore((state) => state);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [usersRes, clientsRes, projectsRes] = await Promise.all([
-          resourceAPI.get('/users').catch(() => ({ data: { data: [] } })),
-          resourceAPI.get('/clients').catch(() => ({ data: { data: [] } })),
-          resourceAPI.get('/projects').catch(() => ({ data: { data: [] } }))
-        ]);
-        
-        const users = usersRes.data?.data || usersRes.data?.users || [];
-        setUsersCount(users.length);
+    fetchOverview();
+  }, [fetchOverview]);
 
-        const clients = clientsRes.data?.data || clientsRes.data?.clients || [];
-        setClientsCount(clients.length);
-
-        const projects = projectsRes.data?.data || projectsRes.data?.projects || [];
-        setActiveProjects(projects.filter(p => p.status === 'ACTIVE').length);
-        setOnHoldProjects(projects.filter(p => p.status === 'ON_HOLD').length);
-
-        fetchActivities();
-
-      } catch (error) {
-        console.error("Failed to load user management stats", error);
-      }
-    };
-    fetchData();
-  }, [fetchActivities]);
+  const counts = getCounts();
 
   const SECTIONS = [
     {
@@ -81,9 +54,9 @@ export default function UserManagement() {
       description: "Manage user accounts, roles, and permissions",
       route: "/users-list", 
       stats: [
-        { label: "Total Users", value: usersCount },
-        { label: "Active", value: usersCount },
-        { label: "Pending", value: "0" },
+        { label: "Total Users", value: counts.usersTotal },
+        { label: "Verified", value: counts.usersVerified },
+        { label: "Unverified", value: counts.usersUnverified },
       ],
     },
     {
@@ -92,9 +65,9 @@ export default function UserManagement() {
       description: "Manage client companies, contacts, and relationships",
       route: "/clients",
       stats: [
-        { label: "Total Clients", value: clientsCount },
-        { label: "Active", value: clientsCount },
-        { label: "Onboarding", value: "0" },
+        { label: "Total Clients", value: counts.clientsTotal },
+        { label: "New This Month", value: counts.clientsNewThisMonth },
+        { label: "Active Projects", value: counts.projectsActive },
       ],
     },
     {
@@ -103,9 +76,9 @@ export default function UserManagement() {
       description: "Organize project teams, assignments, and workflows",
       route: "/teams", 
       stats: [
-        { label: "Total Teams", value: "0" },
-        { label: "Active Projects", value: activeProjects },
-        { label: "On Hold", value: onHoldProjects },
+        { label: "Total Projects", value: counts.projectsTotal },
+        { label: "Active", value: counts.projectsActive },
+        { label: "Archived", value: counts.projectsArchived },
       ],
     },
   ];
@@ -146,21 +119,29 @@ export default function UserManagement() {
           </button>
         </div>
 
+        {error && (
+          <div className="mb-6 p-3 bg-red-50 text-red-600 rounded-lg text-sm">{error}</div>
+        )}
+
         {/* Section Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {SECTIONS.map((section) => (
-            <SectionCard key={section.id} section={section} />
-          ))}
+          {isLoading && SECTIONS.every((s) => s.stats.every((st) => !st.value)) ? (
+            <p className="text-gray-400 col-span-full text-center py-8">Loading overview…</p>
+          ) : (
+            SECTIONS.map((section) => (
+              <SectionCard key={section.id} section={section} />
+            ))
+          )}
         </div>
 
         {/* Recent Activity / Footer */}
         <div className="mt-12 bg-white border rounded-2xl p-6">
           <h3 className="font-semibold text-gray-800 mb-4">Recent Activity</h3>
           <div className="space-y-3 text-sm text-gray-600">
-            {userActivities && userActivities.length > 0 ? (
-              userActivities.slice(0, 5).map((act, i) => (
-                <p key={i}>
-                  • {act.action} - <span className="text-gray-400 text-xs">{new Date(act.timestamp).toLocaleString()}</span>
+            {activities && activities.length > 0 ? (
+              activities.slice(0, 5).map((act) => (
+                <p key={act.id}>
+                  • {act.action} - <span className="text-gray-400 text-xs">{act.createdAt ? new Date(act.createdAt).toLocaleString() : ""}</span>
                 </p>
               ))
             ) : (

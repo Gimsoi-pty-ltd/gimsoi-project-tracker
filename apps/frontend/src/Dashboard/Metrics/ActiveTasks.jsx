@@ -183,6 +183,7 @@ export default function ActiveTasksCard() {
           setEditingTask(null);
         }} 
         task={editingTask}
+        initialSprintId={activeSprint?.id}
       />
 
       {/* Filters */}
@@ -292,9 +293,9 @@ export default function ActiveTasksCard() {
                 <td className="py-4 px-2">
                   <div className="flex items-center gap-2">
                     {task.priority === "High"     && <ArrowUp      size={16} className="text-orange-500" />}
-                    {task.priority === "Low"      && <ArrowDown    size={16} className="text-green-700"  />}
-                    {task.priority === "Critical" && <ArrowUpRight size={16} className="text-red-900"    />}
-                    {task.priority === "Medium"   && <ArrowRight   size={16} className="text-gray-700"   />}
+                    {task.priority === "Low"      && <ArrowDown    size={16} className="text-green-500"  />}
+                    {task.priority === "Critical" && <ArrowUpRight size={16} className="text-red-500"    />}
+                    {task.priority === "Medium"   && <ArrowRight   size={16} className="text-amber-500"   />}
                     <span>{task.priority}</span>
                   </div>
                 </td>

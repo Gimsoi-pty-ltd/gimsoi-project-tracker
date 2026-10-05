@@ -7,6 +7,7 @@ import { X } from 'lucide-react';
 const UI_TO_STATUS = {
   todo: 'TODO',
   inProgress: 'IN_PROGRESS',
+  review: 'REVIEW',
   done: 'DONE',
   blocked: 'BLOCKED',
   cancelled: 'CANCELLED'
@@ -36,6 +37,8 @@ export default function TaskModal({ isOpen, onClose, task = null, initialSprintI
     storyPoints: '',
     parentTaskId: '',
     assigneeId: '',
+    sprintId: '',
+    phaseId: '',
     ownerIds: [],
     teamIds: []
   });
@@ -43,15 +46,19 @@ export default function TaskModal({ isOpen, onClose, task = null, initialSprintI
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [userOptions, setUserOptions] = useState([]);
   const [parentTaskOptions, setParentTaskOptions] = useState([]);
+  const [sprintOptions, setSprintOptions] = useState([]);
+  const [phaseOptions, setPhaseOptions] = useState([]);
 
   useEffect(() => {
     if (!isOpen || !currentProject?.id) return;
 
     const fetchOptions = async () => {
       try {
-        const [usersRes, tasksRes] = await Promise.all([
+        const [usersRes, tasksRes, sprintsRes, phasesRes] = await Promise.all([
           resourceAPI.get('/users'),
-          resourceAPI.get(`/tasks?projectId=${currentProject.id}&limit=100`)
+          resourceAPI.get(`/tasks?projectId=${currentProject.id}&limit=100`),
+          resourceAPI.get(`/sprints?projectId=${currentProject.id}&limit=100`),
+          resourceAPI.get(`/phases?projectId=${currentProject.id}&limit=100`),
         ]);
         const users = usersRes.data.users || usersRes.data.data || [];
         const tasks = tasksRes.data.data || tasksRes.data.tasks || [];
@@ -60,6 +67,8 @@ export default function TaskModal({ isOpen, onClose, task = null, initialSprintI
           label: user.fullName || user.email || 'Unknown user'
         })));
         setParentTaskOptions(tasks.filter((item) => item.id !== task?.id));
+        setSprintOptions(sprintsRes.data?.data || []);
+        setPhaseOptions(phasesRes.data?.data || []);
       } catch (err) {
         console.error('Failed to fetch task options:', err);
       }
@@ -79,6 +88,8 @@ export default function TaskModal({ isOpen, onClose, task = null, initialSprintI
         storyPoints: task.storyPoints !== undefined && task.storyPoints !== null ? String(task.storyPoints) : '',
         parentTaskId: task.parentTaskId || '',
         assigneeId: task.assigneeId || '',
+        sprintId: task.sprintId || '',
+        phaseId: task.phaseId || '',
         ownerIds: Array.isArray(task.ownerIds) ? task.ownerIds : [],
         teamIds: Array.isArray(task.teamIds) ? task.teamIds : []
       });
@@ -92,11 +103,13 @@ export default function TaskModal({ isOpen, onClose, task = null, initialSprintI
         storyPoints: '',
         parentTaskId: '',
         assigneeId: '',
+        sprintId: initialSprintId || activeSprint?.id || '',
+        phaseId: '',
         ownerIds: [],
         teamIds: []
       });
     }
-  }, [task, isOpen]);
+  }, [task, isOpen, initialSprintId, activeSprint?.id]);
 
   if (!isOpen) return null;
 
@@ -122,7 +135,8 @@ export default function TaskModal({ isOpen, onClose, task = null, initialSprintI
       const taskData = {
         ...formData,
         projectId: currentProject.id,
-        sprintId: initialSprintId || activeSprint?.id || null,
+        sprintId: formData.sprintId || null,
+        phaseId: formData.phaseId || null,
         assigneeId: formData.assigneeId || null,
         parentTaskId: formData.parentTaskId || null,
         ownerIds: formData.ownerIds.filter(Boolean),
@@ -146,6 +160,8 @@ export default function TaskModal({ isOpen, onClose, task = null, initialSprintI
           storyPoints: taskData.storyPoints,
           parentTaskId: taskData.parentTaskId,
           assigneeId: taskData.assigneeId,
+          sprintId: taskData.sprintId,
+          phaseId: taskData.phaseId,
           ownerIds: taskData.ownerIds,
           teamIds: taskData.teamIds,
           version: task.version,
@@ -166,35 +182,44 @@ export default function TaskModal({ isOpen, onClose, task = null, initialSprintI
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center p-6 border-b border-gray-100">
+       <div className="bg-white rounded-2xl shadow-xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden">
+        <div className="flex justify-between items-center p-6 border-b border-gray-100 flex-shrink-0">
           <h2 className="text-xl font-bold text-gray-800">{task ? 'Edit Task' : 'Create New Task'}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
             <X size={20} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6">
-          {error && (
-            <div className="mb-4 p-3 bg-red-50 text-red-700 text-sm rounded-lg border border-red-200">
-              {error}
-            </div>
-          )}
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+          <div className="p-6 overflow-y-auto flex-1">
+            {error && (
+              <div className="mb-4 p-3 bg-red-50 text-red-700 text-sm rounded-lg border border-red-200">
+                {error}
+              </div>
+            )}
 
-          <TaskForm formData={formData} setFormData={setFormData} userOptions={userOptions} parentTaskOptions={parentTaskOptions} />
+            <TaskForm
+              formData={formData}
+              setFormData={setFormData}
+              userOptions={userOptions}
+              parentTaskOptions={parentTaskOptions}
+              sprintOptions={sprintOptions}
+              phaseOptions={phaseOptions}
+            />
+          </div>
 
-          <div className="mt-8 flex justify-end gap-3">
+          <div className="flex justify-end gap-3 p-6 border-t border-gray-100 flex-shrink-0">
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg"
+              className="px-5 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 border rounded-lg"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50"
+              className="px-5 py-2.5 text-sm font-medium text-white bg-blue-900 hover:bg-blue-600 rounded-lg disabled:opacity-50"
             >
               {isSubmitting ? 'Saving...' : (task ? 'Save Changes' : 'Create Task')}
             </button>

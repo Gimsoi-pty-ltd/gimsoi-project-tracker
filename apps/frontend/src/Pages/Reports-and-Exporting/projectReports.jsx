@@ -1,19 +1,78 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import NavyButton from '../../Components/Buttons';
-import { Calendar, DollarSignIcon, AlertCircle, Users, Check, Code, Loader2, Filter, Download } from 'lucide-react';
+import EmptyState from '../../Components/EmptyState';
+import { Calendar, HeartPulse, AlertCircle, Users, Check, Loader2, Download } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
+import { useProjectStore } from '../../store/projectStore';
+import { usePhaseStore } from '../../store/phaseStore';
+import { resourceAPI } from '../../api/api';
 
-const taskData = [
-  { name: 'Design', value: 30 },
-  { name: 'Development', value: 45 },
-  { name: 'Testing', value: 15 },
-  { name: 'Documentation', value: 10 },
-];
+const STATUS_COLORS = {
+  DONE: '#10b981',
+  IN_PROGRESS: '#3b82f6',
+  TODO: '#94a3b8',
+  BLOCKED: '#ef4444',
+  CANCELLED: '#f59e0b',
+};
+const STATUS_LABEL = { DONE: 'Done', IN_PROGRESS: 'In Progress', TODO: 'To Do', BLOCKED: 'Blocked', CANCELLED: 'Cancelled' };
 
-const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6'];
+const PHASE_ICON = { COMPLETED: Check, ACTIVE: Loader2, DRAFT: Calendar };
+const PHASE_COLOR = { COMPLETED: 'bg-green-500', ACTIVE: 'bg-blue-500', DRAFT: 'bg-gray-400' };
 
 const ProjectReport = () => {
+  const { projects, currentProject, projectProgress, fetchProjects, setCurrentProject, getProjectProgress } = useProjectStore();
+  const { phases, fetchPhases } = usePhaseStore();
+  const [exporting, setExporting] = useState(false);
+
+  useEffect(() => {
+    if (!projects.length) fetchProjects();
+  }, [projects.length, fetchProjects]);
+
+  useEffect(() => {
+    if (!currentProject && projects.length) setCurrentProject(projects[0]);
+  }, [currentProject, projects, setCurrentProject]);
+
+  useEffect(() => {
+    if (currentProject?.id) {
+      getProjectProgress(currentProject.id);
+      fetchPhases(currentProject.id);
+    }
+  }, [currentProject?.id, getProjectProgress, fetchPhases]);
+
+  const prog = projectProgress || {};
+  const taskData = ['TODO', 'IN_PROGRESS', 'BLOCKED', 'DONE', 'CANCELLED']
+    .map((status) => ({ name: STATUS_LABEL[status], status, value: prog[status] || 0 }))
+    .filter((d) => d.value > 0);
+
+  const handleExport = async () => {
+    if (!currentProject) return;
+    setExporting(true);
+    try {
+      const createRes = await resourceAPI.post('/reports', {
+        name: `${currentProject.name} — Project Report ${new Date().toISOString().slice(0, 10)}`,
+        type: 'PROJECT',
+        projectId: currentProject.id,
+      });
+      const reportId = createRes.data?.data?.id || createRes.data?.id;
+      if (!reportId) throw new Error('No report id returned');
+      const pdfRes = await resourceAPI.get(`/reports/${reportId}/pdf`, { responseType: 'arraybuffer' });
+      const blob = new Blob([pdfRes.data], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `project-report-${currentProject.name.replace(/\s+/g, '-')}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Failed to export project report', err);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-6 md:py-8">
 
@@ -30,75 +89,89 @@ const ProjectReport = () => {
           </nav>
         </div>
         <div className="flex items-center gap-2">
-          <NavyButton>
-            <Filter className="mr-2 h-4 w-4" /> Filter
-          </NavyButton>
-          <NavyButton onClick={async () => {
-            try {
-              const createRes = await fetch('/api/reports', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: `Project Report ${new Date().toISOString()}`, type: 'PROJECT' }) });
-              const createData = await createRes.json();
-              const reportId = createData?.data?.id || createData?.id;
-              if (!reportId) throw new Error('No report id returned');
-              const pdfRes = await fetch(`/api/reports/${reportId}/pdf`);
-              const arrayBuffer = await pdfRes.arrayBuffer();
-              const blob = new Blob([arrayBuffer], { type: 'application/pdf' });
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement('a');
-              a.href = url;
-              a.download = `project-report-${reportId}.pdf`;
-              document.body.appendChild(a);
-              a.click();
-              a.remove();
-              URL.revokeObjectURL(url);
-            } catch (err) {
-              console.error('Failed to export project report', err);
-            }
-          }}>
-            <Download className="mr-2 h-4 w-4" /> Download PDF
+          <select
+            value={currentProject?.id || ''}
+            onChange={(e) => {
+              const proj = projects.find((p) => p.id === e.target.value);
+              if (proj) setCurrentProject(proj);
+            }}
+            className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white"
+          >
+            {projects.map((p) => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
+          <NavyButton onClick={handleExport} disabled={!currentProject || exporting}>
+            <Download className="mr-2 h-4 w-4" /> {exporting ? 'Preparing…' : 'Download PDF'}
           </NavyButton>
         </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6 md:mb-8">
-        <ProjectStatCard title="Timeline" value="On Track" icon={<Calendar />} color="blue" />
-        <ProjectStatCard title="Budget Used" value="65%" icon={<DollarSignIcon />} color="green" />
-        <ProjectStatCard title="Risks" value="2 Low" icon={<AlertCircle />} color="red" />
-        <ProjectStatCard title="Team Load" value="85%" icon={<Users />} color="orange" />
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
-
-        {/* Pie Chart */}
-        <div className="bg-white p-4 md:p-6 rounded-lg shadow-sm border border-gray-100 lg:col-span-1">
-          <h3 className="text-base md:text-lg font-medium text-gray-900 mb-4">Task Distribution</h3>
-          <div className="h-56 md:h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie data={taskData} cx="50%" cy="50%" innerRadius={50} outerRadius={70} paddingAngle={5} dataKey="value">
-                  {taskData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <RechartsTooltip />
-                <Legend verticalAlign="bottom" height={36} />
-              </PieChart>
-            </ResponsiveContainer>
+      {!currentProject ? (
+        <EmptyState title="No project selected" message="Create a project to see its report." />
+      ) : (
+        <>
+          {/* Stats Grid  */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6 md:mb-8">
+            <ProjectStatCard title="Completion" value={`${prog.percentComplete ?? 0}%`} icon={<Check />} color="green" />
+            <ProjectStatCard title="Health Score" value={`${prog.healthScore ?? 0}%`} icon={<HeartPulse />} color="blue" />
+            <ProjectStatCard title="Blocked Tasks" value={prog.blockedCount ?? 0} icon={<AlertCircle />} color="red" />
+            <ProjectStatCard title="Overdue Tasks" value={prog.overdueCount ?? 0} icon={<Users />} color="orange" />
           </div>
-        </div>
 
-        {/* Milestones */}
-        <div className="bg-white p-4 md:p-6 rounded-lg shadow-sm border border-gray-100 lg:col-span-2">
-          <h3 className="text-base md:text-lg font-medium text-gray-900 mb-4">Project Milestones</h3>
-          <div className="flow-root">
-            <ul role="list" className="-mb-8">
-              <TimelineItem icon={<Check className="h-5 w-5 text-white" />} color="bg-green-500" title="Requirement Gathering" subtitle="Completed by Kelebogile" time="2 days ago" />
-              <TimelineItem icon={<Code className="h-5 w-5 text-white" />} color="bg-blue-500" title="Backend API Development" subtitle="Started" time="5 days ago" />
-              <TimelineItem icon={<Loader2 className="h-5 w-5 text-white animate-spin" />} color="bg-gray-400" title="UI/UX Design Review" subtitle="In Progress" time="Today" isLast />
-            </ul>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+
+            {/* Pie Chart */}
+            <div className="bg-white p-4 md:p-6 rounded-lg shadow-sm border border-gray-100 lg:col-span-1">
+              <h3 className="text-base md:text-lg font-medium text-gray-900 mb-4">Task Status Distribution</h3>
+              {taskData.length === 0 ? (
+                <p className="text-sm text-gray-400 text-center py-16">No tasks yet on this project.</p>
+              ) : (
+                <div className="h-56 md:h-64 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie data={taskData} cx="50%" cy="50%" innerRadius={50} outerRadius={70} paddingAngle={5} dataKey="value">
+                        {taskData.map((entry) => (
+                          <Cell key={entry.status} fill={STATUS_COLORS[entry.status]} />
+                        ))}
+                      </Pie>
+                      <RechartsTooltip />
+                      <Legend verticalAlign="bottom" height={36} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </div>
+
+            {/* Milestones */}
+            <div className="bg-white p-4 md:p-6 rounded-lg shadow-sm border border-gray-100 lg:col-span-2">
+              <h3 className="text-base md:text-lg font-medium text-gray-900 mb-4">Project Phases</h3>
+              {phases.length === 0 ? (
+                <p className="text-sm text-gray-400">No phases created for this project yet. Add them from the Phases page.</p>
+              ) : (
+                <div className="flow-root">
+                  <ul role="list" className="-mb-8">
+                    {phases.map((phase, idx) => {
+                      const Icon = PHASE_ICON[phase.status] || Calendar;
+                      return (
+                        <TimelineItem
+                          key={phase.id}
+                          icon={<Icon className={`h-5 w-5 text-white ${phase.status === 'ACTIVE' ? 'animate-spin' : ''}`} />}
+                          color={PHASE_COLOR[phase.status] || 'bg-gray-400'}
+                          title={phase.name}
+                          subtitle={phase.status === 'COMPLETED' ? 'Completed' : phase.status === 'ACTIVE' ? 'In Progress' : 'Not started'}
+                          time={phase.endDate ? new Date(phase.endDate).toLocaleDateString() : '—'}
+                          isLast={idx === phases.length - 1}
+                        />
+                      );
+                    })}
+                  </ul>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      </div>
+        </>
+      )}
     </div>
   );
 };

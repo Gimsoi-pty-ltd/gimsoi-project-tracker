@@ -58,7 +58,7 @@ export const getSprintsByProject = async (projectId, { limit = 50, cursor } = {}
         take: take + 1,         // fetch one extra to detect whether there's a next page
         ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
         orderBy: { createdAt: 'desc' },
-        select: { id: true, name: true, status: true, projectId: true, createdAt: true, createdByUserId: true, version: true },
+        select: { id: true, name: true, status: true, projectId: true, createdAt: true, createdByUserId: true, version: true, startDate: true, endDate: true, goal: true },
     });
 };
 

@@ -1,6 +1,41 @@
 import { create } from "zustand";
 import { resourceAPI } from "../api/api";
 
+const STORAGE_KEYS = {
+  documents: (projectId) => `gimsoi_documents_${projectId || 'global'}`,
+  calendar: (projectId) => `gimsoi_calendar_events_${projectId || 'global'}`,
+};
+
+const loadStoredJson = (key) => {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : null;
+  } catch (error) {
+    console.error('Failed to parse stored JSON for', key, error);
+    return null;
+  }
+};
+
+const saveStoredJson = (key, value) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch (error) {
+    console.error('Failed to persist JSON for', key, error);
+  }
+};
+
+const loadPersistedDocuments = (projectId) =>
+  loadStoredJson(STORAGE_KEYS.documents(projectId)) || null;
+
+const persistDocuments = (projectId, documents) =>
+  saveStoredJson(STORAGE_KEYS.documents(projectId), documents || []);
+
+const loadPersistedCalendarEvents = (projectId) =>
+  loadStoredJson(STORAGE_KEYS.calendar(projectId)) || [];
+
+const persistCalendarEvents = (projectId, events) =>
+  saveStoredJson(STORAGE_KEYS.calendar(projectId), events || []);
+
 const STATUS_UI = {
     TODO: "todo",
     IN_PROGRESS: "inProgress",
@@ -41,6 +76,15 @@ function pickDefaultSprint(sprints) {
         sprints.find((s) => s.status === "ACTIVE") ||
         sprints.find((s) => s.status === "PLANNING") ||
         sprints[sprints.length - 1]
+    );
+}
+
+function pickDefaultProject(projects) {
+    return (
+        projects.find((project) => project.status === "ACTIVE") ||
+        projects.find((project) => project.status === "DRAFT") ||
+        projects[0] ||
+        null
     );
 }
 
@@ -109,9 +153,7 @@ function buildPriorityHeatmap(sprintTasks) {
         priority: key,
         priorityLabel: label,
         values: statusOrder.map((status) =>
-            status === "REVIEW"
-                ? 0
-                : sprintTasks.filter((t) => t.priority === match && t.status === status).length
+            sprintTasks.filter((t) => t.priority === match && t.status === status).length
         ),
     }));
 }
@@ -155,9 +197,11 @@ function buildActiveSprintView(sprint, projectTasks, velocity, avgVelocity) {
 
 function buildDashboardCharts(sprintTasks) {
     return {
-        heatmap: buildPriorityHeatmap(sprintTasks),
-        distribution: buildPriorityDistribution(sprintTasks),
-        burndown: [],
+        charts: {
+            heatmap: buildPriorityHeatmap(sprintTasks),
+            distribution: buildPriorityDistribution(sprintTasks),
+            burndown: [],
+        },
     };
 }
 
@@ -169,13 +213,20 @@ const emptyDashboardData = {
     },
 };
 
-const applySprintSelection = async (sprint, projectTasks, projectSprints) => {
+const normalizeProject = (response) => response?.data?.data ?? response?.data ?? null;
+const normalizeMember = (response) => response?.data?.data ?? response?.data ?? null;
+const normalizeMembers = (response) => {
+    const data = response?.data?.data ?? response?.data;
+    return Array.isArray(data) ? data : [];
+};
+
+const applySprintSelection = async (sprint, projectTasks, projectSprints, persistedEvents = []) => {
     const velocity = await fetchSprintVelocity(sprint.id);
     const previous = findPreviousSprint(projectSprints, sprint);
     const avgVelocity = previous ? await fetchSprintVelocity(previous.id) : 0;
     const sprintTasks = projectTasks.filter((t) => t.sprintId === sprint.id);
 
-    const calendarEvents = projectTasks
+    const calendarEventsFallback = projectTasks
         .filter((t) => t.dueDate)
         .map((t) => ({
             id: t.id,
@@ -184,6 +235,13 @@ const applySprintSelection = async (sprint, projectTasks, projectSprints) => {
             type: "task",
             time: "",
         }));
+
+    const calendarEvents = [
+        ...calendarEventsFallback,
+        ...persistedEvents.filter(
+            (event) => !calendarEventsFallback.some((e) => e.id === event.id)
+        ),
+    ];
 
     return {
         activeSprint: buildActiveSprintView(sprint, projectTasks, velocity, avgVelocity),
@@ -213,7 +271,12 @@ export const useProjectStore = create((set, get) => ({
         try {
             const pid = projectId || get().currentProject?.id;
             const params = pid ? `?projectId=${pid}` : "";
-            
+            const persisted = pid ? loadPersistedDocuments(pid) : null;
+            if (persisted !== null && Array.isArray(persisted)) {
+                set({ documents: persisted, isLoading: false });
+                return;
+            }
+
             const [aiRes, teamRes] = await Promise.all([
                 resourceAPI.get(`/analytics/ai-context${params}`).catch(() => ({ data: {} })),
                 resourceAPI.get(`/analytics/team`).catch(() => ({ data: {} })),
@@ -265,6 +328,7 @@ export const useProjectStore = create((set, get) => ({
                 }
             ];
 
+            if (pid) persistDocuments(pid, docs);
             set({ documents: docs, isLoading: false });
         } catch (error) {
             set({ error: "Failed to fetch documents", isLoading: false });
@@ -272,9 +336,11 @@ export const useProjectStore = create((set, get) => ({
     },
 
     createDocument: async (newDoc) => {
+        const pid = newDoc.projectId || get().currentProject?.id;
         set((state) => {
             const doc = {
                 id: Math.random().toString(36).substring(2, 9),
+                projectId: pid,
                 title: newDoc.title,
                 createdBy: "Current User",
                 status: "draft",
@@ -283,14 +349,19 @@ export const useProjectStore = create((set, get) => ({
                 type: newDoc.type,
                 content: "",
             };
-            return { documents: [doc, ...state.documents] };
+            const nextDocs = [doc, ...state.documents];
+            if (pid) persistDocuments(pid, nextDocs);
+            return { documents: nextDocs };
         });
     },
 
-    deleteDocument: async (id) => {
-        set((state) => ({
-            documents: state.documents.filter((d) => d.id !== id)
-        }));
+    deleteDocument: async (id, projectId) => {
+        const pid = projectId || get().currentProject?.id;
+        set((state) => {
+            const nextDocs = state.documents.filter((d) => d.id !== id);
+            if (pid) persistDocuments(pid, nextDocs);
+            return { documents: nextDocs };
+        });
     },
 
     fetchDashboard: async (projectId) => {
@@ -307,9 +378,12 @@ export const useProjectStore = create((set, get) => ({
                 if (savedPid) pid = savedPid;
             }
 
-            const projectExists = get().projects.some((p) => p.id === pid);
-            if (!pid || !projectExists) {
-                pid = get().projects[0]?.id;
+            const selectedProject = get().projects.find((project) => project.id === pid);
+            const shouldReplaceReadOnlyDefault =
+                !projectId && ["COMPLETED", "ARCHIVED"].includes(selectedProject?.status);
+
+            if (!pid || !selectedProject || shouldReplaceReadOnlyDefault) {
+                pid = pickDefaultProject(get().projects)?.id;
             }
 
             if (pid) {
@@ -355,12 +429,20 @@ export const useProjectStore = create((set, get) => ({
                     time: "",
                 }));
 
+            const persistedEvents = pid ? loadPersistedCalendarEvents(pid) : [];
+            const mergedCalendarEvents = [
+                ...calendarEventsFallback,
+                ...persistedEvents.filter(
+                    (event) => !calendarEventsFallback.some((e) => e.id === event.id)
+                ),
+            ];
+
             if (!defaultSprint) {
                 set({
                     currentProject: get().currentProject || { id: pid },
                     projectSprints,
                     projectTasks,
-                    calendarEvents: calendarEventsFallback,
+                    calendarEvents: mergedCalendarEvents,
                     activeSprint: null,
                     dashboardData: emptyDashboardData,
                     dashboardLoading: false,
@@ -371,7 +453,8 @@ export const useProjectStore = create((set, get) => ({
             const { activeSprint, dashboardData, calendarEvents } = await applySprintSelection(
                 defaultSprint,
                 projectTasks,
-                projectSprints
+                projectSprints,
+                persistedEvents
             );
 
             set({
@@ -445,7 +528,7 @@ export const useProjectStore = create((set, get) => ({
             if (filters.status) params.append("status", filters.status);
             
             const response = await resourceAPI.get(`/projects${params.toString() ? `?${params.toString()}` : ""}`);
-            const projectsData = response.data.projects || response.data.data || [];
+            const projectsData = Array.isArray(response?.data?.data) ? response.data.data : [];
             set({ projects: projectsData, isLoading: false });
             return response.data;
         } catch (error) {
@@ -455,7 +538,7 @@ export const useProjectStore = create((set, get) => ({
     },
 
     getProjects: async (filters = {}) => {
-        // Alias for fetchProjects for backward compatibility
+       
         return useProjectStore.getState().fetchProjects(filters);
     },
 
@@ -463,9 +546,9 @@ export const useProjectStore = create((set, get) => ({
         set({ isLoading: true, error: null });
         try {
             const response = await resourceAPI.get(`/projects/${id}`);
-            const project = response.data?.data || response.data?.project || response.data;
+            const project = normalizeProject(response);
             set({ currentProject: project, isLoading: false });
-            return response.data;
+            return project;
         } catch (error) {
             set({ error: error.response?.data?.message || "Error fetching project", isLoading: false });
             throw error;
@@ -476,11 +559,12 @@ export const useProjectStore = create((set, get) => ({
         set({ isLoading: true, error: null });
         try {
             const response = await resourceAPI.post("/projects", projectData);
+            const project = normalizeProject(response);
             set((state) => ({
-                projects: [...state.projects, response.data.project || response.data],
+                projects: [...state.projects, project],
                 isLoading: false,
             }));
-            return response.data;
+            return project;
         } catch (error) {
             set({ error: error.response?.data?.message || "Error creating project", isLoading: false });
             throw error;
@@ -491,24 +575,81 @@ export const useProjectStore = create((set, get) => ({
         set({ isLoading: true, error: null });
         try {
             const response = await resourceAPI.patch(`/projects/${id}`, projectData);
+            const project = normalizeProject(response);
             set((state) => ({
-                projects: state.projects.map((project) => (project.id === id ? response.data.project || response.data : project)),
-                currentProject: response.data.project || response.data,
+                projects: state.projects.map((p) => (p.id === id ? project : p)),
+                currentProject: project,
                 isLoading: false,
             }));
-            return response.data;
+            return project;
         } catch (error) {
             set({ error: error.response?.data?.message || "Error updating project", isLoading: false });
             throw error;
         }
     },
 
+    // ─── Project Members ───
+    getProjectMembers: async (projectId) => {
+        try {
+            const response = await resourceAPI.get(`/projects/${projectId}/members`);
+            return normalizeMembers(response);
+        } catch (error) {
+            console.error("Failed to fetch project members:", error);
+            return [];
+        }
+    },
+
+    addProjectMember: async (projectId, userId, role = "MEMBER") => {
+        const response = await resourceAPI.post(`/projects/${projectId}/members`, { userId, role });
+        return normalizeMember(response);
+    },
+
+    removeProjectMember: async (projectId, userId) => {
+        await resourceAPI.delete(`/projects/${projectId}/members/${userId}`);
+    },
+
+    updateProjectMemberRole: async (projectId, userId, role) => {
+        const response = await resourceAPI.patch(`/projects/${projectId}/members/${userId}`, { role });
+        return normalizeMember(response);
+    },
+
+    syncProjectMembers: async (projectId, desiredUserIds = [], currentUserIds = []) => {
+        const toAdd = desiredUserIds.filter((id) => !currentUserIds.includes(id));
+        const toRemove = currentUserIds.filter((id) => !desiredUserIds.includes(id));
+
+        const results = await Promise.allSettled([
+            ...toAdd.map((userId) => get().addProjectMember(projectId, userId)),
+            ...toRemove.map((userId) => get().removeProjectMember(projectId, userId)),
+        ]);
+
+        const failures = results.filter((r) => r.status === "rejected");
+        if (failures.length) {
+            console.error("Some project member changes failed:", failures.map((f) => f.reason));
+        }
+        return failures;
+    },
+
     getProjectProgress: async (id) => {
         set({ isLoading: true, error: null });
         try {
             const response = await resourceAPI.get(`/projects/${id}/progress`);
-            set({ projectProgress: response.data, isLoading: false });
-            return response.data;
+            const raw = response?.data?.data ?? response?.data ?? null;
+            // Backend returns { TODO, IN_PROGRESS, DONE, BLOCKED, CANCELLED, total, percentComplete, healthScore }
+            // (see aggregateTasksByStatus in task.service.js). Map to the camelCase shape the UI reads.
+            const progress = raw
+                ? {
+                    ...raw,
+                    totalTasks: raw.total ?? 0,
+                    completedTasks: raw.DONE ?? 0,
+                    inProgressTasks: raw.IN_PROGRESS ?? 0,
+                    blockedTasks: raw.BLOCKED ?? (raw.blockedCount ?? 0),
+                    todoTasks: raw.TODO ?? 0,
+                    cancelledTasks: raw.CANCELLED ?? 0,
+                    percentComplete: raw.percentComplete ?? 0,
+                }
+                : null;
+            set({ projectProgress: progress, isLoading: false });
+            return progress;
         } catch (error) {
             set({ error: error.response?.data?.message || "Error fetching project progress", isLoading: false });
             throw error;
@@ -543,18 +684,20 @@ export const useProjectStore = create((set, get) => ({
     },
 
     addCalendarEvent: (event) => {
-        set((state) => ({
-            calendarEvents: [
-                ...state.calendarEvents,
-                {
-                    id: event.id || Math.random().toString(36).substring(2, 9),
-                    title: event.title,
-                    date: event.date,
-                    type: event.type,
-                    time: event.time || "",
-                }
-            ]
-        }));
+        const pid = get().currentProject?.id;
+        set((state) => {
+            const nextEvent = {
+                id: event.id || Math.random().toString(36).substring(2, 9),
+                title: event.title,
+                date: event.date,
+                type: event.type,
+                time: event.time || "",
+                userCreated: true,
+            };
+            const nextEvents = [...state.calendarEvents, nextEvent];
+            if (pid) persistCalendarEvents(pid, nextEvents.filter((e) => e.userCreated));
+            return { calendarEvents: nextEvents };
+        });
     },
 
     clearCurrentProject: () => set({ currentProject: null }),

@@ -34,6 +34,10 @@ const TeamPerformance = lazy(() => import('./Pages/Reports-and-Exporting/teamPer
 // Team & Insights
 const TeamInsights = lazy(() => import('./Pages/Team-Insights/TeamInsights'));
 
+// Phases 
+// Example of a dynamic import
+const Phases = lazy(() => import('./Pages/Phases/Phases-of-tasks.jsx'));
+
 // Calendar & Documents
 const Calendar = lazy(() => import('./Pages/Calendar/Calendar'));
 const Documents = lazy(() => import('./Pages/Documents/Documents'));

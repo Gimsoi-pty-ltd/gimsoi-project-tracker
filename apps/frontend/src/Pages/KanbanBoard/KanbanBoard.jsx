@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useProjectStore } from '../../store/projectStore';
 import { useTaskStore } from '../../store/taskStore';
+import TaskModal from '../../Dashboard/Metrics/TaskModal';
 
 // BLOCKED goes to 'blocked' if we had one, but QA goes to 'review'
 const COLUMN_TO_STATUS = {
@@ -9,6 +10,14 @@ const COLUMN_TO_STATUS = {
   'review':      'REVIEW',
   'blocked':     'BLOCKED',
   'done':        'DONE',
+};
+
+const ALLOWED_COLUMN_TRANSITIONS = {
+  'todo':        ['in-progress'],
+  'in-progress': ['review', 'blocked', 'done'],
+  'review':      ['in-progress', 'done'],
+  'blocked':     ['in-progress'],
+  'done':        ['in-progress', 'review'],
 };
 
 // Kanban Cards
@@ -74,6 +83,7 @@ const KanbanCard = ({
   onDragStart,
   onDragEnd,
   isDragging,
+  readOnly = false,
 }) => {
   const textColor = getTextColors(cardColor);
   const priorityLabel = getPriorityLabel(priority, columnId);
@@ -91,11 +101,11 @@ const KanbanCard = ({
 
   return (
     <div
-      draggable
-      onDragStart={onDragStart}
-      onDragEnd={onDragEnd}
+      draggable={!readOnly}
+      onDragStart={readOnly ? undefined : onDragStart}
+      onDragEnd={readOnly ? undefined : onDragEnd}
       onClick={onClick}
-      className={`${cardColor} rounded-md p-3 cursor-grab active:cursor-grabbing hover:shadow-md transition-all duration-200 border ${textColor.border} ${isDragging ? 'opacity-40 scale-95' : ''}`}
+      className={`${cardColor} rounded-md p-3 ${readOnly ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'} hover:shadow-md transition-all duration-200 border ${textColor.border} ${isDragging ? 'opacity-40 scale-95' : ''}`}
     >
       <div className="flex justify-between items-start gap-2 mb-2">
         <h3 className={`min-w-0 flex-1 break-words font-semibold text-sm ${textColor.title}`}>{title}</h3>
@@ -136,6 +146,7 @@ const Column = ({
   onCardDragEnd,
   onDropCard,
   draggedCard,
+  readOnly = false,
 }) => {
   const [isOver, setIsOver] = useState(false);
   const isDragTarget = draggedCard && draggedCard.fromColumnId !== id;
@@ -143,10 +154,11 @@ const Column = ({
   return (
     <div
       className="flex min-w-0 w-full flex-col rounded-lg shadow-md max-h-[700px]"
-      onDragOver={(e) => { e.preventDefault(); setIsOver(true); }}
+      onDragOver={(e) => { if (!readOnly) { e.preventDefault(); setIsOver(true); } }}
       onDragLeave={() => setIsOver(false)}
       onDrop={(e) => { 
         e.preventDefault();
+        if (readOnly) return;
         const dropPromise = onDropCard?.(id);
         if (dropPromise && dropPromise.catch) dropPromise.catch(() => {});
         setIsOver(false); 
@@ -171,6 +183,7 @@ const Column = ({
             onClick={() => onCardClick?.(card)}
             onDragStart={() => onCardDragStart?.(id, card.id)}
             onDragEnd={onCardDragEnd}
+            readOnly={readOnly}
           />
         ))}
 
@@ -178,7 +191,7 @@ const Column = ({
           ${isOver && isDragTarget
             ? 'border-blue-400 bg-blue-50 text-blue-500 scale-105'
             : 'border-gray-300 bg-white text-gray-400'}`}>
-          {isOver && isDragTarget ? '📥 Drop here' : 'Drag cards here'}
+          {readOnly ? 'Read-only board' : isOver && isDragTarget ? '📥 Drop here' : 'Drag cards here'}
         </div>
       </div>
     </div>
@@ -237,11 +250,22 @@ const DEPRECATED_SAMPLE_COLUMNS = [
 
 // Main Kanban Component
 const Kanban = () => {
-  const { projects, switchProject, activeSprint, currentProject, isLoading, error } = useProjectStore();
+  const { projects, switchProject, activeSprint, currentProject, isLoading, error, fetchDashboard } = useProjectStore();
   const [selectedCard, setSelectedCard] = useState(null);
   const [draggedCard, setDraggedCard] = useState(null);
   const [apiError, setApiError] = useState(null);
+  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState(null);
   const updateTask = useTaskStore((state) => state.updateTask);
+  const getTaskById = useTaskStore((state) => state.getTaskById);
+  const isBoardReadOnly =
+    ['COMPLETED', 'ARCHIVED'].includes(currentProject?.status) ||
+    activeSprint?.status === 'CLOSED';
+
+  useEffect(() => {
+    if (!activeSprint) fetchDashboard();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Build columns from sprint tasks
   const columns = useMemo(() => {
@@ -314,13 +338,33 @@ const Kanban = () => {
   const doneCards   = columnState.find((c) => c.id === 'done')?.cards.length ?? 0;
   const progressPct = totalCards ? Math.round((doneCards / totalCards) * 100) : 0;
 
-  const handleDragStart = (fromColumnId, cardId) => setDraggedCard({ fromColumnId, cardId });
+  const handleDragStart = (fromColumnId, cardId) => {
+    if (!isBoardReadOnly) setDraggedCard({ fromColumnId, cardId });
+  };
   const handleDragEnd   = () => setDraggedCard(null);
 
   const handleDrop = async (toColumnId) => {
     if (!draggedCard) return;
     const { fromColumnId, cardId } = draggedCard;
     if (fromColumnId === toColumnId) { setDraggedCard(null); return; }
+
+    if (isBoardReadOnly) {
+      setApiError('This Kanban board is read-only because its project or sprint is closed.');
+      setDraggedCard(null);
+      return;
+    }
+
+    if (!ALLOWED_COLUMN_TRANSITIONS[fromColumnId]?.includes(toColumnId)) {
+      setApiError(`Tasks cannot move directly from ${fromColumnId} to ${toColumnId}. Move them through the workflow columns.`);
+      setDraggedCard(null);
+      return;
+    }
+
+    if (toColumnId === 'done' && activeSprint?.status !== 'ACTIVE') {
+      setApiError('Tasks can only be completed in an active sprint.');
+      setDraggedCard(null);
+      return;
+    }
 
     const card = columnState.find((col) => col.id === fromColumnId)?.cards.find((c) => c.id === cardId);
     if (!card) return;
@@ -343,7 +387,11 @@ const Kanban = () => {
     try {
       const targetStatus = COLUMN_TO_STATUS[toColumnId];
       if (targetStatus) {
-        const response = await updateTask(cardId, { status: targetStatus, version: card.version });
+        const response = await updateTask(cardId, {
+          status: targetStatus,
+          isBlocked: targetStatus === 'BLOCKED',
+          version: card.version,
+        });
         
         // Update the card's version with the new version from the backend
         // This prevents Optimistic Locking (P2025) errors if they move the same card again
@@ -360,6 +408,15 @@ const Kanban = () => {
              });
            });
         }
+
+        // Keep projectStore's activeSprint/dashboardData in sync — every other
+        // task-mutating flow (TaskModal, ActiveTasksCard) calls fetchDashboard()
+        // after a change; without this, Priority Heatmap / Task Distribution /
+        // the metric cards on /dashboard stay stale after a kanban move even
+        // though this board's own local columnState updates fine.
+        useProjectStore.getState().fetchDashboard().catch((err) => {
+          console.error("Failed to refresh dashboard after kanban move:", err);
+        });
       }
     } catch (err) {
       // Try to extract a useful error message from the backend
@@ -390,24 +447,41 @@ const Kanban = () => {
           </div>
         )}
 
+        {isBoardReadOnly && (
+          <div className="mb-4 p-4 rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-800">
+            This board is read-only because the selected project is completed/archived or the sprint is closed.
+          </div>
+        )}
+
         {/* HEADER */}
         <div className="pb-6 border-b border-gray-200 mb-6">
           <div className="flex justify-between items-center">
             <h1 className="text-2xl font-bold">Sprint Task-Progress {currentProject?.name && `— ${currentProject.name}`}</h1>
-            {projects && projects.length > 0 && (
-              <select
-                className="w-full bg-white border border-gray-300 text-gray-700 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block px-3 py-2 shadow-sm font-medium lg:w-auto"
-                value={currentProject?.id || ''}
-                onChange={(e) => switchProject(e.target.value)}
-              >
-                <option value="" disabled>Select a project</option>
-                {projects.map(p => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} {p.status ? `(${p.status})` : ''}
-                  </option>
-                ))}
-              </select>
-            )}
+            <div className="flex items-center gap-3">
+              {projects && projects.length > 0 && (
+                <select
+                  className="w-full bg-white border border-gray-300 text-gray-700 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block px-3 py-2 shadow-sm font-medium lg:w-auto"
+                  value={currentProject?.id || ''}
+                  onChange={(e) => switchProject(e.target.value)}
+                >
+                  <option value="" disabled>Select a project</option>
+                  {projects.map(p => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} {p.status ? `(${p.status})` : ''}
+                    </option>
+                  ))}
+                </select>
+              )}
+              {!isBoardReadOnly && (
+                <button
+                  type="button"
+                  onClick={() => { setEditingTask(null); setIsTaskModalOpen(true); }}
+                  className="px-3 py-2 rounded-lg bg-blue-900 hover:bg-blue-600 text-white text-sm font-medium whitespace-nowrap"
+                >
+                  + Add Task
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="flex flex-col gap-4 mt-4 xl:flex-row xl:items-center xl:justify-between">
@@ -469,16 +543,39 @@ const Kanban = () => {
               title={col.title}
               headerColor={col.headerColor}
               cards={col.cards}
-              onCardClick={setSelectedCard}
+              onCardClick={async (card) => {
+                setSelectedCard(card);
+                setIsTaskModalOpen(true);
+                setEditingTask(card); // shows something immediately while the full record loads
+                try {
+                  const res = await getTaskById(card.id);
+                  setEditingTask(res?.data ?? res);
+                } catch (err) {
+                  console.error('Failed to load task details:', err);
+                }
+              }}
               onCardDragStart={handleDragStart}
               onCardDragEnd={handleDragEnd}
               onDropCard={handleDrop}
               draggedCard={draggedCard}
+              readOnly={isBoardReadOnly}
             />
           ))}
         </div>
 
       </div>
+
+      <TaskModal
+        isOpen={isTaskModalOpen}
+        task={editingTask}
+        initialSprintId={activeSprint?.id || null}
+        onClose={() => {
+          setIsTaskModalOpen(false);
+          setEditingTask(null);
+          setSelectedCard(null);
+          fetchDashboard().catch((err) => console.error('Failed to refresh dashboard:', err));
+        }}
+      />
     </div>
   );
 };
