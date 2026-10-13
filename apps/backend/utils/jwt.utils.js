@@ -7,10 +7,13 @@ export const generateTokenAndSetCookie = (res, userId, role) => {
         { expiresIn: "7d", algorithm: "HS256" }
     );
 
+    // Set cookie options based on environment. In development we cannot use `secure:true` with HTTP,
+    // and SameSite="none" requires a secure context. Use lax cookies for local testing.
+    const isProd = process.env.NODE_ENV === "production";
     res.cookie("token", token, {
         httpOnly: true, // Prevents XSS
-        secure: true,
-        sameSite: "none",
+        secure: isProd, // only send over HTTPS in production
+        sameSite: isProd ? "none" : "lax",
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
