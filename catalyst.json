@@ -6,7 +6,6 @@
     }
   ],
   "client": {
-    "source": "apps\\frontend\\dist",
-    "plugin": "zcatalyst-cli-plugin-react"
+    "source": "apps\\frontend\\dist"
   }
 }

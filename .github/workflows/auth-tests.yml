@@ -64,8 +64,6 @@ jobs:
         env:
           DATABASE_URL: postgresql://test:test@localhost:5432/testdb
           JWT_SECRET: ci-test-jwt-secret-do-not-use-in-production
-          GMAIL_USER: ci-test@example.com
-          GMAIL_APP_PASSWORD: ci-dummy-password
           GEMINI_API_KEY: dummy
           CLIENT_URL: http://localhost:5173
           PORT: 5001

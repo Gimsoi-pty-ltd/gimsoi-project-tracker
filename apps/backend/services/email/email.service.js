@@ -1,4 +1,4 @@
-import { smtpClient } from "./smtp.config.js";
+import { isSmtpConfigured, smtpClient } from "./smtp.config.js";
 import {
     VERIFICATION_EMAIL_TEMPLATE,
     PASSWORD_RESET_REQUEST_TEMPLATE,
@@ -20,56 +20,74 @@ export const escapeHtml = (str) =>
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
 
+const isDevMailFallback = () =>
+    process.env.NODE_ENV !== "production" && !isSmtpConfigured();
+
+const sendEmail = async (to, subject, html) => {
+    if (process.env.NODE_ENV === "test") return { mocked: true };
+
+    if (isDevMailFallback()) {
+        console.warn(
+            `[SMTP] Not configured — skipped "${subject}" to ${to}. ` +
+                "Set GMAIL_USER and GMAIL_APP_PASSWORD in .env, or read dev codes in the server log."
+        );
+        return { devSkipped: true };
+    }
+
+    try {
+        const response = await smtpClient.sendMail({
+            from: process.env.GMAIL_FROM_NAME
+                ? { name: process.env.GMAIL_FROM_NAME, address: process.env.GMAIL_USER }
+                : process.env.GMAIL_USER,
+            to,
+            subject,
+            html,
+        });
+        return response;
+    } catch (error) {
+        console.error(`[SMTP] Failed to send "${subject}":`, {
+            message: error.message,
+            code: error.code,
+            command: error.command,
+            statusCode: error.statusCode,
+        });
+        throw new Error(`Error sending email: ${subject}`);
+    }
+};
+
 /**
  * Send a Verification Email
  * Replaces "{verificationCode}" in the template
  */
 export const sendVerificationEmail = async (email, verificationToken) => {
-    try {
-        const response = await smtpClient.sendMail({
-            from: process.env.GMAIL_USER, // Ensure this matches your .env
-            to: email,
-            subject: "Verify your email",
-            html: VERIFICATION_EMAIL_TEMPLATE.replace(
-                "{verificationCode}",
-                escapeHtml(verificationToken)
-            ),
-            category: "Email Verification",
-        });
+    if (process.env.NODE_ENV === "test") return { mocked: true };
 
-        console.log("Verification email sent successfully", response.messageId);
-    } catch (error) {
-        console.error("Error sending verification email", error);
-        throw new Error("Error sending verification email");
+    if (isDevMailFallback()) {
+        console.warn(
+            `[SMTP] Not configured — verification code for ${email}: ${verificationToken}`
+        );
+        return { devLogged: true };
     }
+
+    return sendEmail(
+        email,
+        "Verify your email",
+        VERIFICATION_EMAIL_TEMPLATE.replace(
+            "{verificationCode}",
+            escapeHtml(verificationToken)
+        )
+    );
 };
 
 export const sendWelcomeEmail = async (email, name) => {
-    try {
-        const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
-        const loginURL = `${clientUrl}/login`;
+    const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
+    const loginURL = `${clientUrl}/login`;
+    const htmlContent = WELCOME_EMAIL_TEMPLATE.replace("{name}", escapeHtml(name)).replace(
+        "{loginURL}",
+        encodeURI(loginURL)
+    );
 
-        const htmlContent = WELCOME_EMAIL_TEMPLATE.replace("{name}", escapeHtml(name)).replace(
-            "{loginURL}",
-            encodeURI(loginURL)
-        );
-
-        const mailOptions = {
-            from: process.env.GMAIL_USER,
-            to: email,
-            subject: "Welcome to Our Community",
-            html: htmlContent,
-        };
-
-        // 4. Send the email
-        const response = await smtpClient.sendMail(mailOptions);
-        console.log("Welcome email sent successfully:", response.messageId);
-
-        return response;
-    } catch (error) {
-        console.error("Error sending welcome email:", error);
-        throw new Error(`Error sending welcome email: ${error.message}`);
-    }
+    return sendEmail(email, "Welcome to Our Community", htmlContent);
 };
 
 // ==================================== //
@@ -78,19 +96,11 @@ export const sendWelcomeEmail = async (email, name) => {
  * Replaces "{resetURL}" in the template
  */
 export const sendPasswordResetEmail = async (email, resetURL) => {
-    try {
-        const response = await smtpClient.sendMail({
-            from: process.env.GMAIL_USER,
-            to: email,
-            subject: "Reset your password",
-            html: PASSWORD_RESET_REQUEST_TEMPLATE.replace("{resetURL}", escapeHtml(encodeURI(resetURL))),
-        });
-
-        console.log("Password reset email sent successfully", response.messageId);
-    } catch (error) {
-        console.error("Error sending password reset email", error);
-        throw new Error("Error sending password reset email");
-    }
+    return sendEmail(
+        email,
+        "Reset your password",
+        PASSWORD_RESET_REQUEST_TEMPLATE.replace("{resetURL}", escapeHtml(encodeURI(resetURL)))
+    );
 };
 
 /**
@@ -98,20 +108,5 @@ export const sendPasswordResetEmail = async (email, resetURL) => {
  * No replacements needed for this template
  */
 export const sendPasswordResetSuccessEmail = async (email) => {
-    try {
-        const response = await smtpClient.sendMail({
-            from: process.env.GMAIL_USER,
-            to: email,
-            subject: "Password Reset Successful",
-            html: PASSWORD_RESET_SUCCESS_TEMPLATE,
-        });
-
-        console.log(
-            "Password reset success email sent successfully",
-            response.messageId
-        );
-    } catch (error) {
-        console.error("Error sending password reset success email", error);
-        throw new Error("Error sending password reset success email");
-    }
+    return sendEmail(email, "Password Reset Successful", PASSWORD_RESET_SUCCESS_TEMPLATE);
 };

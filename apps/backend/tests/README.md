@@ -96,13 +96,13 @@ A `postgres:15` container is provisioned automatically as a GitHub Actions servi
 |---|---|---|
 | `DATABASE_URL` | Hardcoded in YAML | Points to the CI postgres container |
 | `JWT_SECRET` | Hardcoded dummy | Safe CI-only value, not used in production |
-| `GMAIL_USER` / `GMAIL_APP_PASSWORD` | Hardcoded dummy | SMTP is bypassed when `NODE_ENV=test` |
+| Gmail SMTP credentials | Not required | Email sends are stubbed when `NODE_ENV=test` |
 | `NODE_ENV` | `test` | Activates email stub in `emailService.js` |
 | `PORT` | `5001` | Must match `playwright.config.js` baseURL |
 
 ### Email Behaviour in CI
 
-When `NODE_ENV=test`, every function in `emailService.js` returns early without making any SMTP connection. This means tests that trigger signup (which sends a verification email) complete successfully without real credentials.
+When `NODE_ENV=test`, email service functions return without contacting SMTP. This means tests that trigger signup complete without live mail credentials.
 
 ### Test Report
 

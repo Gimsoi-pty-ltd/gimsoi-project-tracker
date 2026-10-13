@@ -65,8 +65,9 @@ Common optional settings:
 | `PORT`                     | Backend port; defaults to `5001`                  |
 | `NODE_ENV`                 | Use `development` locally                         |
 | `CLIENT_URL`               | Frontend origin; normally `http://localhost:5173` |
-| `GMAIL_USER`               | Gmail account used for application email          |
-| `GMAIL_APP_PASSWORD`       | Gmail app password, not the account password      |
+| `GMAIL_USER`               | Gmail mailbox used as the application sender           |
+| `GMAIL_APP_PASSWORD`       | Google App Password for SMTP (not the mailbox password) |
+| `SMTP_HOST` / `SMTP_PORT`  | SMTP endpoint; defaults to Gmail on SSL port `465`     |
 | `CSRF_SECRET`              | Required in production                            |
 | `DB_POOL_MAX`              | Maximum PostgreSQL pool size                      |
 | `DB_CONNECTION_TIMEOUT_MS` | Database connection timeout                       |

@@ -14,9 +14,18 @@ PORT=5000
 DATABASE_URL="postgresql://user:password@localhost:5432/gimsoi_db"
 JWT_SECRET="your_super_secret_key"
 CLIENT_URL="http://localhost:5173" # Frontend URL for CORS
-GMAIL_USER="your-email@gmail.com"
-GMAIL_PASSWORD="your-app-password"
+GMAIL_USER="app-mailbox@gmail.com"
+GMAIL_APP_PASSWORD="your-16-character-app-password"
+GMAIL_FROM_NAME="Gimsoi Project Tracker"
+SMTP_HOST="smtp.gmail.com"
+SMTP_PORT="465"
+SMTP_SECURE="true"
 ```
+
+Use a dedicated Gmail sender account with 2-Step Verification and a Google App
+Password (not the mailbox's normal password). Port 465 uses SSL; port 587 uses
+STARTTLS. AppSail must allow outbound SMTP on the selected port. End users can
+still sign up with Gmail or other email providers.
 
 ### 2. Installation
 ```bash

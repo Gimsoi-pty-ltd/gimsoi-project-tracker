@@ -1,7 +1,7 @@
 /**
  * Validates required environment variables at startup.
  * Always required: JWT_SECRET, DATABASE_URL
- * Production-only: CSRF_SECRET, GMAIL_USER, GMAIL_APP_PASSWORD
+ * Production-only: CSRF_SECRET and Gmail SMTP credentials
  */
 
 const PRISMA_LINK =
@@ -16,17 +16,16 @@ const VAR_GUIDANCE = {
     CSRF_SECRET:
         "Run: node -e \"console.log(" +
         "require('crypto').randomBytes(32).toString('hex'))\"",
-    GMAIL_USER:
-        'Your sending Gmail address, e.g. yourapp@gmail.com',
-    GMAIL_APP_PASSWORD:
-        'myaccount.google.com → Security → ' +
-        '2-Step Verification → App passwords',
+    GMAIL_USER: 'The Gmail mailbox used as the application sender',
+    GMAIL_APP_PASSWORD: 'Google Account -> Security -> 2-Step Verification -> App passwords',
 };
 
 export const validateEnv = () => {
     const alwaysRequired = ['JWT_SECRET', 'DATABASE_URL'];
     const productionOnly = [
-        'CSRF_SECRET', 'GMAIL_USER', 'GMAIL_APP_PASSWORD',
+        'CSRF_SECRET',
+        'GMAIL_USER',
+        'GMAIL_APP_PASSWORD',
     ];
 
     const isProduction = process.env.NODE_ENV === 'production';

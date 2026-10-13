@@ -3,7 +3,7 @@ import axios from "axios";
 const BASE_API_URL =
   import.meta.env.MODE === "development"
     ? ""
-    : "https://backend-appsail-10123938533.development.catalystappsail.com";
+    : "https://backend-appsail-10135587749.development.catalystappsail.com";
 
 const AUTH_API_URL = `${BASE_API_URL}/api/auth`;
 const RESOURCE_API_URL = `${BASE_API_URL}/api`;
