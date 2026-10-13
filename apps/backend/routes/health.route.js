@@ -1,15 +1,10 @@
 import express from "express";
 import { createRequire } from "module";
-import { smtpClient } from "../services/email/smtp.config.js";
+import { isSmtpConfigured, smtpClient } from "../services/email/smtp.config.js";
 
 const require = createRequire(import.meta.url);
 const { version } = require("../package.json");
 
-let cachedResult = null;
-let cacheExpiry  = 0;
-const CACHE_TTL_MS = 10_000;
-
-const SAFE_CODES = new Set(["ECONNREFUSED", "ETIMEDOUT", "ENOTFOUND", "ECONNRESET"]);
 const router = express.Router();
 
 async function withTimeout(promise, ms = 2000) {
@@ -25,7 +20,7 @@ async function withTimeout(promise, ms = 2000) {
     return { ok: true, latency_ms };
   } catch (err) {
     clearTimeout(timer);
-    const safeCode   = SAFE_CODES.has(err.code) ? err.code : "INTERNAL_ERROR";
+    const safeCode = /^[A-Z0-9_]+$/.test(err.code || "") ? err.code : "INTERNAL_ERROR";
     return { ok: false, latency_ms: null, detail: safeCode };
   }
 }
@@ -35,12 +30,10 @@ async function checkDatabase() {
   return withTimeout(prisma.$queryRaw`SELECT 1`, 2000);
 }
 
-async function checkSmtp() {
-  if (process.env.NODE_ENV === "test") return { ok: true, latency_ms: 0 };
-  const configured = typeof smtpClient?.options?.host === "string" && smtpClient.options.host.length > 0;
-  return configured
-    ? { ok: true, latency_ms: 0 }
-    : { ok: false, latency_ms: null, detail: "SMTP client not configured" };
+async function checkMail() {
+  if (process.env.NODE_ENV === "test") return { ok: true };
+  if (!isSmtpConfigured()) return { ok: false, detail: "NOT_CONFIGURED" };
+  return withTimeout(smtpClient.verify(), 5000);
 }
 
 /**
@@ -55,13 +48,13 @@ async function checkSmtp() {
  *         description: System is down
  */
 router.get("/", async (req, res) => {
-  const [db, smtp] = await Promise.all([checkDatabase(), checkSmtp()]);
+  const [db, mail] = await Promise.all([checkDatabase(), checkMail()]);
   
-  const status = db.ok ? (smtp.ok ? "ok" : "degraded") : "unhealthy";
+  const status = db.ok ? (mail.ok ? "ok" : "degraded") : "unhealthy";
   return res.status(db.ok ? 200 : 503).json({
     status,
     database: db.ok ? "ok" : "down",
-    smtp: smtp.ok ? "ok" : "down",
+    mail: mail.ok ? "ok" : "down",
     time: new Date().toISOString()
   });
 });
