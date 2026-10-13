@@ -27,7 +27,7 @@ import { ZodError } from "zod";
 import pkg from "./lib/generated/prisma/index.js";
 const { Prisma } = pkg;
 import { validateEnv } from "./utils/validateEnv.js";
-import { csrfErrorHandler } from "./middleware/csrf.middleware.js";
+import { csrfErrorHandler, csrfProtection } from "./middleware/csrf.middleware.js";
 import registerTestingRoutes from "./utils/registerTestingRoutes.js";
 
 dotenv.config();
@@ -46,18 +46,26 @@ app.disable("x-powered-by");
 app.set("trust proxy", 1);
 
 // CORS Configuration
-app.use(
-  cors({
-    origin:
-      process.env.NODE_ENV === "production"
-        ? process.env.CLIENT_URL
-        : ["http://localhost:5173", "http://127.0.0.1:5173"],
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "x-csrf-token"],
-  }),
-);
+if (process.env.NODE_ENV !== "production") {
+  // Enable CORS only in development; Catalyst adds its own CORS headers in production.
+  app.use(
+    cors({
+      origin: (origin, callback) => {
+        const allowed = process.env.CLIENT_URL
+          ? process.env.CLIENT_URL.split(',').map(u => u.trim())
+          : ["http://localhost:5173", "http://127.0.0.1:5173"];
+        if (!origin) return callback(null, true);
+        if (allowed.includes(origin)) return callback(null, true);
+        return callback(new Error(`CORS: origin '${origin}' is not allowed`));
+      },
+      credentials: true,
+      methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+      allowedHeaders: ["Content-Type", "Authorization", "x-csrf-token"],
+    })
+  );
+}
 // Middleware
+// CSRF middleware moved after auth routes (see below)
 app.use(express.json());
 app.use(
   express.urlencoded({ extended: true, limit: "100kb", parameterLimit: 1000 }),
@@ -102,6 +110,7 @@ app.use("/api/comments", commentRoutes);
 app.use("/api/labels", labelRoutes);
 app.use("/api/activity", activityRoutes);
 app.use("/api/zoho", zohoRoutes);
+app.use(csrfProtection);
 
 // CSRF error handler — must be after routes
 app.use(csrfErrorHandler);
