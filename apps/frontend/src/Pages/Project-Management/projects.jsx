@@ -311,7 +311,7 @@ export default function Projects() {
         <div
           role={toast.type === 'error' ? 'alert' : 'status'}
           aria-live={toast.type === 'error' ? 'assertive' : 'polite'}
-          className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[70] max-w-sm rounded-lg border px-4 py-3 text-sm shadow-lg ${toast.type === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-red-50 bg-red-100 text-red-800'}`}
+          className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-70 max-w-sm rounded-lg border px-4 py-3 text-sm shadow-lg ${toast.type === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-red-50 bg-red-100 text-red-800'}`}
         >
           <div className="flex items-center justify-between gap-4">
             <span>{toast.message}</span>
