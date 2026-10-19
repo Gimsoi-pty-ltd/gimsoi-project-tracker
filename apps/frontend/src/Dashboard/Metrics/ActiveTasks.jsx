@@ -196,7 +196,7 @@ export default function ActiveTasksCard() {
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3 mb-5">
-        <div className="flex items-center border border-gray-200 rounded-lg px-3 py-2 w-[260px]">
+        <div className="flex items-center border border-gray-200 rounded-lg px-3 py-2 w-65">
           <Search size={16} className="text-gray-400" />
           <input
             type="text"
@@ -249,7 +249,7 @@ export default function ActiveTasksCard() {
         <div
           role={taskToast.type === 'error' ? 'alert' : 'status'}
           aria-live={taskToast.type === 'error' ? 'assertive' : 'polite'}
-          className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[70] max-w-sm rounded-lg border px-4 py-3 text-sm shadow-lg ${taskToast.type === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-red-50 bg-red-100 text-red-800'}`}
+          className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-70 max-w-sm rounded-lg border px-4 py-3 text-sm shadow-lg ${taskToast.type === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-red-50 bg-red-100 text-red-800'}`}
         >
           <div className="flex items-center justify-between gap-4">
             <span>{taskToast.message}</span>
