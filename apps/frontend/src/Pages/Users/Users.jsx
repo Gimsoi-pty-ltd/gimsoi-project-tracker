@@ -168,7 +168,7 @@ const Users = () => {
           <input
             type="text"
             placeholder="Search users..."
-            className="border rounded-lg px-3 md:px-4 py-2 text-xs md:text-sm flex-1 min-w-[150px] md:w-auto"
+            className="border rounded-lg px-3 md:px-4 py-2 text-xs md:text-sm flex-1 min-w-37.5 md:w-auto"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -211,7 +211,7 @@ const Users = () => {
         />
       ) : (
         <div className="bg-white rounded-xl border shadow-sm overflow-x-auto">
-          <table className="w-full text-xs md:text-sm min-w-[640px]">
+          <table className="w-full text-xs md:text-sm min-w-160">
             <thead className="bg-gray-100 text-gray-600 text-left">
               <tr>
                 <th className="p-4">User</th>
