@@ -83,6 +83,21 @@ export const useSprintStore = create((set) => ({
         }
     },
 
+    deleteSprint: async (id) => {
+        set({ isLoading: true, error: null });
+        try {
+            await resourceAPI.delete(`/sprints/${id}`);
+            set((state) => ({
+                sprints: state.sprints.filter((sprint) => sprint.id !== id),
+                currentSprint: state.currentSprint?.id === id ? null : state.currentSprint,
+                isLoading: false,
+            }));
+        } catch (error) {
+            set({ error: error.response?.data?.message || "Error deleting sprint", isLoading: false });
+            throw error;
+        }
+    },
+
     clearCurrentSprint: () => set({ currentSprint: null }),
     clearError: () => set({ error: null }),
 }));
