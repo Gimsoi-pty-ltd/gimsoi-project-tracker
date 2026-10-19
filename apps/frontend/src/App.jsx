@@ -1,5 +1,5 @@
 import React, { useEffect, Suspense, lazy } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 
 // ─── AUTH PAGES ─────────────────────────────
 const LoginPage = lazy(() => import('./Pages/LogInOut-flow/LoginPage'));
@@ -95,11 +95,24 @@ const RedirectAuthenticatedUser = ({ children }) => {
 
 // ─── Main App Component ─────────────────────────────
 function App() {
-  const { isCheckingAuth, checkAuth } = useAuthStore();
+  const { isCheckingAuth, isAuthenticated, checkAuth, refreshAuthUser } = useAuthStore();
 
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return undefined;
+
+    const refresh = () => refreshAuthUser();
+    const intervalId = window.setInterval(refresh, 30000);
+    window.addEventListener("focus", refresh);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", refresh);
+    };
+  }, [isAuthenticated, refreshAuthUser]);
 
   if (isCheckingAuth) return <div className="loading">Loading...</div>;
 
