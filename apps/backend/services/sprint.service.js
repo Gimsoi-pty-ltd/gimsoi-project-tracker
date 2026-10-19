@@ -1,5 +1,5 @@
 /** @see {@link docs/DATA_CONTRACT.md} */
-import prisma from "../lib/prisma.js";
+import prisma, { rawPrisma } from "../lib/prisma.js";
 import { StateTransitionError, NotFoundError, ConflictError } from '../utils/errors.js';
 import { assertOwnership } from "../utils/ownership.js";
 import { assertProjectMembership } from "../utils/membership.js";
@@ -166,6 +166,26 @@ export const updateSprint = async (id, data, userId, userRole) => {
     } catch (err) {
         if (err.code === 'P2025') {
             throw new ConflictError("Sprint was modified by another user. Please refresh and try again.");
+        }
+        throw err;
+    }
+};
+
+export const deleteSprint = async (id, userId, userRole) => {
+    const sprint = await prisma.sprint.findUnique({ where: { id: String(id) } });
+    if (!sprint) throw new NotFoundError(`Sprint ${id} not found`);
+
+    if (userId && userRole) {
+        assertOwnership(sprint, userId, userRole);
+        await assertProjectMembership(sprint.projectId, userId, userRole);
+    }
+
+    try {
+        await rawPrisma.sprint.delete({ where: { id: String(id) } });
+        return true;
+    } catch (err) {
+        if (err.code === 'P2025') {
+            throw new NotFoundError(`Sprint ${id} not found`);
         }
         throw err;
     }
