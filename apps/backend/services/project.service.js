@@ -65,13 +65,12 @@ export const getProjects = async ({ limit = 50, cursor, search, status, createdB
     where.createdByUserId = createdByUserId;
   }
 
-  // Row-level security: non-admins only see projects they are members of
+  // Row-level security: non-admins only see projects they own or are members of
   if (requestingUser && ![ROLES.ADMIN, ROLES.PROJECT_MANAGER].includes(requestingUser.role)) {
-    where.members = {
-      some: {
-        userId: requestingUser.id
-      }
-    };
+    where.OR = [
+      { createdByUserId: requestingUser.id },
+      { members: { some: { userId: requestingUser.id } } }
+    ];
   }
 
   const projects = await prisma.project.findMany({
