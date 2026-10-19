@@ -165,9 +165,9 @@ export default function Teams() {
             <span className="mx-2">/</span>
             <span>Teams</span>
           </nav>
-          <p className="text-xs text-gray-400 mt-1 max-w-md">
+          {/* <p className="text-xs text-gray-400 mt-1 max-w-md">
             There's no separate "team" concept on the backend — this manages each project's real members.
-          </p>
+          </p> */}
         </div>
 
         <div className="flex flex-wrap items-center gap-2 md:gap-3">
