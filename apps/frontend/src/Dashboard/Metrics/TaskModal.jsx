@@ -22,7 +22,7 @@ const UI_TO_PRIORITY = {
 
 import TaskForm from '../../Components/Tasks/TaskForm';
 
-export default function TaskModal({ isOpen, onClose, task = null, initialSprintId = null }) {
+export default function TaskModal({ isOpen, onClose, task = null, initialSprintId = null, onSuccess = null }) {
   const createTask = useTaskStore(state => state.createTask);
   const updateTask = useTaskStore(state => state.updateTask);
   const currentProject = useProjectStore(state => state.currentProject);
@@ -172,6 +172,7 @@ export default function TaskModal({ isOpen, onClose, task = null, initialSprintI
       }
 
       await useProjectStore.getState().fetchDashboard();
+      if (onSuccess) onSuccess(task ? 'updated' : 'created');
       onClose();
     } catch (err) {
       setError(err.response?.data?.message || err.message || 'Failed to save task');
