@@ -30,6 +30,7 @@ export default function ActiveTasksCard() {
   
   const [activeDropdownTaskId, setActiveDropdownTaskId] = useState(null);
   const [editingTask, setEditingTask] = useState(null);
+  const [taskToast, setTaskToast] = useState(null);
 
   const deleteTask = useTaskStore((state) => state.deleteTask);
   const updateTask = useTaskStore((state) => state.updateTask);
@@ -43,6 +44,12 @@ export default function ActiveTasksCard() {
     window.addEventListener("click", handleClose);
     return () => window.removeEventListener("click", handleClose);
   }, []);
+
+  useEffect(() => {
+    if (!taskToast) return undefined;
+    const timeoutId = window.setTimeout(() => setTaskToast(null), 4000);
+    return () => window.clearTimeout(timeoutId);
+  }, [taskToast]);
 
   const filteredTasks = useMemo(() => {
     let result = [...tasks];
@@ -184,6 +191,7 @@ export default function ActiveTasksCard() {
         }} 
         task={editingTask}
         initialSprintId={activeSprint?.id}
+        onSuccess={(mode) => setTaskToast({ type: 'success', message: mode === 'updated' ? 'Task updated successfully.' : 'Task created successfully.' })}
       />
 
       {/* Filters */}
@@ -236,6 +244,19 @@ export default function ActiveTasksCard() {
           Clear Filters
         </button>
       </div>
+
+      {taskToast && (
+        <div
+          role={taskToast.type === 'error' ? 'alert' : 'status'}
+          aria-live={taskToast.type === 'error' ? 'assertive' : 'polite'}
+          className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[70] max-w-sm rounded-lg border px-4 py-3 text-sm shadow-lg ${taskToast.type === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-red-50 bg-red-100 text-red-800'}`}
+        >
+          <div className="flex items-center justify-between gap-4">
+            <span>{taskToast.message}</span>
+            <button type="button" aria-label="Dismiss notification" onClick={() => setTaskToast(null)} className="font-semibold opacity-70 hover:opacity-100">×</button>
+          </div>
+        </div>
+      )}
 
       {/* Table */}
       <div className="overflow-x-auto">
