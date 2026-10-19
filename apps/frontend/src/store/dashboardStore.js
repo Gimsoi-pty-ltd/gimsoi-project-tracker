@@ -9,6 +9,7 @@ const normalizeList = (response) => {
 
 export const useDashboardStore = create((set, get) => ({
     users: [],
+    userCounts: { total: 0, verified: 0, unverified: 0 },
     clients: [],
     projects: [],
     activities: [],
@@ -28,6 +29,11 @@ export const useDashboardStore = create((set, get) => ({
 
             set({
                 users: normalizeList(usersRes),
+                userCounts: {
+                    total: usersRes.data?.totalCount ?? normalizeList(usersRes).length,
+                    verified: usersRes.data?.verifiedCount ?? normalizeList(usersRes).filter((user) => user.isVerified).length,
+                    unverified: usersRes.data?.unverifiedCount ?? normalizeList(usersRes).filter((user) => !user.isVerified).length,
+                },
                 clients: normalizeList(clientsRes),
                 projects: normalizeList(projectsRes),
                 activities: normalizeList(activitiesRes),
@@ -43,7 +49,7 @@ export const useDashboardStore = create((set, get) => ({
     },
     
     getCounts: () => {
-        const { users, clients, projects } = get();
+        const { users, userCounts, clients, projects } = get();
         const now = new Date();
 
         const isThisMonth = (dateStr) => {
@@ -53,9 +59,9 @@ export const useDashboardStore = create((set, get) => ({
         };
 
         return {
-            usersTotal: users.length,
-            usersVerified: users.filter((u) => u.isVerified).length,
-            usersUnverified: users.filter((u) => !u.isVerified).length,
+            usersTotal: userCounts.total,
+            usersVerified: userCounts.verified,
+            usersUnverified: userCounts.unverified,
 
             clientsTotal: clients.length,
             clientsNewThisMonth: clients.filter((c) => isThisMonth(c.createdAt)).length,
