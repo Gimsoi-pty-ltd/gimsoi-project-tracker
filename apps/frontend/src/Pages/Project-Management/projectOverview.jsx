@@ -233,7 +233,7 @@ export default function ProjectOverview() {
             <div className="flex items-center gap-2">
               <NavyButton
                 onClick={() => setShowEditForm(true)}
-                className="!min-w-0 !px-4 !py-2 !rounded-xl flex items-center gap-2 !text-sm"
+                className="min-w-0! px-4! py-2! rounded-xl! flex items-center gap-2 text-sm!"
               >
                 <Edit2 className="w-4 h-4" />
                 Edit Project
@@ -332,7 +332,7 @@ export default function ProjectOverview() {
                 const Icon = mc.icon;
                 return (
                   <div key={i} className="flex items-center gap-4">
-                    <div className={`w-7 h-7 rounded-full ${mc.bg} flex items-center justify-center flex-shrink-0`}>
+                    <div className={`w-7 h-7 rounded-full ${mc.bg} flex items-center justify-center shrink-0`}>
                       <Icon className={`w-4 h-4 ${mc.color}`} />
                     </div>
                     <div className="flex-1 flex items-center justify-between flex-wrap gap-2">
@@ -630,7 +630,7 @@ export default function ProjectOverview() {
         <div
           role={sprintToast.type === 'error' ? 'alert' : 'status'}
           aria-live={sprintToast.type === 'error' ? 'assertive' : 'polite'}
-          className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[70] max-w-sm rounded-lg border px-4 py-3 text-sm shadow-lg ${sprintToast.type === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-red-50 bg-red-100 text-red-800'}`}
+          className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-70 max-w-sm rounded-lg border px-4 py-3 text-sm shadow-lg ${sprintToast.type === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-red-50 bg-red-100 text-red-800'}`}
         >
           <div className="flex items-center justify-between gap-4">
             <span>{sprintToast.message}</span>
@@ -654,7 +654,7 @@ export default function ProjectOverview() {
         <div
           role={projectToast.type === 'error' ? 'alert' : 'status'}
           aria-live={projectToast.type === 'error' ? 'assertive' : 'polite'}
-          className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[70] max-w-sm rounded-lg border px-4 py-3 text-sm shadow-lg ${projectToast.type === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-red-50 bg-red-100 text-red-800'}`}
+          className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-70 max-w-sm rounded-lg border px-4 py-3 text-sm shadow-lg ${projectToast.type === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-red-50 bg-red-100 text-red-800'}`}
         >
           <div className="flex items-center justify-between gap-4">
             <span>{projectToast.message}</span>
