@@ -84,6 +84,8 @@ test.describe("Users API Tests", () => {
       expect(body.success).toBe(true);
       expect(Array.isArray(body.data)).toBe(true);
       expect(body.data.length).toBeGreaterThan(0);
+      expect(body.totalCount).toBeGreaterThanOrEqual(body.data.length);
+      expect(body.verifiedCount + body.unverifiedCount).toBe(body.totalCount);
       expect(body.data[0]).not.toHaveProperty("password");
     });
 
