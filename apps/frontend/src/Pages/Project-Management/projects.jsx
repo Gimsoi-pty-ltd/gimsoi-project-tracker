@@ -163,8 +163,14 @@ export default function Projects() {
   const [searchTerm, setSearchTerm] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [toast, setToast] = useState(null);
 
   useEffect(() => { fetchProjects(); }, [fetchProjects]);
+  useEffect(() => {
+    if (!toast) return undefined;
+    const timeoutId = window.setTimeout(() => setToast(null), 4000);
+    return () => window.clearTimeout(timeoutId);
+  }, [toast]);
 
   const filteredProjects = projects.filter((p) =>
     (p.name?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
@@ -294,8 +300,25 @@ export default function Projects() {
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
         project={null}
-        onSuccess={() => { fetchProjects(); setShowCreateModal(false); }}
+        onSuccess={() => {
+          fetchProjects();
+          setShowCreateModal(false);
+          setToast({ type: 'success', message: 'Project created successfully.' });
+        }}
       />
+
+      {toast && (
+        <div
+          role={toast.type === 'error' ? 'alert' : 'status'}
+          aria-live={toast.type === 'error' ? 'assertive' : 'polite'}
+          className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-70 max-w-sm rounded-lg border px-4 py-3 text-sm shadow-lg ${toast.type === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-red-50 bg-red-100 text-red-800'}`}
+        >
+          <div className="flex items-center justify-between gap-4">
+            <span>{toast.message}</span>
+            <button type="button" aria-label="Dismiss notification" onClick={() => setToast(null)} className="font-semibold opacity-70 hover:opacity-100">×</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

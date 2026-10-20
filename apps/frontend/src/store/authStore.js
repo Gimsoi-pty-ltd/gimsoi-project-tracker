@@ -127,6 +127,19 @@ export const useAuthStore = create((set, get) => ({
     }
   },
 
+  refreshAuthUser: async () => {
+    try {
+      const response = await authAPI.get("/check-auth");
+      const currentUser = response.data.user || response.data;
+      set((state) => ({
+        user: state.user ? { ...state.user, ...currentUser } : currentUser,
+        isAuthenticated: true,
+      }));
+    } catch {
+      // A transient refresh failure should not interrupt the current session.
+    }
+  },
+
   forgotPassword: async (email) => {
     set({ isLoading: true, error: null });
     try {
