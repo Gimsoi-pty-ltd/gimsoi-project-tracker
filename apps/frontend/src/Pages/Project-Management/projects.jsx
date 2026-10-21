@@ -224,9 +224,9 @@ export default function Projects() {
             </NavyButton>
 
             <Link to="/kanban-board">
-              {/* <NavyButton className="flex items-center gap-2 px-4 py-2 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl shadow-sm transition-colors">
+              <NavyButton className="flex items-center gap-2 px-4 py-2 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl shadow-sm transition-colors">
                 <Zap className="w-4 h-4" /> Kanban Board
-              </NavyButton> */}
+              </NavyButton>
             </Link>
           </div>
         </div>
