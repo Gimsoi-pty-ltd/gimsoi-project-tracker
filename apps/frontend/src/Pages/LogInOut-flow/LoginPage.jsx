@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Lock, Mail, Loader, InfoIcon } from "lucide-react";
+import { EyeClosed, Mail, Loader, InfoIcon } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import NavyButton from "../../Components/Buttons";
 import logo from "../../assets/Gimsoi-AI.png";
@@ -79,7 +79,7 @@ function LoginPage() {
                 className="w-full bg-white rounded-lg px-4 py-3 pr-12 outline-none text-sm border-2 border-transparent focus:border-[#002D62]/20 transition-all shadow-sm"
                 required
               />
-              <Lock
+              <EyeClosed
                 size={18}
                 className="absolute right-4 top-3.5 text-gray-400 group-focus-within:text-[#002D62] transition-colors"
               />
