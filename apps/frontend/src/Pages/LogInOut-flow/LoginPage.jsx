@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { EyeClosed, Mail, Loader, InfoIcon } from "lucide-react";
+import { Lock, Mail, Loader, InfoIcon } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import NavyButton from "../../Components/Buttons";
 import logo from "../../assets/Gimsoi-AI.png";
@@ -28,7 +28,11 @@ function LoginPage() {
       {/* Main Card Container */}
       <div className="flex flex-col md:flex-row w-full max-w-4xl bg-[#f4f4f4] rounded-[40px] shadow-2xl overflow-hidden min-h-125">
         {/* Left Section (The Curve) */}
-        <InfoIcon size={20} />
+        <InfoIcon
+          size={20}
+          onClick={() => alert("This section provides additional information.")}
+          className="absolute top-62 right-175 text-gray-500 hover:text-blue-400 cursor-pointer transition-all"
+        />
         <div className="md:w-5/12 bg-[#002D62] text-white flex flex-col justify-center items-center p-12 text-center rounded-br-[150px] md:rounded-br-[250px] relative overflow-hidden">
           <div className="absolute inset-0 bg-linear-to-br from-[#002D62] to-[#011f44] opacity-50"></div>
           <div className="relative z-10 flex flex-col items-center">
@@ -37,6 +41,7 @@ function LoginPage() {
               alt="Gimsoi AI"
               className="w-36 h-36 object-contain mb-6 rounded-full "
             />
+
             <h1 className="text-3xl font-bold mb-2 text-gray-100">
               Hello, Welcome!
             </h1>
@@ -50,6 +55,7 @@ function LoginPage() {
         </div>
 
         {/* Right Section (The Form) */}
+
         <div className="md:w-7/12 bg-[#f4f4f4] flex flex-col justify-center items-center p-12">
           <h2 className="text-3xl font-bold text-gray-800 mb-8">Login</h2>
 
@@ -79,7 +85,7 @@ function LoginPage() {
                 className="w-full bg-white rounded-lg px-4 py-3 pr-12 outline-none text-sm border-2 border-transparent focus:border-[#002D62]/20 transition-all shadow-sm"
                 required
               />
-              <EyeClosed
+              <Lock
                 size={18}
                 className="absolute right-4 top-3.5 text-gray-400 group-focus-within:text-[#002D62] transition-colors"
               />
@@ -121,15 +127,50 @@ function LoginPage() {
                         </div> */}
             <div className="flex justify-center mt-2">
               {/* <button className="flex items-center gap-3 px-6 py-2 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 transition-all shadow-sm group">
-                                <img
-                                    src="https://www.gstatic.com/images/branding/product/1x/googleg_48dp.png"
-                                    alt="Google"
-                                    className="w-5 h-5"
-                                />
-                                <span className="text-[#002D62] font-bold text-sm">Google</span>
-                            </button> */}
+                <img
+                  src="https://www.gstatic.com/images/branding/product/1x/googleg_48dp.png"
+                  alt="Google"
+                  className="w-5 h-5"
+                />
+                <span className="text-[#002D62] font-bold text-sm">Google</span>
+              </button> */}
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Login information section */}
+      <div className="hidden sm:block lg:w-1/6 bg-gray-100 text-white p-8">
+        <h2 className="text-2xl font-bold mb-4">Login information</h2>
+        <div className="text-xs">
+          <p>Here is what you need to know to login:</p>
+        </div>
+
+        <div className="mt-4 bg-white text-black p-1 rounded-lg shadow-md">
+          Use your assigned username
+          <p className="text-xs">Typically your work email or employee ID</p>
+        </div>
+
+        <div className="mt-4 bg-white text-black p-1 rounded-lg shadow-md">
+          Forgot password?
+          <p className="text-xs">Typically your work email or employee ID</p>
+        </div>
+
+        <div className="mt-4 bg-white text-black p-1 rounded-lg shadow-md">
+          First-time login?
+          <p className="text-xs">Typically your work email or employee ID</p>
+        </div>
+
+        <div className="mt-4 bg-white text-black p-1 rounded-lg shadow-md">
+          Need help? Contact IT support
+          <p className="text-xs">Typically your work email or employee ID</p>
+        </div>
+
+        <div className="mt-16 bg-navyblue text-black p-1 rounded-lg shadow-md">
+          <p className="text-xs">
+            Security Tip: Keep your password private. Never share it with
+            anyone. Enable 2MFA if available
+          </p>
         </div>
       </div>
     </div>
