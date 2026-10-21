@@ -224,9 +224,9 @@ export default function Projects() {
             </NavyButton>
 
             <Link to="/kanban-board">
-              <NavyButton className="flex items-center gap-2 px-4 py-2 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl shadow-sm transition-colors">
+              {/* <NavyButton className="flex items-center gap-2 px-4 py-2 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl shadow-sm transition-colors">
                 <Zap className="w-4 h-4" /> Kanban Board
-              </NavyButton>
+              </NavyButton> */}
             </Link>
           </div>
         </div>
@@ -246,7 +246,7 @@ export default function Projects() {
         {/* ── Table ── */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="grid grid-cols-[1fr_1.2fr_1fr_0.8fr_1.4fr_44px] px-6 py-3 border-b border-gray-100 bg-gray-50/60">
-            {["CLIENT", "PROJECT NAME", "STATUS", "SPRINT", "PROGRESS", ""].map((h) => (
+            {["CLIENT", "PROJECT NAME", "STATUS", "SPRINT", "PROGRESS", "STAGES", ""].map((h) => (
               <div key={h} className="text-xs font-semibold text-gray-400 uppercase tracking-wider">{h}</div>
             ))}
           </div>

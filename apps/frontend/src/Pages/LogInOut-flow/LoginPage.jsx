@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Lock, Mail, Loader } from "lucide-react";
+import { EyeClosed, Mail, Loader, InfoIcon } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import NavyButton from "../../Components/Buttons";
 import logo from "../../assets/Gimsoi-AI.png";
@@ -28,6 +28,7 @@ function LoginPage() {
       {/* Main Card Container */}
       <div className="flex flex-col md:flex-row w-full max-w-4xl bg-[#f4f4f4] rounded-[40px] shadow-2xl overflow-hidden min-h-125">
         {/* Left Section (The Curve) */}
+        <InfoIcon size={20} />
         <div className="md:w-5/12 bg-[#002D62] text-white flex flex-col justify-center items-center p-12 text-center rounded-br-[150px] md:rounded-br-[250px] relative overflow-hidden">
           <div className="absolute inset-0 bg-linear-to-br from-[#002D62] to-[#011f44] opacity-50"></div>
           <div className="relative z-10 flex flex-col items-center">
@@ -78,7 +79,7 @@ function LoginPage() {
                 className="w-full bg-white rounded-lg px-4 py-3 pr-12 outline-none text-sm border-2 border-transparent focus:border-[#002D62]/20 transition-all shadow-sm"
                 required
               />
-              <Lock
+              <EyeClosed
                 size={18}
                 className="absolute right-4 top-3.5 text-gray-400 group-focus-within:text-[#002D62] transition-colors"
               />
