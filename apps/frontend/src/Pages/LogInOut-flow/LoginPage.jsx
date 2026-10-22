@@ -29,13 +29,14 @@ function LoginPage() {
       <InfoIcon
         size={20}
         onClick={() => setShowLoginInfo((prev) => !prev)}
-        className="absolute top-62 right-135 text-gray-500 hover:text-blue-400 cursor-pointer transition-all"
+        className="absolute top-[175px] right-[225px] z-50 cursor-pointer text-gray-500 hover:text-blue-400"
         aria-label="Show login information"
         role="button"
         tabIndex={0}
       />
+
       {/* Main Card Container */}
-      <div className="flex flex-col md:flex-row w-full max-w-4xl bg-[#f4f4f4] rounded-[40px] shadow-2xl overflow-hidden min-h-125">
+      <div className=" flex flex-col md:flex-row w-full max-w-4xl bg-[#f4f4f4] rounded-[40px] shadow-2xl overflow-hidden min-h-125">
         {/* Left Section (The Curve) */}
 
         <div className="md:w-5/12 bg-[#002D62] text-white flex flex-col justify-center items-center p-12 text-center rounded-br-[150px] md:rounded-br-[250px] relative overflow-hidden">
@@ -146,7 +147,7 @@ function LoginPage() {
 
       {/* Login information section */}
       {showLoginInfo && (
-        <div className="hidden sm:block lg:w-1/6 bg-gray-100 text-white p-8">
+        <div className="fixed right-1 top-40 z-50 w-80 max-w-[calc(100vw-2.5rem)] rounded-xl bg-gray-100 p-5 text-gray-800 shadow-2xl">
           <h2 className="text-2xl font-bold mb-4">Login information</h2>
           <div className="text-xs">
             <p>Here is what you need to know to login:</p>
