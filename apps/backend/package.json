@@ -21,7 +21,7 @@
   "license": "ISC",
   "dependencies": {
     "@prisma/adapter-pg": "7.9.0",
-    "@prisma/client": "^7.9.1",
+    "@prisma/client": "^7.10.1",
     "@zcatalyst/auth": "^1.0.0",
     "@zcatalyst/mail": "^1.0.0",
     "axios": "1.18.1",

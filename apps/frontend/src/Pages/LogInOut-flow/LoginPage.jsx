@@ -8,6 +8,7 @@ import { useAuthStore } from "../../store/authStore";
 function LoginPage() {
   const [email, setEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
+  const [showLoginInfo, setShowLoginInfo] = useState(false);
   const navigate = useNavigate();
 
   const { login, isLoading, error } = useAuthStore();
@@ -24,11 +25,19 @@ function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen bg-indigo-50 items-center justify-center p-4">
+    <div className="relative flex min-h-screen bg-indigo-50 items-center justify-center p-4">
+      <InfoIcon
+        size={20}
+        onClick={() => setShowLoginInfo((prev) => !prev)}
+        className="absolute top-62 right-135 text-gray-500 hover:text-blue-400 cursor-pointer transition-all"
+        aria-label="Show login information"
+        role="button"
+        tabIndex={0}
+      />
       {/* Main Card Container */}
       <div className="flex flex-col md:flex-row w-full max-w-4xl bg-[#f4f4f4] rounded-[40px] shadow-2xl overflow-hidden min-h-125">
         {/* Left Section (The Curve) */}
-        <InfoIcon size={20} />
+
         <div className="md:w-5/12 bg-[#002D62] text-white flex flex-col justify-center items-center p-12 text-center rounded-br-[150px] md:rounded-br-[250px] relative overflow-hidden">
           <div className="absolute inset-0 bg-linear-to-br from-[#002D62] to-[#011f44] opacity-50"></div>
           <div className="relative z-10 flex flex-col items-center">
@@ -37,6 +46,7 @@ function LoginPage() {
               alt="Gimsoi AI"
               className="w-36 h-36 object-contain mb-6 rounded-full "
             />
+
             <h1 className="text-3xl font-bold mb-2 text-gray-100">
               Hello, Welcome!
             </h1>
@@ -50,6 +60,7 @@ function LoginPage() {
         </div>
 
         {/* Right Section (The Form) */}
+
         <div className="md:w-7/12 bg-[#f4f4f4] flex flex-col justify-center items-center p-12">
           <h2 className="text-3xl font-bold text-gray-800 mb-8">Login</h2>
 
@@ -121,17 +132,54 @@ function LoginPage() {
                         </div> */}
             <div className="flex justify-center mt-2">
               {/* <button className="flex items-center gap-3 px-6 py-2 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 transition-all shadow-sm group">
-                                <img
-                                    src="https://www.gstatic.com/images/branding/product/1x/googleg_48dp.png"
-                                    alt="Google"
-                                    className="w-5 h-5"
-                                />
-                                <span className="text-[#002D62] font-bold text-sm">Google</span>
-                            </button> */}
+                <img
+                  src="https://www.gstatic.com/images/branding/product/1x/googleg_48dp.png"
+                  alt="Google"
+                  className="w-5 h-5"
+                />
+                <span className="text-[#002D62] font-bold text-sm">Google</span>
+              </button> */}
             </div>
           </div>
         </div>
       </div>
+
+      {/* Login information section */}
+      {showLoginInfo && (
+        <div className="hidden sm:block lg:w-1/6 bg-gray-100 text-white p-8">
+          <h2 className="text-2xl font-bold mb-4">Login information</h2>
+          <div className="text-xs">
+            <p>Here is what you need to know to login:</p>
+          </div>
+
+          <div className="mt-4 bg-white text-black p-1 rounded-lg shadow-md">
+            Use your assigned username
+            <p className="text-xs">Typically your work email or employee ID</p>
+          </div>
+
+          <div className="mt-4 bg-white text-black p-1 rounded-lg shadow-md">
+            Forgot password?
+            <p className="text-xs">Typically your work email or employee ID</p>
+          </div>
+
+          <div className="mt-4 bg-white text-black p-1 rounded-lg shadow-md">
+            First-time login?
+            <p className="text-xs">Typically your work email or employee ID</p>
+          </div>
+
+          <div className="mt-4 bg-white text-black p-1 rounded-lg shadow-md">
+            Need help? Contact IT support
+            <p className="text-xs">Typically your work email or employee ID</p>
+          </div>
+
+          <div className="mt-16 bg-navyblue text-black p-1 rounded-lg shadow-md">
+            <p className="text-xs">
+              Security Tip: Keep your password private. Never share it with
+              anyone. Enable 2MFA if available
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
