@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import morgan from "morgan";
 import cors from "cors";
+import helmet from "helmet";
 import methodOverride from "method-override";
 import authRoutes from "./routes/auth.route.js";
 import tasksRoutes from "./routes/task.route.js";
@@ -43,6 +44,9 @@ if (process.env.NODE_ENV === "production" && !process.env.CLIENT_URL) {
 }
 
 const app = express();
+
+app.use(helmet());
+
 app.use(morgan("dev"));
 app.disable("x-powered-by");
 app.set("trust proxy", 1);
