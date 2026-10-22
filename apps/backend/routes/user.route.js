@@ -23,6 +23,7 @@ import {
   updateUserRoleSchema,
   changePasswordSchema,
 } from "../schemas/user.schema.js";
+import { idParamSchema } from "../schemas/common.schema.js";
 
 const router = express.Router();
 
@@ -51,6 +52,7 @@ router.patch(
   verifyToken,
   authorize("MANAGE_USERS"),
   requireCSRF,
+  validate(idParamSchema, 'params'),
   validate(updateUserRoleSchema),
   updateUserRole,
 );

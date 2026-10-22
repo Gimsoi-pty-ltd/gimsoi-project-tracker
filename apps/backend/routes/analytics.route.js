@@ -11,6 +11,7 @@ import {
     getAIContext,
     ingestHealthScore
 } from '../controllers/analytics.controller.js';
+import { aiContextQuerySchema } from '../schemas/analytics.schema.js';
 import { requireCSRF } from '../middleware/csrf.middleware.js';
 import { writeLimiter } from '../middleware/rate-limiter.middleware.js';
 
@@ -49,6 +50,7 @@ router.get(
     readLimiter,
     verifyToken,
     requireAnyRole(["ADMIN", "PM", "INTERN"]),
+    validate(aiContextQuerySchema, 'query'),
     injectAnalyticsScope,
     getAIContext
 );

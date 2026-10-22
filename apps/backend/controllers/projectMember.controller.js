@@ -10,7 +10,7 @@ export const addMember = async (req, res, next) => {
         });
         
         res.status(201).json({
-            status: "success",
+            success: true,
             data: member
         });
     } catch (err) {
@@ -22,9 +22,9 @@ export const getMembers = async (req, res, next) => {
     try {
         const { id: projectId } = req.params;
         const members = await projectMemberService.getMembersByProject(projectId);
-        
+
         res.json({
-            status: "success",
+            success: true,
             data: members
         });
     } catch (err) {
@@ -43,7 +43,7 @@ export const updateMemberRole = async (req, res, next) => {
         });
         
         res.json({
-            status: "success",
+            success: true,
             data: member
         });
     } catch (err) {

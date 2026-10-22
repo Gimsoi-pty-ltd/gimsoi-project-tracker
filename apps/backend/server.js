@@ -29,6 +29,8 @@ const { Prisma } = pkg;
 import { validateEnv } from "./utils/validateEnv.js";
 import { csrfErrorHandler, csrfProtection } from "./middleware/csrf.middleware.js";
 import registerTestingRoutes from "./utils/registerTestingRoutes.js";
+import { formatZodError } from "./utils/formatZodError.js";
+import { handlePrismaError } from "./utils/prismaErrors.js";
 
 dotenv.config();
 
@@ -119,12 +121,14 @@ app.use(csrfErrorHandler);
 app.use((err, req, res, next) => {
   let statusCode = err.statusCode || 500;
   let message = err.message || "Internal Server Error";
+  let errorsList;
 
   // Semantic Mapping: Zod Validation Errors
   if (err instanceof ZodError || err.name === "ZodError") {
     statusCode = 400;
-    message =
-      err.issues?.[0]?.message || err.errors?.[0]?.message || err.message;
+    const formatted = formatZodError(err);
+    message = formatted.message;
+    errorsList = formatted.errors;
   }
   // Semantic Mapping: Prisma Database Errors
   else if (
@@ -132,18 +136,11 @@ app.use((err, req, res, next) => {
     (err.constructor &&
       err.constructor.name === "PrismaClientKnownRequestError")
   ) {
-    if (err.code === "P2002") {
-      statusCode = 409;
-      message = "A resource with that value already exists.";
-    } else if (err.code === "P2025") {
-      statusCode = 404;
-      message = "The requested resource was not found.";
-    } else if (err.code === "P2003") {
-      statusCode = 409;
-      message = "Operation failed due to a missing related resource.";
-    } else if (err.code === "P2009" || err.code === "P2019") {
-      statusCode = 400;
-      message = `Invalid data provided: ${err.message}`;
+    try {
+      handlePrismaError(err);
+    } catch (mapped) {
+      statusCode = mapped.statusCode || 500;
+      message = mapped.message;
     }
   }
 
@@ -154,7 +151,9 @@ app.use((err, req, res, next) => {
     }
   }
 
-  return res.status(statusCode).json({ success: false, message });
+  return res
+    .status(statusCode)
+    .json({ success: false, message, ...(errorsList ? { errors: errorsList } : {}) });
 });
 
 // Test-only routes

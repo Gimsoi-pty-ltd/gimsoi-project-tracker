@@ -14,6 +14,7 @@ import {
     getMilestoneStatusHandler,
 } from '../controllers/phase.controller.js';
 import { createPhaseSchema, updatePhaseSchema } from '../schemas/phase.schema.js';
+import { idParamSchema } from '../schemas/common.schema.js';
 
 const router = express.Router();
 
@@ -34,12 +35,12 @@ router.get('/', readLimiter, verifyToken, authorize('VIEW_PHASES'), validate(lis
  * GET /api/phases/:id — VIEW_PHASES
  * Allowed: ADMIN, PM, INTERN, CLIENT
  */
-router.get('/:id', readLimiter, verifyToken, authorize('VIEW_PHASES'), getPhaseByIdHandler);
+router.get('/:id', readLimiter, verifyToken, authorize('VIEW_PHASES'), validate(idParamSchema, 'params'), getPhaseByIdHandler);
 
 /**
  * GET /api/phases/:id/milestone — VIEW_PHASES
  */
-router.get('/:id/milestone', readLimiter, verifyToken, authorize('VIEW_PHASES'), getMilestoneStatusHandler);
+router.get('/:id/milestone', readLimiter, verifyToken, authorize('VIEW_PHASES'), validate(idParamSchema, 'params'), getMilestoneStatusHandler);
 
 /**
  * POST /api/phases — MANAGE_PHASES
@@ -51,12 +52,12 @@ router.post('/', writeLimiter, verifyToken, authorize('MANAGE_PHASES'), requireC
  * PATCH /api/phases/:id — MANAGE_PHASES
  * Allowed: ADMIN, PM
  */
-router.patch('/:id', writeLimiter, verifyToken, authorize('MANAGE_PHASES'), requireCSRF, validate(updatePhaseSchema), updatePhaseHandler);
+router.patch('/:id', writeLimiter, verifyToken, authorize('MANAGE_PHASES'), requireCSRF, validate(idParamSchema, 'params'), validate(updatePhaseSchema), updatePhaseHandler);
 
 /**
  * DELETE /api/phases/:id — MANAGE_PHASES
  * Allowed: ADMIN, PM
  */
-router.delete('/:id', writeLimiter, verifyToken, authorize('MANAGE_PHASES'), requireCSRF, deletePhaseHandler);
+router.delete('/:id', writeLimiter, verifyToken, authorize('MANAGE_PHASES'), requireCSRF, validate(idParamSchema, 'params'), deletePhaseHandler);
 
 export default router;

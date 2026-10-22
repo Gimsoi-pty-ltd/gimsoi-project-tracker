@@ -22,7 +22,7 @@ export const getTaskActivities = async (req, res, next) => {
     const activities = await activityService.getTaskActivities(taskId);
     
     return res.json({
-      status: "success",
+      success: true,
       data: activities
     });
   } catch (err) {

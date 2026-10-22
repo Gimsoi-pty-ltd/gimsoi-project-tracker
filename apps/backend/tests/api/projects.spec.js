@@ -163,8 +163,15 @@ test.describe('Project Lifecycle & Ownership Validation', () => {
     });
 
     test('GET /api/projects/:id/progress returns 404 for unknown project', async ({ pmApi }) => {
-        const res = await pmApi.get('/api/projects/non-existent-id-xyz/progress');
+        const res = await pmApi.get('/api/projects/00000000-0000-0000-0000-000000000000/progress');
         expect(res.status()).toBe(404);
+    });
+
+    test('GET /api/projects/:id/progress returns 400 for malformed id', async ({ pmApi }) => {
+        const res = await pmApi.get('/api/projects/non-existent-id-xyz/progress');
+        expect(res.status()).toBe(400);
+        const json = await res.json();
+        expect(json.success).toBe(false);
     });
 
     test('GET /api/projects returns nextCursor when more pages exist', async ({ pmApi, testClient }) => {

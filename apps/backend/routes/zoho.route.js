@@ -3,10 +3,12 @@ import {
   transformZohoProject,
   transformZohoProjects,
 } from "../services/zohoTransformation.service.js";
+import { validate } from "../middleware/validate.middleware.js";
+import { transformProjectSchema, transformProjectsSchema } from "../schemas/zoho.schema.js";
 
 const router = express.Router();
 
-router.post("/transform/project", (req, res) => {
+router.post("/transform/project", validate(transformProjectSchema), (req, res, next) => {
   try {
     const transformedProject = transformZohoProject(req.body || {});
 
@@ -16,26 +18,14 @@ router.post("/transform/project", (req, res) => {
       data: transformedProject,
     });
   } catch (error) {
-    console.error("Zoho Project Transformation Error:", error);
-
-    return res.status(500).json({
-      success: false,
-      message: "Failed to transform Zoho project",
-    });
+    next(error);
   }
 });
 
-router.post("/transform/projects", (req, res) => {
+router.post("/transform/projects", validate(transformProjectsSchema), (req, res, next) => {
   try {
     const payload = req.body || {};
     const projects = Array.isArray(payload) ? payload : payload.projects;
-
-    if (!Array.isArray(projects)) {
-      return res.status(400).json({
-        success: false,
-        message: "Expected an array of projects or an object with a projects array",
-      });
-    }
 
     const transformedProjects = transformZohoProjects(projects);
 
@@ -45,12 +35,7 @@ router.post("/transform/projects", (req, res) => {
       data: transformedProjects,
     });
   } catch (error) {
-    console.error("Zoho Projects Transformation Error:", error);
-
-    return res.status(500).json({
-      success: false,
-      message: "Failed to transform Zoho projects",
-    });
+    next(error);
   }
 });
 
@@ -68,7 +53,7 @@ router.get("/login", (req, res) => {
   res.redirect(authUrl);
 });
 
-router.get("/callback", async (req, res) => {
+router.get("/callback", async (req, res, next) => {
   try {
     const { code } = req.query;
 
@@ -101,12 +86,7 @@ router.get("/callback", async (req, res) => {
       data,
     });
   } catch (error) {
-    console.error("Zoho OAuth Error:", error);
-
-    return res.status(500).json({
-      success: false,
-      message: "Zoho authentication failed",
-    });
+    next(error);
   }
 });
 

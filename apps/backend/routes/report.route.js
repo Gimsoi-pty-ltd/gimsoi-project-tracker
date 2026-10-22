@@ -10,6 +10,7 @@ import {
     getReportPdfHandler,
 } from '../controllers/report.controller.js';
 import { createReportSchema } from '../schemas/report.schema.js';
+import { idParamSchema } from '../schemas/common.schema.js';
 
 const router = express.Router();
 
@@ -23,7 +24,7 @@ router.get('/', readLimiter, verifyToken, authorize('VIEW_REPORTS'), getReportsH
  * GET /api/reports/:id/pdf — VIEW_REPORTS
  * Allowed: ADMIN, PM
  */
-router.get('/:id/pdf', readLimiter, verifyToken, authorize('VIEW_REPORTS'), getReportPdfHandler);
+router.get('/:id/pdf', readLimiter, verifyToken, authorize('VIEW_REPORTS'), validate(idParamSchema, 'params'), getReportPdfHandler);
 
 /**
  * POST /api/reports — MANAGE_REPORTS
