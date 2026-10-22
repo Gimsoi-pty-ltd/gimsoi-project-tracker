@@ -26,14 +26,19 @@ function LoginPage() {
 
   return (
     <div className="relative flex min-h-screen bg-indigo-50 items-center justify-center p-4">
-      <InfoIcon
+      
+
+<InfoIcon
         size={20}
         onClick={() => setShowLoginInfo((prev) => !prev)}
-        className="absolute top-62 right-135 text-gray-500 hover:text-blue-400 cursor-pointer transition-all"
+        className="absolute top-[175px] right-[225px] z-50 cursor-pointer text-gray-500 hover:text-blue-400"
         aria-label="Show login information"
         role="button"
         tabIndex={0}
       />
+
+
+
       {/* Main Card Container */}
       <div className="flex flex-col md:flex-row w-full max-w-4xl bg-[#f4f4f4] rounded-[40px] shadow-2xl overflow-hidden min-h-125">
         {/* Left Section (The Curve) */}
@@ -146,40 +151,60 @@ function LoginPage() {
 
       {/* Login information section */}
       {showLoginInfo && (
-        <div className="hidden sm:block lg:w-1/6 bg-gray-100 text-white p-8">
-          <h2 className="text-2xl font-bold mb-4">Login information</h2>
-          <div className="text-xs">
-            <p>Here is what you need to know to login:</p>
-          </div>
+  <div
+    role="dialog"
+    aria-labelledby="login-info-title"
+    className="absolute right-4 top-16 z-30 w-[calc(100%-2rem)] max-w-sm rounded-2xl border border-gray-200 bg-white p-6 text-gray-800 shadow-xl sm:right-6"
+  >
+    <div className="mb-4 flex items-center justify-between gap-3">
+      <h2
+        id="login-info-title"
+        className="text-lg font-bold text-[#002D62]"
+      >
+        Login Help
+      </h2>
 
-          <div className="mt-4 bg-white text-black p-1 rounded-lg shadow-md">
-            Use your assigned username
-            <p className="text-xs">Typically your work email or employee ID</p>
-          </div>
+      <button
+        type="button"
+        onClick={() => setShowLoginInfo(false)}
+        className="rounded-lg p-1 text-gray-500 hover:bg-gray-100"
+        aria-label="Close login information"
+      >
+        ✕
+      </button>
+    </div>
 
-          <div className="mt-4 bg-white text-black p-1 rounded-lg shadow-md">
-            Forgot password?
-            <p className="text-xs">Typically your work email or employee ID</p>
-          </div>
+    <div className="space-y-4 text-sm">
+      <div>
+        <h3 className="font-semibold">1. Enter your email</h3>
+        <p className="mt-1 text-gray-600">
+          Enter the email address registered to your GIMSOI account.
+        </p>
+      </div>
 
-          <div className="mt-4 bg-white text-black p-1 rounded-lg shadow-md">
-            First-time login?
-            <p className="text-xs">Typically your work email or employee ID</p>
-          </div>
+      <div>
+        <h3 className="font-semibold">2. Enter your password</h3>
+        <p className="mt-1 text-gray-600">
+          Enter your account password and select Login.
+        </p>
+      </div>
 
-          <div className="mt-4 bg-white text-black p-1 rounded-lg shadow-md">
-            Need help? Contact IT support
-            <p className="text-xs">Typically your work email or employee ID</p>
-          </div>
+      <div>
+        <h3 className="font-semibold">3. Forgot your password?</h3>
+        <p className="mt-1 text-gray-600">
+          Select Forgot Password? to start the password recovery process.
+        </p>
+      </div>
 
-          <div className="mt-16 bg-navyblue text-black p-1 rounded-lg shadow-md">
-            <p className="text-xs">
-              Security Tip: Keep your password private. Never share it with
-              anyone. Enable 2MFA if available
-            </p>
-          </div>
-        </div>
-      )}
+      <div className="rounded-lg bg-blue-50 p-3 text-gray-700">
+        <p className="font-semibold">Security tip</p>
+        <p className="mt-1">
+          Never share your password with anyone.
+        </p>
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 }
