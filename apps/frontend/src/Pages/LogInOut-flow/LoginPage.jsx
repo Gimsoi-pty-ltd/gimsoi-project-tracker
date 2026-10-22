@@ -8,6 +8,7 @@ import { useAuthStore } from "../../store/authStore";
 function LoginPage() {
   const [email, setEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
+  const [showLoginInfo, setShowLoginInfo] = useState(false);
   const navigate = useNavigate();
 
   const { login, isLoading, error } = useAuthStore();
@@ -24,11 +25,26 @@ function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen bg-indigo-50 items-center justify-center p-4">
+    <div className="relative flex min-h-screen bg-indigo-50 items-center justify-center p-4">
+      
+{!showLoginInfo && (
+  <button
+    type="button"
+    onClick={() => setShowLoginInfo(true)}
+    className="absolute top-[95px] right-[225px] z-50 cursor-pointer rounded-full p-2 text-gray-500 transition-colors hover:bg-blue-100 hover:text-blue-400"
+    aria-label="Show login information"
+  >
+    <InfoIcon size={20} />
+  </button>
+)}
+
+
+
+
       {/* Main Card Container */}
       <div className="flex flex-col md:flex-row w-full max-w-4xl bg-[#f4f4f4] rounded-[40px] shadow-2xl overflow-hidden min-h-125">
         {/* Left Section (The Curve) */}
-        <InfoIcon size={20} />
+
         <div className="md:w-5/12 bg-[#002D62] text-white flex flex-col justify-center items-center p-12 text-center rounded-br-[150px] md:rounded-br-[250px] relative overflow-hidden">
           <div className="absolute inset-0 bg-linear-to-br from-[#002D62] to-[#011f44] opacity-50"></div>
           <div className="relative z-10 flex flex-col items-center">
@@ -37,6 +53,7 @@ function LoginPage() {
               alt="Gimsoi AI"
               className="w-36 h-36 object-contain mb-6 rounded-full "
             />
+
             <h1 className="text-3xl font-bold mb-2 text-gray-100">
               Hello, Welcome!
             </h1>
@@ -50,6 +67,7 @@ function LoginPage() {
         </div>
 
         {/* Right Section (The Form) */}
+
         <div className="md:w-7/12 bg-[#f4f4f4] flex flex-col justify-center items-center p-12">
           <h2 className="text-3xl font-bold text-gray-800 mb-8">Login</h2>
 
@@ -121,17 +139,74 @@ function LoginPage() {
                         </div> */}
             <div className="flex justify-center mt-2">
               {/* <button className="flex items-center gap-3 px-6 py-2 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 transition-all shadow-sm group">
-                                <img
-                                    src="https://www.gstatic.com/images/branding/product/1x/googleg_48dp.png"
-                                    alt="Google"
-                                    className="w-5 h-5"
-                                />
-                                <span className="text-[#002D62] font-bold text-sm">Google</span>
-                            </button> */}
+                <img
+                  src="https://www.gstatic.com/images/branding/product/1x/googleg_48dp.png"
+                  alt="Google"
+                  className="w-5 h-5"
+                />
+                <span className="text-[#002D62] font-bold text-sm">Google</span>
+              </button> */}
             </div>
           </div>
         </div>
       </div>
+
+      {/* Login information section */}
+      {showLoginInfo && (
+  <div
+    role="dialog"
+    aria-labelledby="login-info-title"
+    className="absolute right-4 top-16 z-30 w-[calc(100%-2rem)] max-w-sm rounded-2xl border border-gray-200 bg-white p-6 text-gray-800 shadow-xl sm:right-6"
+  >
+    <div className="mb-4 flex items-center justify-between gap-3">
+      <h2
+        id="login-info-title"
+        className="text-lg font-bold text-[#002D62]"
+      >
+        Login Help
+      </h2>
+
+      <button
+        type="button"
+        onClick={() => setShowLoginInfo(false)}
+        className="rounded-lg p-1 text-gray-500 hover:bg-gray-100"
+        aria-label="Close login information"
+      >
+        ✕
+      </button>
+    </div>
+
+    <div className="space-y-4 text-sm">
+      <div>
+        <h3 className="font-semibold">1. Enter your email</h3>
+        <p className="mt-1 text-gray-600">
+          Enter the email address registered to your GIMSOI account.
+        </p>
+      </div>
+
+      <div>
+        <h3 className="font-semibold">2. Enter your password</h3>
+        <p className="mt-1 text-gray-600">
+          Enter your account password and select Login.
+        </p>
+      </div>
+
+      <div>
+        <h3 className="font-semibold">3. Forgot your password?</h3>
+        <p className="mt-1 text-gray-600">
+          Select Forgot Password? to start the password recovery process.
+        </p>
+      </div>
+
+      <div className="rounded-lg bg-blue-50 p-3 text-gray-700">
+        <p className="font-semibold">Security tip</p>
+        <p className="mt-1">
+          Never share your password with anyone.
+        </p>
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 }
