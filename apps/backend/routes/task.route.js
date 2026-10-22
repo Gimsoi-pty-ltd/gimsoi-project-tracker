@@ -9,12 +9,6 @@ import * as labelController from "../controllers/label.controller.js";
 import { requireCSRF } from "../middleware/csrf.middleware.js";
 import { validate } from "../middleware/validate.middleware.js";
 import { createTaskSchema, updateTaskSchema, listTasksSchema } from "../schemas/task.schema.js";
-import { createCommentSchema } from "../schemas/comment.schema.js";
-import { attachLabelsSchema } from "../schemas/label.schema.js";
-import { idParamSchema, uuidParam } from "../schemas/common.schema.js";
-
-const taskIdParamSchema = uuidParam("taskId");
-const projectIdParamSchema = uuidParam("projectId");
 
 const router = express.Router();
 
@@ -28,13 +22,13 @@ router.get("/", readLimiter, verifyToken, authorize("VIEW_TASKS"), validate(list
  * GET /api/tasks/projects/:projectId/summary — VIEW_TASKS
  * Allowed: ADMIN, PM, INTERN, CLIENT
  */
-router.get("/projects/:projectId/summary", readLimiter, verifyToken, authorize("VIEW_TASKS"), validate(projectIdParamSchema, 'params'), getTaskSummary);
+router.get("/projects/:projectId/summary", readLimiter, verifyToken, authorize("VIEW_TASKS"), getTaskSummary);
 
 /**
  * GET /api/tasks/:id — VIEW_TASKS
  * Allowed: ADMIN, PM, INTERN, CLIENT
  */
-router.get("/:id", readLimiter, verifyToken, authorize("VIEW_TASKS"), validate(idParamSchema, 'params'), getTaskById);
+router.get("/:id", readLimiter, verifyToken, authorize("VIEW_TASKS"), getTaskById);
 
 /**
  * POST /api/tasks — CREATE_TASK
@@ -46,27 +40,27 @@ router.post("/", writeLimiter, verifyToken, authorize("CREATE_TASK"), requireCSR
  * PATCH /api/tasks/:id — UPDATE_TASK
  * Allowed: ADMIN, PM, INTERN
  */
-router.patch("/:id", writeLimiter, verifyToken, authorize("UPDATE_TASK"), requireCSRF, validate(idParamSchema, 'params'), validate(updateTaskSchema), updateTask);
+router.patch("/:id", writeLimiter, verifyToken, authorize("UPDATE_TASK"), requireCSRF, validate(updateTaskSchema), updateTask);
 
 /**
  * Allowed: ADMIN, PM, INTERN
  */
-router.delete("/:id", writeLimiter, verifyToken, authorize(["DELETE_TASK", "DELETE_OWN_TASK"]), requireCSRF, validate(idParamSchema, 'params'), deleteTask);
+router.delete("/:id", writeLimiter, verifyToken, authorize(["DELETE_TASK", "DELETE_OWN_TASK"]), requireCSRF, deleteTask);
 
 /**
  * Comments
  */
-router.post("/:taskId/comments", writeLimiter, verifyToken, authorize("UPDATE_TASK"), requireCSRF, validate(taskIdParamSchema, 'params'), validate(createCommentSchema), commentController.createComment);
-router.get("/:taskId/comments", readLimiter, verifyToken, authorize("VIEW_TASKS"), validate(taskIdParamSchema, 'params'), commentController.getComments);
+router.post("/:taskId/comments", writeLimiter, verifyToken, authorize("UPDATE_TASK"), requireCSRF, commentController.createComment);
+router.get("/:taskId/comments", readLimiter, verifyToken, authorize("VIEW_TASKS"), commentController.getComments);
 
 /**
  * Activity Log
  */
-router.get("/:taskId/activities", readLimiter, verifyToken, authorize("VIEW_TASKS"), validate(taskIdParamSchema, 'params'), activityController.getTaskActivities);
+router.get("/:taskId/activities", readLimiter, verifyToken, authorize("VIEW_TASKS"), activityController.getTaskActivities);
 
 /**
  * Labels
  */
-router.post("/:taskId/labels", writeLimiter, verifyToken, authorize("UPDATE_TASK"), requireCSRF, validate(taskIdParamSchema, 'params'), validate(attachLabelsSchema), labelController.attachLabelsToTask);
+router.post("/:taskId/labels", writeLimiter, verifyToken, authorize("UPDATE_TASK"), requireCSRF, labelController.attachLabelsToTask);
 
 export default router;

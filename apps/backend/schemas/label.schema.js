@@ -9,8 +9,3 @@ export const createLabelSchema = z.object({
 export const attachLabelsSchema = z.object({
     labelIds: z.array(z.string().uuid())
 });
-
-export const updateLabelSchema = createLabelSchema.omit({ projectId: true }).partial().refine(
-    (data) => Object.keys(data).length > 0,
-    { message: "At least one field must be provided for update" }
-);

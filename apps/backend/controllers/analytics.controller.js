@@ -35,7 +35,8 @@ export const getTeamPerformanceHandler = async (req, res, next) => {
 
 export const getAIContext = asyncHandler(async (req, res) => {
     const { canViewProject, canViewTeam, taskFilter, ownerIdForRaw } = req.analyticsScope;
-    const { projectId, cursor, limit, startDate, endDate } = req.query;
+    const { projectId, cursor, limit: rawLimit, startDate, endDate } = req.query;
+    const limit = Math.min(parseInt(rawLimit, 10) || 10, 50);
 
     const payload = {
         generated_at: new Date().toISOString(),

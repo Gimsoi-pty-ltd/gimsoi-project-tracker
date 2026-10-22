@@ -6,7 +6,6 @@ import { createSprint, getSprints, updateSprintStatus, updateSprint, getSprintVe
 import { requireCSRF } from "../middleware/csrf.middleware.js";
 import { validate } from "../middleware/validate.middleware.js";
 import { createSprintSchema, updateSprintSchema, updateSprintStatusSchema } from "../schemas/sprint.schema.js";
-import { idParamSchema } from "../schemas/common.schema.js";
 
 const router = express.Router();
 
@@ -14,13 +13,13 @@ const router = express.Router();
  * GET /api/sprints/:id/velocity — VIEW_SPRINTS
  * Allowed: ADMIN, PM, INTERN, CLIENT
  */
-router.get("/:id/velocity", readLimiter, verifyToken, authorize("VIEW_SPRINTS"), validate(idParamSchema, 'params'), getSprintVelocity);
+router.get("/:id/velocity", readLimiter, verifyToken, authorize("VIEW_SPRINTS"), getSprintVelocity);
 
 /**
  * GET /api/sprints/:id/burndown — VIEW_SPRINTS
  * Allowed: ADMIN, PM, INTERN, CLIENT
  */
-router.get("/:id/burndown", readLimiter, verifyToken, authorize("VIEW_SPRINTS"), validate(idParamSchema, 'params'), getSprintBurndown);
+router.get("/:id/burndown", readLimiter, verifyToken, authorize("VIEW_SPRINTS"), getSprintBurndown);
 
 /**
  * GET /api/sprints — VIEW_SPRINTS
@@ -38,12 +37,12 @@ router.post("/", writeLimiter, verifyToken, authorize("MANAGE_SPRINTS"), require
  * PATCH /api/sprints/:id/status — MANAGE_SPRINTS
  * Allowed: ADMIN, PM
  */
-router.patch("/:id/status", writeLimiter, verifyToken, authorize("MANAGE_SPRINTS"), requireCSRF, validate(idParamSchema, 'params'), validate(updateSprintStatusSchema), updateSprintStatus);
+router.patch("/:id/status", writeLimiter, verifyToken, authorize("MANAGE_SPRINTS"), requireCSRF, validate(updateSprintStatusSchema), updateSprintStatus);
 
 /**
  * PATCH /api/sprints/:id — MANAGE_SPRINTS
  * Allowed: ADMIN, PM
  */
-router.patch("/:id", writeLimiter, verifyToken, authorize("MANAGE_SPRINTS"), requireCSRF, validate(idParamSchema, 'params'), validate(updateSprintSchema), updateSprint);
+router.patch("/:id", writeLimiter, verifyToken, authorize("MANAGE_SPRINTS"), requireCSRF, validate(updateSprintSchema), updateSprint);
 
 export default router;
