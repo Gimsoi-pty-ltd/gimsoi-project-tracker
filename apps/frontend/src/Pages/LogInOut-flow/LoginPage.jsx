@@ -31,7 +31,7 @@ function LoginPage() {
   <button
     type="button"
     onClick={() => setShowLoginInfo(true)}
-    className="absolute top-[95px] right-[225px] z-50 cursor-pointer rounded-full p-2 text-gray-500 transition-colors hover:bg-blue-100 hover:text-blue-400"
+    className="absolute top-[75px] right-[240px] z-50 cursor-pointer rounded-full p-2 text-gray-500 transition-colors hover:bg-blue-100 hover:text-blue-400"
     aria-label="Show login information"
   >
     <InfoIcon size={20} />
