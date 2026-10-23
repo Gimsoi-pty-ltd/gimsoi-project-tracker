@@ -165,14 +165,14 @@ export default function Teams() {
             <span className="mx-2">/</span>
             <span>Teams</span>
           </nav>
-          <p className="text-xs text-gray-400 mt-1 max-w-md">
+          {/* <p className="text-xs text-gray-400 mt-1 max-w-md">
             There's no separate "team" concept on the backend — this manages each project's real members.
-          </p>
+          </p> */}
         </div>
 
         <div className="flex flex-wrap items-center gap-2 md:gap-3">
-          <div className="flex items-center bg-white border rounded-lg px-3 py-2 flex-1 min-w-[180px] md:w-64">
-            <Search size={15} className="text-gray-400 mr-2 flex-shrink-0" />
+          <div className="flex items-center bg-white border rounded-lg px-3 py-2 flex-1 min-w-45 md:w-64">
+            <Search size={15} className="text-gray-400 mr-2 shrink-0" />
             <input
               className="outline-none w-full text-sm"
               placeholder="Search projects..."
@@ -197,7 +197,7 @@ export default function Teams() {
           <div className="px-4 py-3 border-b bg-gray-50 text-xs font-semibold text-gray-500 uppercase tracking-wider">
             Projects
           </div>
-          <div className="max-h-[520px] overflow-y-auto">
+          <div className="max-h-130 overflow-y-auto">
             {filteredProjects.length === 0 && (
               <div className="px-4 py-6 text-sm text-gray-400 text-center">No projects found</div>
             )}
@@ -301,7 +301,7 @@ export default function Teams() {
       {/* Add Member Modal */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-          <div className="bg-white w-[440px] rounded-xl shadow-lg p-6">
+          <div className="bg-white w-110 rounded-xl shadow-lg p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold">Add Member</h2>
               <button onClick={() => setShowAddModal(false)} className="text-gray-400 hover:text-gray-600">

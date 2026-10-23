@@ -106,13 +106,29 @@ export default function ProjectOverview() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteLoading, setDeleteLoading]   = useState(false);
   const [showSprintModal, setShowSprintModal] = useState(false);
+  const [sprintSaving, setSprintSaving] = useState(false);
+  const [deletingSprintId, setDeletingSprintId] = useState(null);
+  const [sprintToast, setSprintToast] = useState(null);
+  const [projectToast, setProjectToast] = useState(null);
   const [sprintDraft, setSprintDraft] = useState({ name: '', startDate: '', endDate: '', status: 'PLANNING' });
   const [editingSprint, setEditingSprint] = useState(null);
   const [sprintEditDraft, setSprintEditDraft] = useState({ name: '', startDate: '', endDate: '' });
 
   const createSprint = useSprintStore((s) => s.createSprint);
   const updateSprint = useSprintStore((s) => s.updateSprint);
-  
+  const deleteSprint = useSprintStore((s) => s.deleteSprint);
+
+  useEffect(() => {
+    if (!sprintToast) return undefined;
+    const timeoutId = window.setTimeout(() => setSprintToast(null), 4000);
+    return () => window.clearTimeout(timeoutId);
+  }, [sprintToast]);
+
+  useEffect(() => {
+    if (!projectToast) return undefined;
+    const timeoutId = window.setTimeout(() => setProjectToast(null), 4000);
+    return () => window.clearTimeout(timeoutId);
+  }, [projectToast]);
 
   useEffect(() => {
     if (id) {
@@ -217,7 +233,7 @@ export default function ProjectOverview() {
             <div className="flex items-center gap-2">
               <NavyButton
                 onClick={() => setShowEditForm(true)}
-                className="!min-w-0 !px-4 !py-2 !rounded-xl flex items-center gap-2 !text-sm"
+                className="min-w-0! px-4! py-2! rounded-xl! flex items-center gap-2 text-sm!"
               >
                 <Edit2 className="w-4 h-4" />
                 Edit Project
@@ -316,7 +332,7 @@ export default function ProjectOverview() {
                 const Icon = mc.icon;
                 return (
                   <div key={i} className="flex items-center gap-4">
-                    <div className={`w-7 h-7 rounded-full ${mc.bg} flex items-center justify-center flex-shrink-0`}>
+                    <div className={`w-7 h-7 rounded-full ${mc.bg} flex items-center justify-center shrink-0`}>
                       <Icon className={`w-4 h-4 ${mc.color}`} />
                     </div>
                     <div className="flex-1 flex items-center justify-between flex-wrap gap-2">
@@ -396,6 +412,29 @@ export default function ProjectOverview() {
                         }}
                       >
                         Edit
+                      </button>
+                      <button
+                        type="button"
+                        title={`Delete sprint ${s.name}`}
+                        aria-label={`Delete sprint ${s.name}`}
+                        disabled={deletingSprintId === s.id}
+                        className="text-red-600 hover:text-red-800 disabled:opacity-50"
+                        onClick={async () => {
+                          if (!window.confirm(`Delete sprint \"${s.name}\"? Its tasks will remain but will no longer belong to this sprint.`)) return;
+                          setDeletingSprintId(s.id);
+                          try {
+                            await deleteSprint(s.id);
+                            await getProjectById(p.id);
+                            await getProjectProgress(p.id);
+                            setSprintToast({ type: 'success', message: 'Sprint deleted successfully.' });
+                          } catch (err) {
+                            setSprintToast({ type: 'error', message: err.response?.data?.message || 'Failed to delete sprint.' });
+                          } finally {
+                            setDeletingSprintId(null);
+                          }
+                        }}
+                      >
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
@@ -488,23 +527,32 @@ export default function ProjectOverview() {
             </div>
 
               <div className="mt-6 flex justify-end gap-3">
-              <button className="px-4 py-2 rounded border" onClick={() => setShowSprintModal(false)}>Cancel</button>
-              <button className="px-4 py-2 rounded bg-blue-900 hover:bg-blue-600 text-white" onClick={async () => {
+              <button className="px-4 py-2 rounded border" disabled={sprintSaving} onClick={() => setShowSprintModal(false)}>Cancel</button>
+              <button className="px-4 py-2 rounded bg-blue-900 hover:bg-blue-600 text-white disabled:opacity-50" disabled={sprintSaving} onClick={async () => {
+                if (!sprintDraft.name.trim()) {
+                  setSprintToast({ type: 'error', message: 'Enter a sprint name before saving.' });
+                  return;
+                }
+                setSprintSaving(true);
                 try {
-                  if (!sprintDraft.name.trim()) return;
                   await createSprint({ projectId: p.id, ...sprintDraft });
                   await getProjectById(p.id);
                   await getProjectProgress(p.id);
                  
                   const { fetchDashboard } = useProjectStore.getState();
                   if (typeof fetchDashboard === 'function') await fetchDashboard(p.id);
+                  setSprintToast({ type: 'success', message: 'Sprint created successfully.' });
+                  setShowSprintModal(false);
                 } catch (err) {
                   console.error('Failed creating sprint', err);
+                  setSprintToast({ type: 'error', message: err.response?.data?.message || 'Failed to create sprint.' });
                 } finally {
-                  setShowSprintModal(false);
-                  setSprintDraft({ name: '', startDate: '', endDate: '', status: 'PLANNING' });
+                  setSprintSaving(false);
+                  if (!useSprintStore.getState().error) {
+                    setSprintDraft({ name: '', startDate: '', endDate: '', status: 'PLANNING' });
+                  }
                 }
-              }}>Create Sprint</button>
+              }}>{sprintSaving ? 'Creating…' : 'Create Sprint'}</button>
             </div>
           </div>
         </div>
@@ -554,8 +602,10 @@ export default function ProjectOverview() {
                     await getProjectById(p.id);
                     const { fetchDashboard } = useProjectStore.getState();
                     if (typeof fetchDashboard === 'function') await fetchDashboard(p.id);
+                    setSprintToast({ type: 'success', message: 'Sprint updated successfully.' });
                   } catch (err) {
                     console.error('Failed updating sprint', err);
+                    setSprintToast({ type: 'error', message: err.response?.data?.message || 'Failed to update sprint.' });
                   } finally {
                     setEditingSprint(null);
                   }
@@ -576,12 +626,42 @@ export default function ProjectOverview() {
         />
       )}
 
+      {sprintToast && (
+        <div
+          role={sprintToast.type === 'error' ? 'alert' : 'status'}
+          aria-live={sprintToast.type === 'error' ? 'assertive' : 'polite'}
+          className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-70 max-w-sm rounded-lg border px-4 py-3 text-sm shadow-lg ${sprintToast.type === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-red-50 bg-red-100 text-red-800'}`}
+        >
+          <div className="flex items-center justify-between gap-4">
+            <span>{sprintToast.message}</span>
+            <button type="button" aria-label="Dismiss notification" onClick={() => setSprintToast(null)} className="font-semibold opacity-70 hover:opacity-100">×</button>
+          </div>
+        </div>
+      )}
+
       <ProjectForm
         isOpen={showEditForm}
         onClose={() => setShowEditForm(false)}
         project={currentProject}
-        onSuccess={() => { setShowEditForm(false); if (id) getProjectById(id); }}
+        onSuccess={() => {
+          setShowEditForm(false);
+          if (id) getProjectById(id);
+          setProjectToast({ type: 'success', message: 'Project updated successfully.' });
+        }}
       />
+
+      {projectToast && (
+        <div
+          role={projectToast.type === 'error' ? 'alert' : 'status'}
+          aria-live={projectToast.type === 'error' ? 'assertive' : 'polite'}
+          className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-70 max-w-sm rounded-lg border px-4 py-3 text-sm shadow-lg ${projectToast.type === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-red-50 bg-red-100 text-red-800'}`}
+        >
+          <div className="flex items-center justify-between gap-4">
+            <span>{projectToast.message}</span>
+            <button type="button" aria-label="Dismiss notification" onClick={() => setProjectToast(null)} className="font-semibold opacity-70 hover:opacity-100">×</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

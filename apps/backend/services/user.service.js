@@ -1,4 +1,4 @@
-import prisma from '../lib/prisma.js';
+import prisma, { rawPrisma } from '../lib/prisma.js';
 import bcryptjs from 'bcryptjs';
 import pkg from '../lib/generated/prisma/index.js';
 const { Prisma } = pkg;
@@ -35,14 +35,23 @@ const SAFE_USER_SELECT = {
 export const getUsers = async (query) => {
   const { limit, cursor } = parsePagination(query);
 
-  const users = await prisma.user.findMany({
-    take: limit + 1,
-    ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
-    orderBy: { createdAt: 'desc' },
-    select: SAFE_USER_SELECT,
-  });
+  const [users, totalCount, verifiedCount] = await Promise.all([
+    prisma.user.findMany({
+      take: limit + 1,
+      ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
+      orderBy: { createdAt: 'desc' },
+      select: SAFE_USER_SELECT,
+    }),
+    prisma.user.count(),
+    prisma.user.count({ where: { isVerified: true } }),
+  ]);
 
-  return buildPage(users, limit);
+  return {
+    ...buildPage(users, limit),
+    totalCount,
+    verifiedCount,
+    unverifiedCount: totalCount - verifiedCount,
+  };
 };
 
 /**
@@ -106,6 +115,31 @@ export const updateUserRole = async (userId, role, version) => {
     }
     throw error;
   }
+};
+
+/**
+ * Permanently deletes a user and records that cannot exist without them.
+ * Tasks assigned to the user are kept and unassigned; tasks they reported and
+ * reports they created are removed. Database cascades remove memberships,
+ * comments, and activity logs tied to the user or their reported tasks.
+ */
+export const permanentlyDeleteUser = async (userId) => {
+  return rawPrisma.$transaction(async (tx) => {
+    const user = await tx.user.findUnique({
+      where: { id: userId },
+      select: { id: true },
+    });
+
+    if (!user) throw new NotFoundError('User not found');
+
+    await tx.task.updateMany({
+      where: { assigneeId: userId },
+      data: { assigneeId: null },
+    });
+    await tx.task.deleteMany({ where: { reporterId: userId } });
+    await tx.report.deleteMany({ where: { createdByUserId: userId } });
+    await tx.user.delete({ where: { id: userId } });
+  });
 };
 
 /**
