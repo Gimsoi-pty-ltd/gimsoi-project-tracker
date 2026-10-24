@@ -4,6 +4,8 @@ import { Link, useNavigate } from "react-router-dom";
 import NavyButton from "../../Components/Buttons";
 import logo from "../../assets/Gimsoi-AI.png";
 import { useAuthStore } from "../../store/authStore";
+import InfoIcon from "../../Components/InfoIcon";
+import InformationModal from "../../Components/InformationModal";
 
 function SignUpPage() {
   const [email, setEmail] = useState("");
@@ -12,6 +14,7 @@ function SignUpPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [formError, setFormError] = useState("");
   const navigate = useNavigate();
+  const [showSignupInfo, setShowSignupInfo] = useState(false);
 
   const { signup, error, isLoading } = useAuthStore();
 
@@ -54,7 +57,14 @@ function SignUpPage() {
           </div>
         </div>
 
-        <div className="md:w-7/12 bg-[#f4f4f4] flex flex-col justify-center items-center p-12">
+        <div className="md:w-7/12 bg-[#f4f4f4] flex flex-col justify-center items-center p-12 relative">
+          <div className="absolute top-5 right-5 z-10">
+            <InfoIcon
+              onClick={() => setShowSignupInfo(true)}
+              label="Sign up information"
+            />
+          </div>
+
           <h2 className="text-3xl font-bold text-gray-800 mb-8">
             Create Account
           </h2>
@@ -174,6 +184,44 @@ function SignUpPage() {
           </div>
         </div>
       </div>
+
+      {/* Sign Up information modal */}
+      <InformationModal
+        isOpen={showSignupInfo}
+        onClose={() => setShowSignupInfo(false)}
+        title="Sign Up information"
+      >
+        <div className="text-xs">
+          <p>Here is what you need to know to sign up:</p>
+        </div>
+
+        <div className="mt-4 rounded-lg bg-white p-3 text-black shadow-md">
+          Use your assigned username
+          <p className="text-xs">Typically your work email or employee ID</p>
+        </div>
+
+        <div className="mt-4 rounded-lg bg-white p-3 text-black shadow-md">
+          Forgot password?
+          <p className="text-xs">Typically your work email or employee ID</p>
+        </div>
+
+        <div className="mt-4 rounded-lg bg-white p-3 text-black shadow-md">
+          First-time login?
+          <p className="text-xs">Typically your work email or employee ID</p>
+        </div>
+
+        <div className="mt-4 rounded-lg bg-white p-3 text-black shadow-md">
+          Need help? Contact IT support
+          <p className="text-xs">Typically your work email or employee ID</p>
+        </div>
+
+        <div className="mt-6 rounded-lg bg-[#002D62] p-3 text-white shadow-md">
+          <p className="text-xs">
+            Security Tip: Keep your password private. Never share it with
+            anyone. Enable 2MFA if available
+          </p>
+        </div>
+      </InformationModal>
     </div>
   );
 }
