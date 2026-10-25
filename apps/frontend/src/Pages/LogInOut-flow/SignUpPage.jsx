@@ -189,36 +189,46 @@ function SignUpPage() {
       <InformationModal
         isOpen={showSignupInfo}
         onClose={() => setShowSignupInfo(false)}
-        title="Sign Up information"
+        title="Sign-up information"
       >
         <div className="text-xs">
           <p>Here is what you need to know to sign up:</p>
         </div>
 
         <div className="mt-4 rounded-lg bg-white p-3 text-black shadow-md">
-          Use your assigned username
-          <p className="text-xs">Typically your work email or employee ID</p>
+          Fill in your details
+          <p className="text-sm">
+            Enter your full name, email adress and create a strong password
+          </p>
         </div>
 
         <div className="mt-4 rounded-lg bg-white p-3 text-black shadow-md">
-          Forgot password?
-          <p className="text-xs">Typically your work email or employee ID</p>
+          Read and accept the Terms & Conditions and Privacy Policy.
+          <p className="text-sm">
+            Review the terms and conditions and privacy Policy before signing
+            up.
+          </p>
         </div>
 
         <div className="mt-4 rounded-lg bg-white p-3 text-black shadow-md">
-          First-time login?
-          <p className="text-xs">Typically your work email or employee ID</p>
+          Click Sign Up
+          <p className="text-sm">
+            Submit your details by clicking the sign up button to create your
+            account
+          </p>
         </div>
 
         <div className="mt-4 rounded-lg bg-white p-3 text-black shadow-md">
-          Need help? Contact IT support
-          <p className="text-xs">Typically your work email or employee ID</p>
+          Verify your email address
+          <p className="text-sm">
+            Check your inbox for a verification email from us.
+          </p>
         </div>
 
-        <div className="mt-6 rounded-lg bg-[#002D62] p-3 text-white shadow-md">
-          <p className="text-xs">
-            Security Tip: Keep your password private. Never share it with
-            anyone. Enable 2MFA if available
+        <div className="mt-6 rounded-lg bg-[#002D62] p-4 text-white shadow-md">
+          <p className="text-sm">
+            You will recieve a confirmation email. click the ling in the email
+            to activate your account
           </p>
         </div>
       </InformationModal>
