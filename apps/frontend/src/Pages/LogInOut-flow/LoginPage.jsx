@@ -29,6 +29,11 @@ function LoginPage() {
 
   return (
     <div className="relative flex min-h-screen bg-indigo-50 items-center justify-center p-4">
+
+
+
+
+
       {/* Main Card Container */}
       <div className="flex flex-col md:flex-row w-full max-w-4xl bg-[#f4f4f4] rounded-[40px] shadow-2xl overflow-hidden min-h-125">
         {/* Left Section (The Curve) */}
