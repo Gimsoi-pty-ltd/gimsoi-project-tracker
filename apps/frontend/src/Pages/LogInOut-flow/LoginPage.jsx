@@ -28,17 +28,7 @@ function LoginPage() {
 
   return (
     <div className="relative flex min-h-screen bg-indigo-50 items-center justify-center p-4">
-      
-{!showLoginInfo && (
-  <button
-    type="button"
-    onClick={() => setShowLoginInfo(true)}
-    className="absolute top-[95px] right-[225px] z-50 cursor-pointer rounded-full p-2 text-gray-500 transition-colors hover:bg-blue-100 hover:text-blue-400"
-    aria-label="Show login information"
-  >
-    <InfoIcon size={20} />
-  </button>
-)}
+
 
 
 
