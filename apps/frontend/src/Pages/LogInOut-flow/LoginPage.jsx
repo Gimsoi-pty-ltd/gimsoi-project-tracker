@@ -1,11 +1,12 @@
 import React, { useState } from "react";
-import { EyeClosed, Mail, Loader } from "lucide-react";
+import { Mail, Loader } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import NavyButton from "../../Components/Buttons";
 import logo from "../../assets/Gimsoi-AI.png";
 import { useAuthStore } from "../../store/authStore";
 import InfoIcon from "../../Components/InfoIcon";
 import InformationModal from "../../Components/InformationModal";
+import PasswordInput from "../../Components/PasswordEye";
 
 function LoginPage() {
   const [email, setEmail] = useState("");
@@ -83,20 +84,15 @@ function LoginPage() {
               />
             </div>
 
-            <div className="relative group">
-              <input
-                type="password"
-                placeholder="Password"
-                value={loginPassword}
-                onChange={(e) => setLoginPassword(e.target.value)}
-                className="w-full bg-white rounded-lg px-4 py-3 pr-12 outline-none text-sm border-2 border-transparent focus:border-[#002D62]/20 transition-all shadow-sm"
-                required
-              />
-              <EyeClosed
-                size={18}
-                className="absolute right-4 top-3.5 text-gray-400 group-focus-within:text-[#002D62] transition-colors"
-              />
-            </div>
+            <PasswordInput
+              name="password"
+              placeholder="Password"
+              value={loginPassword}
+              onChange={(e) => setLoginPassword(e.target.value)}
+              autoComplete="current-password"
+              className="bg-white rounded-lg px-4 py-3 pr-12 outline-none text-sm border-2 border-transparent focus:border-[#002D62]/20 transition-all shadow-sm"
+              required
+            />
 
             <div className="text-right">
               <Link
@@ -156,7 +152,7 @@ function LoginPage() {
         </div>
 
         <div className="mt-4 rounded-lg bg-white p-1 text-black shadow-md">
-          Use your assigned username
+          Enter your Email
           <p className="text-sm">
             Enter the email address registered with your Gimsoi account.
           </p>

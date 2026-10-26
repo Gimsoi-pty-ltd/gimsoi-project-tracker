@@ -6,6 +6,7 @@ import logo from "../../assets/Gimsoi-AI.png";
 import { useAuthStore } from "../../store/authStore";
 import InfoIcon from "../../Components/InfoIcon";
 import InformationModal from "../../Components/InformationModal";
+import PasswordInput from "../../Components/PasswordEye";
 
 function SignUpPage() {
   const [email, setEmail] = useState("");
@@ -111,35 +112,25 @@ function SignUpPage() {
                             <Phone size={18} className="absolute right-4 top-3.5 text-gray-400 group-focus-within:text-[#002D62] transition-colors" />
                         </div> */}
 
-            <div className="relative group">
-              <input
-                type="password"
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-white rounded-lg px-4 py-3 pr-12 outline-none text-sm border-2 border-transparent focus:border-[#002D62]/20 transition-all shadow-sm"
-                required
-              />
-              <Lock
-                size={18}
-                className="absolute right-4 top-3.5 text-gray-400 group-focus-within:text-[#002D62] transition-colors"
-              />
-            </div>
+            <PasswordInput
+              name="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="new-password"
+              className="bg-white rounded-lg px-4 py-3 pr-12 outline-none text-sm border-2 border-transparent focus:border-[#002D62]/20 transition-all shadow-sm"
+              required
+            />
 
-            <div className="relative group">
-              <input
-                type="password"
-                placeholder="Confirm Password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full bg-white rounded-lg px-4 py-3 pr-12 outline-none text-sm border-2 border-transparent focus:border-[#002D62]/20 transition-all shadow-sm"
-                required
-              />
-              <Lock
-                size={18}
-                className="absolute right-4 top-3.5 text-gray-400 group-focus-within:text-[#002D62] transition-colors"
-              />
-            </div>
+            <PasswordInput
+              name="confirmPassword"
+              placeholder="Confirm Password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              autoComplete="new-password"
+              className="bg-white rounded-lg px-4 py-3 pr-12 outline-none text-sm border-2 border-transparent focus:border-[#002D62]/20 transition-all shadow-sm"
+              required
+            />
 
             {formError && (
               <p className="text-red-500 font-semibold mt-2 text-center text-sm">
