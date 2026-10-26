@@ -17,6 +17,15 @@ export const assertProjectMembership = async (projectId, userId, userRole) => {
         return { role: 'OWNER' }; // Return a mock-like object that signifies higher power
     }
 
+    const project = await prisma.project.findUnique({
+        where: { id: projectId },
+        select: { id: true, createdByUserId: true }
+    });
+
+    if (project?.createdByUserId === userId) {
+        return { role: 'OWNER', projectId, userId };
+    }
+
     const membership = await prisma.projectMember.findUnique({
         where: {
             projectId_userId: {
@@ -43,6 +52,15 @@ export const assertProjectMembership = async (projectId, userId, userRole) => {
 export const requireProjectMembership = async (projectId, userId, userRole) => {
     if (userRole === ROLES.ADMIN || userRole === ROLES.PROJECT_MANAGER) {
         return { role: 'OWNER' };
+    }
+
+    const project = await prisma.project.findUnique({
+        where: { id: projectId },
+        select: { id: true, createdByUserId: true }
+    });
+
+    if (project?.createdByUserId === userId) {
+        return { role: 'OWNER', projectId, userId };
     }
 
     const membership = await prisma.projectMember.findUnique({

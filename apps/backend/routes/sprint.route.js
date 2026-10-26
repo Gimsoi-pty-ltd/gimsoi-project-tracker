@@ -2,7 +2,7 @@ import express from "express";
 import { verifyToken } from "../middleware/verify-token.middleware.js";
 import authorize from "../middleware/auth.middleware.js";
 import { readLimiter, writeLimiter } from "../middleware/rate-limiter.middleware.js";
-import { createSprint, getSprints, updateSprintStatus, updateSprint, getSprintVelocity, getSprintBurndown } from "../controllers/sprint.controller.js";
+import { createSprint, getSprints, updateSprintStatus, updateSprint, deleteSprint, getSprintVelocity, getSprintBurndown } from "../controllers/sprint.controller.js";
 import { requireCSRF } from "../middleware/csrf.middleware.js";
 import { validate } from "../middleware/validate.middleware.js";
 import { createSprintSchema, updateSprintSchema, updateSprintStatusSchema } from "../schemas/sprint.schema.js";
@@ -44,5 +44,11 @@ router.patch("/:id/status", writeLimiter, verifyToken, authorize("MANAGE_SPRINTS
  * Allowed: ADMIN, PM
  */
 router.patch("/:id", writeLimiter, verifyToken, authorize("MANAGE_SPRINTS"), requireCSRF, validate(updateSprintSchema), updateSprint);
+
+/**
+ * DELETE /api/sprints/:id — MANAGE_SPRINTS
+ * Deletes the sprint; tasks remain and are detached from it.
+ */
+router.delete("/:id", writeLimiter, verifyToken, authorize("MANAGE_SPRINTS"), requireCSRF, deleteSprint);
 
 export default router;

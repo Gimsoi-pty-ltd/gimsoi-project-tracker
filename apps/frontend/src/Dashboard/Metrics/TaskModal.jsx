@@ -22,7 +22,7 @@ const UI_TO_PRIORITY = {
 
 import TaskForm from '../../Components/Tasks/TaskForm';
 
-export default function TaskModal({ isOpen, onClose, task = null, initialSprintId = null }) {
+export default function TaskModal({ isOpen, onClose, task = null, initialSprintId = null, onSuccess = null }) {
   const createTask = useTaskStore(state => state.createTask);
   const updateTask = useTaskStore(state => state.updateTask);
   const currentProject = useProjectStore(state => state.currentProject);
@@ -172,6 +172,7 @@ export default function TaskModal({ isOpen, onClose, task = null, initialSprintI
       }
 
       await useProjectStore.getState().fetchDashboard();
+      if (onSuccess) onSuccess(task ? 'updated' : 'created');
       onClose();
     } catch (err) {
       setError(err.response?.data?.message || err.message || 'Failed to save task');
@@ -183,7 +184,7 @@ export default function TaskModal({ isOpen, onClose, task = null, initialSprintI
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
        <div className="bg-white rounded-2xl shadow-xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden">
-        <div className="flex justify-between items-center p-6 border-b border-gray-100 flex-shrink-0">
+        <div className="flex justify-between items-center p-6 border-b border-gray-100 shrink-0">
           <h2 className="text-xl font-bold text-gray-800">{task ? 'Edit Task' : 'Create New Task'}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
             <X size={20} />
@@ -208,7 +209,7 @@ export default function TaskModal({ isOpen, onClose, task = null, initialSprintI
             />
           </div>
 
-          <div className="flex justify-end gap-3 p-6 border-t border-gray-100 flex-shrink-0">
+          <div className="flex justify-end gap-3 p-6 border-t border-gray-100 shrink-0">
             <button
               type="button"
               onClick={onClose}

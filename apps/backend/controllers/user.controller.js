@@ -11,8 +11,16 @@ import { ValidationError, ForbiddenError } from "../utils/errors.js";
  */
 export const getUsers = async (req, res, next) => {
   try {
-    const { data, nextCursor } = await userService.getUsers(req.query);
-    return res.status(200).json({ success: true, data, nextCursor });
+    const { data, nextCursor, totalCount, verifiedCount, unverifiedCount } =
+      await userService.getUsers(req.query);
+    return res.status(200).json({
+      success: true,
+      data,
+      nextCursor,
+      totalCount,
+      verifiedCount,
+      unverifiedCount,
+    });
   } catch (error) {
     next(error);
   }
@@ -52,6 +60,23 @@ export const updateUserRole = async (req, res, next) => {
       message: "User role updated successfully",
       data: user,
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Admin: Permanently delete a user and their dependent records.
+ */
+export const permanentlyDeleteUser = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    if (String(id) === String(req.user.id)) {
+      throw new ForbiddenError("You cannot permanently delete your own account");
+    }
+
+    await userService.permanentlyDeleteUser(id);
+    return res.status(204).send();
   } catch (error) {
     next(error);
   }

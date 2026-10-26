@@ -71,7 +71,8 @@ function ProjectRow({ project, onNavigate, onDelete, onStatusChange }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
   const pct = project.percentComplete || 0;
-
+  const riskLevel = project.riskLevel || project.risk || null;
+  
   useEffect(() => {
     const h = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false); };
     document.addEventListener("mousedown", h);
@@ -83,12 +84,12 @@ function ProjectRow({ project, onNavigate, onDelete, onStatusChange }) {
   const displaySprint = sprints.find((s) => s.status === "ACTIVE") || sprints[sprints.length - 1];
   return (
     <div
-      className="grid grid-cols-[1fr_1.2fr_1fr_0.8fr_1.4fr_44px] items-center px-6 py-4 hover:bg-slate-50 transition-colors cursor-pointer border-b border-gray-100 last:border-0 group"
+      className="grid grid-cols-[1fr_1.2fr_1fr_0.8fr_1.4fr_1fr_44px] items-center px-6 py-4 hover:bg-slate-50 transition-colors cursor-pointer border-b border-gray-100 last:border-0 group"
       onClick={() => onNavigate(project)}
     >
       <div className="text-sm font-medium text-gray-700 truncate pr-4">{clientName || "—"}</div>
       <div className="text-sm font-semibold text-gray-900 truncate pr-4">{project.name || "Unnamed Project"}</div>
-
+    
       <div onClick={(e) => e.stopPropagation()}>
         <StatusBadge status={project.status} onChange={(s) => onStatusChange(project.id, s)} />
       </div>
@@ -108,6 +109,12 @@ function ProjectRow({ project, onNavigate, onDelete, onStatusChange }) {
         </div>
         <span className="text-sm font-semibold text-gray-500 w-9 text-right tabular-nums">{pct}%</span>
       </div>
+      
+<div className="pr-4">
+  <span className="text-xs text-gray-400">
+    Stage data unavailable
+  </span>
+</div>
 
       <div onClick={(e) => e.stopPropagation()} ref={menuRef} className="relative flex justify-center">
         <button
@@ -163,8 +170,14 @@ export default function Projects() {
   const [searchTerm, setSearchTerm] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [toast, setToast] = useState(null);
 
   useEffect(() => { fetchProjects(); }, [fetchProjects]);
+  useEffect(() => {
+    if (!toast) return undefined;
+    const timeoutId = window.setTimeout(() => setToast(null), 4000);
+    return () => window.clearTimeout(timeoutId);
+  }, [toast]);
 
   const filteredProjects = projects.filter((p) =>
     (p.name?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
@@ -245,7 +258,7 @@ export default function Projects() {
 
         {/* ── Table ── */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="grid grid-cols-[1fr_1.2fr_1fr_0.8fr_1.4fr_44px] px-6 py-3 border-b border-gray-100 bg-gray-50/60">
+          <div className="grid grid-cols-[1fr_1.2fr_1fr_0.8fr_1.4fr_1fr_44px] px-6 py-3 border-b border-gray-100 bg-gray-50/60">
             {["CLIENT", "PROJECT NAME", "STATUS", "SPRINT", "PROGRESS", "STAGES", ""].map((h) => (
               <div key={h} className="text-xs font-semibold text-gray-400 uppercase tracking-wider">{h}</div>
             ))}
@@ -294,8 +307,25 @@ export default function Projects() {
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
         project={null}
-        onSuccess={() => { fetchProjects(); setShowCreateModal(false); }}
+        onSuccess={() => {
+          fetchProjects();
+          setShowCreateModal(false);
+          setToast({ type: 'success', message: 'Project created successfully.' });
+        }}
       />
+
+      {toast && (
+        <div
+          role={toast.type === 'error' ? 'alert' : 'status'}
+          aria-live={toast.type === 'error' ? 'assertive' : 'polite'}
+          className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-70 max-w-sm rounded-lg border px-4 py-3 text-sm shadow-lg ${toast.type === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-red-50 bg-red-100 text-red-800'}`}
+        >
+          <div className="flex items-center justify-between gap-4">
+            <span>{toast.message}</span>
+            <button type="button" aria-label="Dismiss notification" onClick={() => setToast(null)} className="font-semibold opacity-70 hover:opacity-100">×</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

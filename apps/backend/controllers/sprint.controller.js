@@ -77,6 +77,17 @@ export const updateSprint = async (req, res) => {
     }
 };
 
+export const deleteSprint = async (req, res) => {
+    try {
+        const { id } = req.params;
+        await sprintService.deleteSprint(id, req.user.id, req.user.role);
+        return res.status(204).send();
+    } catch (err) {
+        const statusCode = err.statusCode || 500;
+        return res.status(statusCode).json({ success: false, message: err.message || "Failed to delete sprint" });
+    }
+};
+
 export const getSprintVelocity = async (req, res, next) => {
     try {
         const { id } = req.params;
