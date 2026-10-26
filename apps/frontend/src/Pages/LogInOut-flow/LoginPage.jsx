@@ -1,9 +1,12 @@
 import React, { useState } from "react";
-import { EyeClosed, Mail, Loader, InfoIcon } from "lucide-react";
+import { Mail, Loader } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import NavyButton from "../../Components/Buttons";
 import logo from "../../assets/Gimsoi-AI.png";
 import { useAuthStore } from "../../store/authStore";
+import InfoIcon from "../../Components/InfoIcon";
+import InformationModal from "../../Components/InformationModal";
+import PasswordInput from "../../Components/PasswordEye";
 
 function LoginPage() {
   const [email, setEmail] = useState("");
@@ -26,17 +29,7 @@ function LoginPage() {
 
   return (
     <div className="relative flex min-h-screen bg-indigo-50 items-center justify-center p-4">
-      
-{!showLoginInfo && (
-  <button
-    type="button"
-    onClick={() => setShowLoginInfo(true)}
-    className="absolute top-[95px] right-[225px] z-50 cursor-pointer rounded-full p-2 text-gray-500 transition-colors hover:bg-blue-100 hover:text-blue-400"
-    aria-label="Show login information"
-  >
-    <InfoIcon size={20} />
-  </button>
-)}
+
 
 
 
@@ -68,8 +61,16 @@ function LoginPage() {
 
         {/* Right Section (The Form) */}
 
-        <div className="md:w-7/12 bg-[#f4f4f4] flex flex-col justify-center items-center p-12">
-          <h2 className="text-3xl font-bold text-gray-800 mb-8">Login</h2>
+        <div className="md:w-7/12 bg-[#f4f4f4] flex flex-col justify-center relative items-center p-12">
+          <div className="absolute top-4 right-4 md:top-6 md:right-6">
+            <InfoIcon
+              onClick={() => setShowLoginInfo(true)}
+              label="Login information"
+            />
+          </div>
+          <div className="mb-8 flex items-center justify-center gap-3">
+            <h2 className="text-3xl font-bold text-gray-800">Login</h2>
+          </div>
 
           <form onSubmit={handleLogin} className="w-full max-w-sm space-y-4">
             {/* Input with Icon on Right */}
@@ -88,20 +89,15 @@ function LoginPage() {
               />
             </div>
 
-            <div className="relative group">
-              <input
-                type="password"
-                placeholder="Password"
-                value={loginPassword}
-                onChange={(e) => setLoginPassword(e.target.value)}
-                className="w-full bg-white rounded-lg px-4 py-3 pr-12 outline-none text-sm border-2 border-transparent focus:border-[#002D62]/20 transition-all shadow-sm"
-                required
-              />
-              <EyeClosed
-                size={18}
-                className="absolute right-4 top-3.5 text-gray-400 group-focus-within:text-[#002D62] transition-colors"
-              />
-            </div>
+            <PasswordInput
+              name="password"
+              placeholder="Password"
+              value={loginPassword}
+              onChange={(e) => setLoginPassword(e.target.value)}
+              autoComplete="current-password"
+              className="bg-white rounded-lg px-4 py-3 pr-12 outline-none text-sm border-2 border-transparent focus:border-[#002D62]/20 transition-all shadow-sm"
+              required
+            />
 
             <div className="text-right">
               <Link
@@ -150,63 +146,52 @@ function LoginPage() {
           </div>
         </div>
       </div>
-
-      {/* Login information section */}
-      {showLoginInfo && (
-  <div
-    role="dialog"
-    aria-labelledby="login-info-title"
-    className="absolute right-4 top-16 z-30 w-[calc(100%-2rem)] max-w-sm rounded-2xl border border-gray-200 bg-white p-6 text-gray-800 shadow-xl sm:right-6"
-  >
-    <div className="mb-4 flex items-center justify-between gap-3">
-      <h2
-        id="login-info-title"
-        className="text-lg font-bold text-[#002D62]"
+      {/* Login information modal */}
+      <InformationModal
+        isOpen={showLoginInfo}
+        onClose={() => setShowLoginInfo(false)}
+        title="Login information"
       >
-        Login Help
-      </h2>
+        <div className="text-sm">
+          <p>Here is what you need to know to login:</p>
+        </div>
 
-      <button
-        type="button"
-        onClick={() => setShowLoginInfo(false)}
-        className="rounded-lg p-1 text-gray-500 hover:bg-gray-100"
-        aria-label="Close login information"
-      >
-        ✕
-      </button>
-    </div>
+        <div className="mt-4 rounded-lg bg-white p-1 text-black shadow-md">
+          Enter your Email
+          <p className="text-sm">
+            Enter the email address registered with your Gimsoi account.
+          </p>
+        </div>
 
-    <div className="space-y-4 text-sm">
-      <div>
-        <h3 className="font-semibold">1. Enter your email</h3>
-        <p className="mt-1 text-gray-600">
-          Enter the email address registered to your GIMSOI account.
-        </p>
-      </div>
+        <div className="mt-4 rounded-lg bg-white p-1 text-black shadow-md">
+          Forgot password?
+          <p className="text-sm">
+            Select "Forgot Password" on the login page to reset your password.
+          </p>
+        </div>
 
-      <div>
-        <h3 className="font-semibold">2. Enter your password</h3>
-        <p className="mt-1 text-gray-600">
-          Enter your account password and select Login.
-        </p>
-      </div>
+        <div className="mt-4 rounded-lg bg-white p-1 text-black shadow-md">
+          First-time login?
+          <p className="text-sm">
+            You may be prompted to change your password immediately for
+            security.
+          </p>
+        </div>
 
-      <div>
-        <h3 className="font-semibold">3. Forgot your password?</h3>
-        <p className="mt-1 text-gray-600">
-          Select Forgot Password? to start the password recovery process.
-        </p>
-      </div>
+        <div className="mt-4 rounded-lg bg-white p-1 text-black shadow-md">
+          Need help? Contact IT support
+          <p className="text-sm">
+            Email: info@gimsoi.com Phone: (123) 456-7890
+          </p>
+        </div>
 
-      <div className="rounded-lg bg-blue-50 p-3 text-gray-700">
-        <p className="font-semibold">Security tip</p>
-        <p className="mt-1">
-          Never share your password with anyone.
-        </p>
-      </div>
-    </div>
-  </div>
-)}
+        <div className="mt-6 rounded-lg bg-[#002D62] p-2 text-white shadow-md">
+          <p className="text-sm">
+            Security Tip: Keep your password private. Never share it with
+            anyone. Enable 2MFA if available
+          </p>
+        </div>
+      </InformationModal>
     </div>
   );
 }

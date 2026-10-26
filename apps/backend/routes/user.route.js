@@ -10,6 +10,7 @@ import {
   getUsers,
   adminCreateUser,
   updateUserRole,
+  permanentlyDeleteUser,
   updateProfile,
   updateAvatar,
   removeAvatar,
@@ -53,6 +54,15 @@ router.patch(
   requireCSRF,
   validate(updateUserRoleSchema),
   updateUserRole,
+);
+
+router.delete(
+  "/:id",
+  writeLimiter,
+  verifyToken,
+  authorize("MANAGE_USERS"),
+  requireCSRF,
+  permanentlyDeleteUser,
 );
 
 /**
