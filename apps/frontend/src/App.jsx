@@ -7,6 +7,7 @@ const SignUpPage = lazy(() => import('./Pages/LogInOut-flow/SignUpPage'));
 const ResetPassword = lazy(() => import('./Pages/LogInOut-flow/ResetPassword'));
 const EmailVerification = lazy(() => import('./Pages/LogInOut-flow/EmailVerification'));
 const ForgotEmailPage = lazy(() => import('./Pages/LogInOut-flow/ForgotEmailPage'));
+const Recommendations = lazy(() => import("./Pages/Recommendations.jsx"));
 
 // ─── DASHBOARD ─────────────────────────────
 const Dashboard = lazy(() => import('./Pages/LogInOut-flow/Dashboard'));
@@ -307,6 +308,13 @@ function App() {
         <Route path="/kanban-board" element={
           <ProtectedRoute>
             <DashboardLayout><Kanban /></DashboardLayout>
+          </ProtectedRoute>
+        } />
+
+                {/* AI Recommendations - Brytom */}
+        <Route path="/recommendations" element={
+          <ProtectedRoute>
+            <DashboardLayout><Recommendations /></DashboardLayout>
           </ProtectedRoute>
         } />
 
