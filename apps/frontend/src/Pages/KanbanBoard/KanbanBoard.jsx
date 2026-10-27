@@ -261,6 +261,13 @@ const Kanban = () => {
   const isBoardReadOnly =
     ['COMPLETED', 'ARCHIVED'].includes(currentProject?.status) ||
     activeSprint?.status === 'CLOSED';
+  const [taskToast, setTaskToast] = useState(null);
+
+  useEffect(() =>{
+    if (!taskToast) return undefined;
+    const timeoutId = window.setTimeout(() => setTaskToast(null), 4000);
+    return () => window.clearTimeout(timeoutId);
+  }, [taskToast]);
 
   useEffect(() => {
     if (!activeSprint) fetchDashboard();
