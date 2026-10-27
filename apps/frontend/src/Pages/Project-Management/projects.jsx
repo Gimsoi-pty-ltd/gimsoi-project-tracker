@@ -5,6 +5,9 @@ import { useProjectStore } from "../../store/projectStore";
 import EmptyState from "../../Components/EmptyState";
 import ErrorAlert from "../../Components/ErrorAlert";
 import LoadingSpinner from "../../Components/LoadingSpinner";
+import { useNavigate, Link } from "react-router-dom";  
+import { useState,  useEffect, useRef } from "react"; 
+import { Search, Plus, Zap, MoreHorizontal, ChevronDown } from "lucide-react";
 
 // ─── Status config ────────────────────────────────────────────────────────────
 // Must match the backend's ProjectStatus enum exactly (see project.schema.js)
@@ -161,13 +164,14 @@ export default function Projects() {
   const [searchTerm, setSearchTerm] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [taskToast, setTaskToast] = useState(null);
 
   useEffect(() => { fetchProjects(); }, [fetchProjects]);
   useEffect(() => {
-    if (!toast) return undefined;
-    const timeoutId = window.setTimeout(() => setToast(null), 4000);
+    if (!taskToast) return undefined;
+    const timeoutId = window.setTimeout(() => setTaskToast(null), 4000);
     return () => window.clearTimeout(timeoutId);
-  }, [toast]);
+  }, [taskToast]); 
 
 const filteredProjects = projects.filter((p) => {
   const term = searchTerm.toLowerCase();
@@ -334,15 +338,15 @@ const filteredProjects = projects.filter((p) => {
         onSuccess={() => { fetchProjects(); setShowCreateModal(false); }}
       />
 
-      {toast && (
+      {taskToast && (
         <div
-          role={toast.type === 'error' ? 'alert' : 'status'}
-          aria-live={toast.type === 'error' ? 'assertive' : 'polite'}
-className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[70] max-w-sm rounded-lg border px-4 py-3 text-sm shadow-lg ${toast.type === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-red-50 bg-red-100 text-red-800'}`}
+          role={taskToast.type === 'error' ? 'alert' : 'status'}
+          aria-live={taskToast.type === 'error' ? 'assertive' : 'polite'}
+className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[70] max-w-sm rounded-lg border px-4 py-3 text-sm shadow-lg ${taskToast.type === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-red-50 bg-red-100 text-red-800'}`}
         >
           <div className="flex items-center justify-between gap-4">
-            <span>{toast.message}</span>
-            <button type="button" aria-label="Dismiss notification" onClick={() => setToast(null)} className="font-semibold opacity-70 hover:opacity-100">×</button>
+            <span>{taskToast.message}</span>
+            <button type="button" aria-label="Dismiss notification" onClick={() => setTaskToast(null)} className="font-semibold opacity-70 hover:opacity-100">×</button>
           </div>
         </div>
       )}
