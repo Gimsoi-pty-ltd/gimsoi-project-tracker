@@ -256,12 +256,13 @@ const Kanban = () => {
   const [apiError, setApiError] = useState(null);
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
+  const [taskToast, setTaskToast] = useState(null);
   const updateTask = useTaskStore((state) => state.updateTask);
   const getTaskById = useTaskStore((state) => state.getTaskById);
   const isBoardReadOnly =
     ['COMPLETED', 'ARCHIVED'].includes(currentProject?.status) ||
     activeSprint?.status === 'CLOSED';
-  const [taskToast, setTaskToast] = useState(null);
+
 
   useEffect(() =>{
     if (!taskToast) return undefined;
