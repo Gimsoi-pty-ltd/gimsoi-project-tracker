@@ -310,13 +310,7 @@ function App() {
           </ProtectedRoute>
         } />
 
-                {/* AI Recommendations - Brytom */}
-        <Route path="/recommendations" element={
-          <ProtectedRoute>
-            <DashboardLayout><Recommendations /></DashboardLayout>
-          </ProtectedRoute>
-        } />
-
+             
         {/* === CATCH-ALL: Redirect to login when unauthenticated === */}
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
