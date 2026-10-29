@@ -1,5 +1,6 @@
 import React, { useEffect, Suspense, lazy } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import Recommendations from "./Pages/AI-Recommendations";
 
 // ─── AUTH PAGES ─────────────────────────────
 const LoginPage = lazy(() => import('./Pages/LogInOut-flow/LoginPage'));
@@ -146,6 +147,12 @@ function App() {
             <ResetPassword />
           </RedirectAuthenticatedUser>
         } />
+
+        <Route path="/recommendations" element={
+  <ProtectedRoute>
+    <DashboardLayout><Recommendations /></DashboardLayout>
+  </ProtectedRoute>
+} />
 
         {/* === ROOT REDIRECT  === */}
         <Route path="/" element={<Navigate to="/login" replace />} />
