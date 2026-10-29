@@ -1,120 +1,36 @@
-import { useState, useEffect } from "react";
-import DropDown from "../Components/DropDown";
-import { resourceAPI } from "../api/api";
-import { useProjectStore } from "../store/projectStore";
+import React from "react";
 
 export default function Recommendations() {
-  const currentProject = useProjectStore((state) => state.currentProject);
-  const ensureDashboardLoaded = useProjectStore(
-    (state) => state.ensureDashboardLoaded
-  );
-
-  useEffect(() => {
-    ensureDashboardLoaded();
-  }, [ensureDashboardLoaded]);
-
-  console.log("Selected project:", currentProject);
-
-  console.log("Selected project:", currentProject);
-  console.log("Projects in store:", useProjectStore.getState().projects);
-  console.log(
-    "Dashboard loading:",
-    useProjectStore.getState().dashboardLoading
-  );
-  console.log("Dashboard error:", useProjectStore.getState().dashboardError);
-
-  const [recommendations, setRecommendations] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    if (!currentProject?.id) {
-      setRecommendations([]);
-      setLoading(false);
-      return;
+  const recommendations = [
+    {
+      id: 1,
+      title: "Project Tracker Enhancement",
+      desc: "Add automated milestone notifications to improve project visibility and stakeholder updates.",
+      priority: "High",
+      status: "New"
+    },
+    {
+      id: 2,
+      title: "Resource Allocation",
+      desc: "Redistribute workload across team members to balance project delivery timelines.",
+      priority: "Medium",
+      status: "Active"
+    },
+    {
+      id: 3,
+      title: "Risk Monitoring",
+      desc: "Enable predictive risk detection for projects approaching deadlines.",
+      priority: "High",
+      status: "Pending"
     }
-
-    const fetchTasks = async () => {
-      try {
-        setLoading(true);
-        setError("");
-
-        const response = await resourceAPI.get("/tasks", {
-          params: {
-            projectId: currentProject.id,
-            limit: 100
-          }
-        });
-
-        console.log("Project ID:", currentProject.id);
-        console.log("Project tasks:", response.data.data);
-
-        setRecommendations(response.data.data ?? []);
-      } catch (err) {
-        console.error("Failed to fetch project tasks:", err);
-
-        setError(
-          err.response?.data?.message || "Failed to load project tasks."
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchTasks();
-  }, [currentProject?.id]);
+  ];
 
   const total = recommendations.length;
-
-  const highCount = recommendations.filter((r) =>
-    ["HIGH", "URGENT"].includes(r.priority?.toUpperCase())
-  ).length;
-
-  const newCount = recommendations.filter(
-    (r) => r.status?.toUpperCase() === "TODO"
-  ).length;
-  const [filterPriority, setFilterPriority] = useState("All");
-  const [filterStatus, setFilterStatus] = useState("All");
-  const [sortBy, setSortBy] = useState("Priority");
-
-  const filteredRecommendations = recommendations
-    .filter((r) => {
-      const matchesPriority =
-        filterPriority === "All" ||
-        r.priority?.toUpperCase() === filterPriority;
-
-      const matchesStatus =
-        filterStatus === "All" || r.status?.toUpperCase() === filterStatus;
-
-      return matchesPriority && matchesStatus;
-    })
-    .sort((a, b) => {
-      if (sortBy === "Priority") {
-        const priorityOrder = {
-          URGENT: 1,
-          HIGH: 2,
-          MEDIUM: 3,
-          LOW: 4
-        };
-
-        return (
-          (priorityOrder[a.priority?.toUpperCase()] ?? 99) -
-          (priorityOrder[b.priority?.toUpperCase()] ?? 99)
-        );
-      }
-
-      return (a.status ?? "").localeCompare(b.status ?? "");
-    });
-  if (loading) {
-    return <div className="p-8">Loading tasks...</div>;
-  }
-
-  if (error) {
-    return <div className="p-8 text-red-600">{error}</div>;
-  }
+  const highCount = recommendations.filter((r) => r.priority === "High").length;
+  const newCount = recommendations.filter((r) => r.status === "New").length;
 
   // --- 1. EMPTY SCREEN LAYOUT ---
-  if (total === 0) {
+  if (visibleRecs.length === 0) {
     return (
       <div className="p-8">
         <div className="mb-8">
@@ -140,7 +56,6 @@ export default function Recommendations() {
   // --- 2. OVERALL SECTION LAYOUT ---
   return (
     <div className="p-6 md:p-8 bg-slate-50 min-h-screen">
-      {/* HEADINGS */}
       <div className="header mb-6">
         <h1 className="text-3xl font-bold tracking-tight text-slate-900">
           AI Recommendations
@@ -183,7 +98,6 @@ export default function Recommendations() {
         />
       </div>
 
-      {/* SUMMARY COUNT TOTALS */}
       <div className="summary-counts grid grid-cols-3 md:grid-cols-4 gap-4 mb-8">
         <div className="bg-white p-4 rounded-xl border shadow-sm">
           <p className="text-xs uppercase text-slate-500">Total</p>
@@ -199,9 +113,8 @@ export default function Recommendations() {
         </div>
       </div>
 
-      {/* CARD GRID */}
       <div className="recommendations-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredRecommendations.map((r) => (
+        {recommendations.map((r) => (
           <div
             key={r.id}
             className="recommendation-card bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition"
@@ -225,15 +138,60 @@ export default function Recommendations() {
             </div>
 
             <h3 className="font-semibold text-slate-900 text-lg">{r.title}</h3>
-            <p className="text-sm text-slate-600 mt-2 line-clamp-3">
-              {r.description}
-            </p>
+            <p className="text-sm text-slate-600 mt-2 line-clamp-3">{r.desc}</p>
             <button className="mt-4 text-sm font-medium text-indigo-600 hover:text-indigo-700">
               View Details →
             </button>
           </div>
         ))}
       </div>
+
+      {selected && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => setSelected(null)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-lg w-full p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-xl font-bold">{selected.title}</h2>
+            <p className="text-sm bg-blue-50 p-3 rounded-lg mt-4 border border-blue-100">
+              <b>Why this was recommended:</b> {selected.why}
+            </p>
+            <p className="text-sm text-slate-600 mt-4">{selected.desc}</p>
+            <div className="mt-6 grid grid-cols-3 gap-3">
+              <button
+                onClick={() => {
+                  alert("Taking action on " + selected.title);
+                  setSelected(null);
+                }}
+                className="bg-indigo-600 text-white py-2.5 rounded-lg text-sm font-medium"
+              >
+                Take Action
+              </button>
+              <button
+                onClick={() => {
+                  setAccepted([...accepted, selected.id]);
+                  setSelected(null);
+                }}
+                className="bg-green-600 text-white py-2.5 rounded-lg text-sm font-medium"
+              >
+                Accept
+              </button>
+              <button
+                onClick={() => {
+                  setDismissed([...dismissed, selected.id]);
+                  setSelected(null);
+                }}
+                className="bg-white border border-slate-300 text-slate-700 py-2.5 rounded-lg text-sm font-medium"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

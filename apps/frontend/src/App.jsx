@@ -504,6 +504,17 @@ function App() {
               </ProtectedRoute>
             }
           />
+          {/* Kanban Board */}
+          <Route
+            path="/reccomendations"
+            element={
+              <ProtectedRoute>
+                <DashboardLayout>
+                  <reccomendations />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
 
           {/* === CATCH-ALL: Redirect to login when unauthenticated === */}
           <Route path="*" element={<Navigate to="/login" replace />} />

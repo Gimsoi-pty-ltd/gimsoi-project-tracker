@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useTaskStore } from "../../store/taskStore";
 import { useProjectStore } from "../../store/projectStore";
@@ -6,6 +6,9 @@ import OverdueTasks from "./OverdueTasks";
 import BlockedTasks from "./BlockedTasks";
 import PieChart from "../Task-Progress/PieChart";
 import TaskCard from "../Task-Progress/TaskCard";
+import TaskModal from '../../Dashboard/Metrics/TaskModal';
+
+
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -54,6 +57,9 @@ function TasksPageContent() {
   const tabParam = searchParams.get("tab") || "overdue";
   const activeTab = TABS.find((t) => t.id === tabParam) ? tabParam : "overdue";
 
+  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState(null);
+
   const { tasks, getTasks } = useTaskStore();
   const EMPTY = [];
   const activeSprintTasks = useProjectStore((state) => state.activeSprint?.tasks ?? EMPTY);
@@ -93,7 +99,20 @@ function TasksPageContent() {
   return (
     <div className="bg-gray-50 min-h-screen p-4 md:p-8">
       <div className="max-h-screens mx-auto">
-        <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-6">Tasks</h1>
+        <div className="flex items-center justify-between mb-6">
+  <h1 className="text-3xl md:text-4xl font-bold text-gray-800">Tasks</h1>
+
+  <button
+    type="button"
+    onClick={() => {
+      setEditingTask(null);
+      setIsTaskModalOpen(true);
+    }}
+    className="px-3 py-2 rounded-lg bg-blue-900 hover:bg-blue-600 text-white text-sm font-medium"
+  >
+    + Add Task
+  </button>
+</div>
 
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
           <div className="flex gap-1 border-b border-gray-200 bg-gray-50 px-6">
@@ -180,6 +199,15 @@ function TasksPageContent() {
           </div>
         </div>
       </div>
+      <TaskModal
+  isOpen={isTaskModalOpen}
+  task={editingTask}
+  onClose={() => {
+    setIsTaskModalOpen(false);
+    setEditingTask(null);
+  }}
+/>
+
     </div>
   );
 }
