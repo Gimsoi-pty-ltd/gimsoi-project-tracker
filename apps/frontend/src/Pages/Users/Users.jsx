@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { Trash2 } from "lucide-react";
 import EmptyState from "../../Components/EmptyState";
 import ErrorAlert from "../../Components/ErrorAlert";
 import { resourceAPI } from "../../api/api";
@@ -15,6 +16,7 @@ const Users = () => {
   const [editRole, setEditRole] = useState("");
   const [saving, setSaving] = useState(false);
   const [users, setUsers] = useState([]);
+  const [totalUsers, setTotalUsers] = useState(0);
   const [search, setSearch] = useState("");
   const [formData, setFormData] = useState(emptyForm);
   const [cursor, setCursor] = useState(null);
@@ -33,12 +35,14 @@ const Users = () => {
       .then((res) => {
         const data = res.data?.data;
         setUsers(Array.isArray(data) ? data : []);
+        setTotalUsers(Number(res.data?.totalCount ?? data?.length ?? 0));
         setNextCursor(res.data?.nextCursor || null);
         setLoading(false);
       })
       .catch((err) => {
         console.error("Error fetching users:", err);
         setUsers([]);
+        setTotalUsers(0);
         setNextCursor(null);
         setError(err.response?.data?.message || "Failed to load users");
         setLoading(false);
@@ -69,6 +73,7 @@ const Users = () => {
       const res = await resourceAPI.post("/users", formData);
       const savedUser = res.data?.data;
       setUsers((prev) => [savedUser, ...prev]);
+      setTotalUsers((count) => count + 1);
       setShowModal(false);
       setFormData(emptyForm);
     } catch (err) {
@@ -93,6 +98,25 @@ const Users = () => {
     } catch (err) {
       console.error("Error updating role:", err);
       alert(err.response?.data?.message || "Failed to update role. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteUser = async (user) => {
+    const confirmed = window.confirm(
+      `Permanently delete ${user.fullName} (${user.email})? This removes their project memberships, comments, activity logs, report records, and tasks they reported. Tasks assigned to them will be left unassigned. Uploaded report files may remain in storage. This cannot be undone.`
+    );
+    if (!confirmed) return;
+
+    setSaving(true);
+    try {
+      await resourceAPI.delete(`/users/${user.id}`);
+      setUsers((current) => current.filter((entry) => entry.id !== user.id));
+      setTotalUsers((count) => Math.max(0, count - 1));
+    } catch (err) {
+      console.error("Error permanently deleting user:", err);
+      alert(err.response?.data?.message || "Failed to permanently delete user.");
     } finally {
       setSaving(false);
     }
@@ -129,7 +153,8 @@ const Users = () => {
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6 md:mb-8">
         <div>
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-6">Manage Users</h2>
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-2">Manage Users</h2>
+          <p className="text-sm text-gray-500 mb-4">{totalUsers} total users</p>
           <nav className="flex mt-1 text-xs md:text-sm text-gray-500">
             <Link to="/users">
               <span className="text-slate-900 hover:text-slate-600 cursor-pointer">User Management</span>
@@ -143,7 +168,7 @@ const Users = () => {
           <input
             type="text"
             placeholder="Search users..."
-            className="border rounded-lg px-3 md:px-4 py-2 text-xs md:text-sm flex-1 min-w-[150px] md:w-auto"
+            className="border rounded-lg px-3 md:px-4 py-2 text-xs md:text-sm flex-1 min-w-37.5 md:w-auto"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -186,7 +211,7 @@ const Users = () => {
         />
       ) : (
         <div className="bg-white rounded-xl border shadow-sm overflow-x-auto">
-          <table className="w-full text-xs md:text-sm min-w-[640px]">
+          <table className="w-full text-xs md:text-sm min-w-160">
             <thead className="bg-gray-100 text-gray-600 text-left">
               <tr>
                 <th className="p-4">User</th>
@@ -235,6 +260,16 @@ const Users = () => {
                       className="border px-3 py-1 rounded text-xs hover:bg-blue-50"
                     >
                       Change Role
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteUser(user)}
+                      disabled={saving}
+                      title={`Permanently delete ${user.fullName}`}
+                      aria-label={`Permanently delete ${user.fullName}`}
+                      className="border border-red-200 p-1.5 rounded text-red-700 hover:bg-red-50 disabled:opacity-50"
+                    >
+                      <Trash2 size={15} />
                     </button>
                   </td>
                 </tr>

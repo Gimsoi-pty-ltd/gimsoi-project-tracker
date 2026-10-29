@@ -1,7 +1,7 @@
 {
   "name": "server",
   "version": "1.0.0",
-  "description": "",
+  "description": "This backend works as a secure, scalable foundation for the Gimsoi Project Tracker. It implements **Role-Based Access Control (RBAC)** to ensure strict data security—preventing unauthorized access (e.g., Interns deleting tasks or Clients creating them). With enterprise-grade authentication (secure cookies, JWTs, password resets) and a unified server architecture, it allows the frontend team to build confident, permission-aware UIs immediately.",
   "main": "server.js",
   "scripts": {
     "postinstall": "prisma generate",
@@ -21,7 +21,7 @@
   "license": "ISC",
   "dependencies": {
     "@prisma/adapter-pg": "7.9.0",
-    "@prisma/client": "^7.9.1",
+    "@prisma/client": "^7.10.1",
     "@zcatalyst/auth": "^1.0.0",
     "@zcatalyst/mail": "^1.0.0",
     "axios": "1.18.1",
@@ -54,5 +54,10 @@
     "nodemon": "3.1.14",
     "prisma": "^7.9.1",
     "tsx": "4.23.1"
+  },
+  "directories": {
+    "doc": "docs",
+    "lib": "lib",
+    "test": "tests"
   }
 }

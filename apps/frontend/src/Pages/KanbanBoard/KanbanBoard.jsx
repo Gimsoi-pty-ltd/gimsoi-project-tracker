@@ -108,7 +108,7 @@ const KanbanCard = ({
       className={`${cardColor} rounded-md p-3 ${readOnly ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'} hover:shadow-md transition-all duration-200 border ${textColor.border} ${isDragging ? 'opacity-40 scale-95' : ''}`}
     >
       <div className="flex justify-between items-start gap-2 mb-2">
-        <h3 className={`min-w-0 flex-1 break-words font-semibold text-sm ${textColor.title}`}>{title}</h3>
+        <h3 className={`min-w-0 flex-1 wrap-break-word font-semibold text-sm ${textColor.title}`}>{title}</h3>
 
         
         {priorityLabel && (
@@ -153,7 +153,7 @@ const Column = ({
 
   return (
     <div
-      className="flex min-w-0 w-full flex-col rounded-lg shadow-md max-h-[700px]"
+      className="flex min-w-0 w-full flex-col rounded-lg shadow-md max-h-175"
       onDragOver={(e) => { if (!readOnly) { e.preventDefault(); setIsOver(true); } }}
       onDragLeave={() => setIsOver(false)}
       onDrop={(e) => { 
@@ -256,11 +256,19 @@ const Kanban = () => {
   const [apiError, setApiError] = useState(null);
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
+  const [taskToast, setTaskToast] = useState(null);
   const updateTask = useTaskStore((state) => state.updateTask);
   const getTaskById = useTaskStore((state) => state.getTaskById);
   const isBoardReadOnly =
     ['COMPLETED', 'ARCHIVED'].includes(currentProject?.status) ||
     activeSprint?.status === 'CLOSED';
+
+
+  useEffect(() =>{
+    if (!taskToast) return undefined;
+    const timeoutId = window.setTimeout(() => setTaskToast(null), 4000);
+    return () => window.clearTimeout(timeoutId);
+  }, [taskToast]);
 
   useEffect(() => {
     if (!activeSprint) fetchDashboard();
@@ -569,6 +577,7 @@ const Kanban = () => {
         isOpen={isTaskModalOpen}
         task={editingTask}
         initialSprintId={activeSprint?.id || null}
+        onSuccess={(mode) => setTaskToast({ type: 'success', message: mode === 'updated' ? 'Task updated successfully.' : 'Task created successfully.' })}
         onClose={() => {
           setIsTaskModalOpen(false);
           setEditingTask(null);
@@ -576,6 +585,19 @@ const Kanban = () => {
           fetchDashboard().catch((err) => console.error('Failed to refresh dashboard:', err));
         }}
       />
+
+      {taskToast && (
+        <div
+          role={taskToast.type === 'error' ? 'alert' : 'status'}
+          aria-live={taskToast.type === 'error' ? 'assertive' : 'polite'}
+          className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-70 max-w-sm rounded-lg border px-4 py-3 text-sm shadow-lg ${taskToast.type === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-red-50 bg-red-100 text-red-800'}`}
+        >
+          <div className="flex items-center justify-between gap-4">
+            <span>{taskToast.message}</span>
+            <button type="button" aria-label="Dismiss notification" onClick={() => setTaskToast(null)} className="font-semibold opacity-70 hover:opacity-100">×</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

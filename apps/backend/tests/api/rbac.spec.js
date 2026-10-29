@@ -36,6 +36,36 @@ test.describe('RBAC & Permission Hardening', () => {
             expect(updateRes.status()).toBe(200);
         });
 
+        test('Project creator can create a task even when no ProjectMember row exists', async ({ pmApi }) => {
+            const authRes = await pmApi.get('/api/auth/check-auth');
+            const user = (await authRes.json()).user;
+
+            const client = await prisma.client.create({
+                data: {
+                    name: `Creator Client ${Date.now()}`,
+                    contactEmail: `creator-${Date.now()}@example.com`,
+                    createdByUserId: user.id,
+                }
+            });
+
+            const project = await prisma.project.create({
+                data: {
+                    name: `Creator Project ${Date.now()}`,
+                    clientId: client.id,
+                    createdByUserId: user.id,
+                    status: 'DRAFT',
+                }
+            });
+
+            const res = await pmApi.post('/api/tasks', {
+                data: { title: 'Creator-owned task', projectId: project.id }
+            });
+
+            expect(res.status()).toBe(201);
+            const body = await res.json();
+            expect(body.data.title).toBe('Creator-owned task');
+        });
+
         test('PM can modify any task globally via permission matrix', async ({ pmApi, testProject }) => {
             const taskRes = await pmApi.post('/api/tasks', {
                 data: { title: 'RBAC PM Task', projectId: testProject.id }
