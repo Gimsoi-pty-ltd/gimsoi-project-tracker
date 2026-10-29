@@ -2,29 +2,38 @@ import React from "react";
 
 export default function Recommendations() {
   const recommendations = [
-    {
-      id: 1,
-      title: "Project Tracker Enhancement",
-      desc: "Add automated milestone notifications to improve project visibility and stakeholder updates.",
-      priority: "High",
-      status: "New",
-    },
-    {
-      id: 2,
-      title: "Resource Allocation",
-      desc: "Redistribute workload across team members to balance project delivery timelines.",
-      priority: "Medium",
-      status: "Active",
-    },
-    {
-      id: 3,
-      title: "Risk Monitoring",
-      desc: "Enable predictive risk detection for projects approaching deadlines.",
-      priority: "High",
-      status: "Pending",
-    },
-  ];
-
+     {
+    id: 1,
+    title: "Project Tracker Enhancement",
+    desc: "Add automated milestone notifications to improve project visibility and stakeholder updates.",
+    priority: "High",
+    status: "New",
+  },
+  {
+    id: 2,
+    title: "Resource Allocation",
+    desc: "Redistribute workload across team members to balance project delivery timelines.",
+    priority: "Medium",
+    status: "In Progress",
+  },
+  {
+    id: 3,
+    title: "Risk Monitoring",
+    desc: "Enable predictive risk detection for projects approaching deadlines.",
+    priority: "Low",
+    status: "Completed",
+  },
+];
+  const priorityStyles = {
+  High: "bg-red-100 text-red-700",
+  Medium: "bg-amber-100 text-amber-700",
+  Low: "bg-green-100 text-green-700",
+};
+  const statusStyles = {
+  New: "bg-blue-100 text-blue-700",
+  "In Progress": "bg-purple-100 text-purple-700",
+  Completed: "bg-emerald-100 text-emerald-700",
+};
   const total = recommendations.length;
   const highCount = recommendations.filter(r => r.priority === "High").length;
   const newCount = recommendations.filter(r => r.status === "New").length;
@@ -77,10 +86,22 @@ export default function Recommendations() {
         {recommendations.map((r) => (
           <div key={r.id} className="recommendation-card bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition">
             <div className="flex justify-between items-start mb-3">
-              <span className={`text-xs px-2 py-1 rounded-full ${r.priority === 'High' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
-                {r.priority}
-              </span>
-              <span className="text-xs px-2 py-1 rounded-full bg-slate-100 text-slate-600">{r.status}</span>
+              <span
+  className={`rounded-full px-3 py-1 text-xs font-semibold ${
+    priorityStyles[r.priority] ||
+    "bg-gray-100 text-gray-700"
+  }`}
+>
+  {r.priority}
+</span>
+   <span
+  className={`rounded-full px-3 py-1 text-xs font-semibold ${
+    statusStyles[r.status] ||
+    "bg-gray-100 text-gray-700"
+  }`}
+>
+  {r.status}
+</span>
             </div>
             <h3 className="font-semibold text-slate-900 text-lg">{r.title}</h3>
             <p className="text-sm text-slate-600 mt-2 line-clamp-3">{r.desc}</p>
