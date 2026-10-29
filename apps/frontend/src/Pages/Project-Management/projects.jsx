@@ -164,16 +164,6 @@ export default function Projects() {
   const [searchTerm, setSearchTerm] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
-<<<<<<< HEAD
-  const [toast, setToast] = useState(null);
-
-  useEffect(() => { fetchProjects(); }, [fetchProjects]);
-  useEffect(() => {
-    if (!toast) return undefined;
-    const timeoutId = window.setTimeout(() => setToast(null), 4000);
-    return () => window.clearTimeout(timeoutId);
-  }, [toast]);
-=======
   const [taskToast, setTaskToast] = useState(null);
 
   useEffect(() => { fetchProjects(); }, [fetchProjects]);
@@ -182,7 +172,6 @@ export default function Projects() {
     const timeoutId = window.setTimeout(() => setTaskToast(null), 4000);
     return () => window.clearTimeout(timeoutId);
   }, [taskToast]); 
->>>>>>> a794d0e91c7c9ec0188674b0aff64e3be9b69e3e
 
 const filteredProjects = projects.filter((p) => {
   const term = searchTerm.toLowerCase();
@@ -353,17 +342,6 @@ const filteredProjects = projects.filter((p) => {
         }}
       />
 
-<<<<<<< HEAD
-      {toast && (
-        <div
-          role={toast.type === 'error' ? 'alert' : 'status'}
-          aria-live={toast.type === 'error' ? 'assertive' : 'polite'}
-          className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-70 max-w-sm rounded-lg border px-4 py-3 text-sm shadow-lg ${toast.type === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-red-50 bg-red-100 text-red-800'}`}
-        >
-          <div className="flex items-center justify-between gap-4">
-            <span>{toast.message}</span>
-            <button type="button" aria-label="Dismiss notification" onClick={() => setToast(null)} className="font-semibold opacity-70 hover:opacity-100">×</button>
-=======
       {taskToast && (
         <div
           role={taskToast.type === 'error' ? 'alert' : 'status'}
@@ -373,7 +351,6 @@ className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[70] max-
           <div className="flex items-center justify-between gap-4">
             <span>{taskToast.message}</span>
             <button type="button" aria-label="Dismiss notification" onClick={() => setTaskToast(null)} className="font-semibold opacity-70 hover:opacity-100">×</button>
->>>>>>> a794d0e91c7c9ec0188674b0aff64e3be9b69e3e
           </div>
         </div>
       )}
