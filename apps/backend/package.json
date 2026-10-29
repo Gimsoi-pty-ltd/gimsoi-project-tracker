@@ -21,7 +21,7 @@
   "license": "ISC",
   "dependencies": {
     "@prisma/adapter-pg": "7.9.0",
-    "@prisma/client": "^7.9.1",
+    "@prisma/client": "^7.10.1",
     "@zcatalyst/auth": "^1.0.0",
     "@zcatalyst/mail": "^1.0.0",
     "axios": "1.18.1",
@@ -32,6 +32,7 @@
     "dotenv": "17.4.2",
     "express": "5.2.1",
     "express-rate-limit": "8.6.0",
+    "helmet": "^8.3.0",
     "jsonwebtoken": "9.0.3",
     "method-override": "3.0.0",
     "morgan": "1.11.0",

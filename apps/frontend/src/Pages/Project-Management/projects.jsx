@@ -1,12 +1,13 @@
-import { useState, useRef, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Plus, Search, MoreHorizontal, Pencil, Trash2, ChevronDown, Zap } from "lucide-react";
+
 import NavyButton from "../../Components/Buttons";
 import ProjectForm from "../../Components/ProjectForm/ProjectForm";
 import { useProjectStore } from "../../store/projectStore";
 import EmptyState from "../../Components/EmptyState";
 import ErrorAlert from "../../Components/ErrorAlert";
 import LoadingSpinner from "../../Components/LoadingSpinner";
+import { useNavigate, Link } from "react-router-dom";  
+import { useState,  useEffect, useRef } from "react"; 
+import { Search, Plus, Zap, MoreHorizontal, ChevronDown } from "lucide-react";
 
 // ─── Status config ────────────────────────────────────────────────────────────
 // Must match the backend's ProjectStatus enum exactly (see project.schema.js)
@@ -163,19 +164,21 @@ export default function Projects() {
   const [searchTerm, setSearchTerm] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [toast, setToast] = useState(null);
+  const [taskToast, setTaskToast] = useState(null);
 
   useEffect(() => { fetchProjects(); }, [fetchProjects]);
   useEffect(() => {
-    if (!toast) return undefined;
-    const timeoutId = window.setTimeout(() => setToast(null), 4000);
+    if (!taskToast) return undefined;
+    const timeoutId = window.setTimeout(() => setTaskToast(null), 4000);
     return () => window.clearTimeout(timeoutId);
-  }, [toast]);
+  }, [taskToast]); 
 
-  const filteredProjects = projects.filter((p) =>
-    (p.name?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
-    (p.client?.toLowerCase() || "").includes(searchTerm.toLowerCase())
-  );
+const filteredProjects = projects.filter((p) => {
+  const term = searchTerm.toLowerCase();
+  const name = (p.name || "").toLowerCase();
+  const clientStr = typeof p.client === 'string' ? p.client : (p.client?.name || "");
+  return name.includes(term) || clientStr.toLowerCase().includes(term);
+});
 
   const handleNavigate = (project) => {
     useProjectStore.getState().setCurrentProject(project);
@@ -204,7 +207,39 @@ export default function Projects() {
   return (
     <div className="bg-[#f5f7fb] min-h-screen font-sans">
       <div className="max-w-7xl mx-auto px-6 py-8">
+{/* ── PORTFOLIO SUMMARY ── */}
+<div id="bar" className="flex flex-wrap items-center gap-5 px-4 py-3 bg-white rounded-lg shadow-sm border border-gray-100 border-l-4 border-l-amber-400 mb-6 relative">
 
+  <div className="flex items-center gap-2 whitespace-nowrap">
+    <span className="text-amber-500">✣</span>
+    <span className="text-xs font-bold text-amber-700 bg-amber-50 rounded-full px-3 py-1">
+      ● ALL PROJECTS — AGGREGATE VIEW
+    </span>
+  </div>
+
+  <div className="flex-1 min-w-[230px]">
+    <p className="text-xs font-semibold text-slate-800">🟢 Portfolio Summary</p>
+    <p className="text-[11px] text-slate-600 mt-1">
+      {projects.length} projects · {projects.filter(p => p.status === "ACTIVE").length} active · {projects.filter(p => p.status === "COMPLETED").length} complete · {projects.filter(p => p.status === "DRAFT").length} draft
+    </p>
+  </div>
+
+  <div className="min-w-[220px]">
+    <p className="text-[10px] font-semibold text-slate-500">◉ AVERAGE PROJECT PROGRESS</p>
+    <p className="text-xs text-slate-800 mt-1">
+      {projects.length ? (projects.reduce((total, p) => total + (p.percentComplete || 0), 0) / projects.length).toFixed(1) : "0.0"}% across all {projects.length} projects
+    </p>
+  </div>
+
+  <button onClick={() => alert('Insights clicked!')} className="bg-[#172554] text-white text-xs font-semibold px-4 py-2 rounded hover:bg-blue-800">
+    View Insights
+  </button>
+
+  <button onClick={() => document.getElementById('bar').style.display='none'} className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200 font-bold">
+    ×
+  </button>
+
+</div>
         {/* ── Header ── */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
@@ -252,7 +287,7 @@ export default function Projects() {
         {/* ── Table ── */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="grid grid-cols-[1fr_1.2fr_1fr_0.8fr_1.4fr_44px] px-6 py-3 border-b border-gray-100 bg-gray-50/60">
-            {["CLIENT", "PROJECT NAME", "STATUS", "SPRINT", "PROGRESS", ""].map((h) => (
+            {["CLIENT", "PROJECT NAME", "STATUS", "SPRINT", "PROGRESS", "STAGES", ""].map((h) => (
               <div key={h} className="text-xs font-semibold text-gray-400 uppercase tracking-wider">{h}</div>
             ))}
           </div>
@@ -300,22 +335,18 @@ export default function Projects() {
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
         project={null}
-        onSuccess={() => {
-          fetchProjects();
-          setShowCreateModal(false);
-          setToast({ type: 'success', message: 'Project created successfully.' });
-        }}
+        onSuccess={() => { fetchProjects(); setShowCreateModal(false); }}
       />
 
-      {toast && (
+      {taskToast && (
         <div
-          role={toast.type === 'error' ? 'alert' : 'status'}
-          aria-live={toast.type === 'error' ? 'assertive' : 'polite'}
-          className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-70 max-w-sm rounded-lg border px-4 py-3 text-sm shadow-lg ${toast.type === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-red-50 bg-red-100 text-red-800'}`}
+          role={taskToast.type === 'error' ? 'alert' : 'status'}
+          aria-live={taskToast.type === 'error' ? 'assertive' : 'polite'}
+className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[70] max-w-sm rounded-lg border px-4 py-3 text-sm shadow-lg ${taskToast.type === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-red-50 bg-red-100 text-red-800'}`}
         >
           <div className="flex items-center justify-between gap-4">
-            <span>{toast.message}</span>
-            <button type="button" aria-label="Dismiss notification" onClick={() => setToast(null)} className="font-semibold opacity-70 hover:opacity-100">×</button>
+            <span>{taskToast.message}</span>
+            <button type="button" aria-label="Dismiss notification" onClick={() => setTaskToast(null)} className="font-semibold opacity-70 hover:opacity-100">×</button>
           </div>
         </div>
       )}
