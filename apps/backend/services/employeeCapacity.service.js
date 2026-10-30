@@ -1,25 +1,46 @@
-
 import prisma from "../lib/prisma.js";
 
 const ACTIVE_STATUSES = ["TODO", "IN_PROGRESS", "REVIEW", "BLOCKED"];
-
 const COMPLETED_STATUS = "DONE";
 
 /**
- * Returns workload information for employees belonging to a project.
+ * Returns workload information for employees across authorised projects.
+ *
+ * When projectId is provided, workload is limited to that project.
+ * When ownerIdForRaw is provided, workload is limited to projects owned
+ * by that user. When neither is provided, all projects are included.
  *
  * Story points are used as a relative workload indicator.
- * This service does not assume a fixed employee capacity.
+ * No fixed employee capacity is assumed.
  */
-export const getEmployeeWorkloads = async ({ projectId }) => {
+export const getEmployeeWorkloads = async ({
+    projectId,
+    ownerIdForRaw,
+} = {}) => {
+    const projectWhere = {
+        ...(projectId ? { id: String(projectId) } : {}),
+        ...(ownerIdForRaw ? { createdByUserId: ownerIdForRaw } : {}),
+    };
+
+    const projects = await prisma.project.findMany({
+        where: projectWhere,
+        select: {
+            id: true,
+        },
+    });
+
+    const projectIds = projects.map((project) => project.id);
+
+    if (projectIds.length === 0) {
+        return [];
+    }
+
     const members = await prisma.projectMember.findMany({
         where: {
-            projectId,
+            projectId: { in: projectIds },
             user: {
                 isDeleted: false,
-                role: {
-                    not: "CLIENT",
-                },
+                role: { not: "CLIENT" },
             },
         },
         select: {
@@ -37,11 +58,19 @@ export const getEmployeeWorkloads = async ({ projectId }) => {
         },
     });
 
+    // An employee may belong to several authorised projects.
+    // Keep one employee entry so their workload is combined.
+    const uniqueEmployees = [
+        ...new Map(
+            members.map(({ user }) => [user.id, user])
+        ).values(),
+    ];
+
     const workloads = await Promise.all(
-        members.map(async ({ user }) => {
+        uniqueEmployees.map(async (user) => {
             const tasks = await prisma.task.findMany({
                 where: {
-                    projectId,
+                    projectId: { in: projectIds },
                     assigneeId: user.id,
                     isDeleted: false,
                 },
@@ -69,8 +98,7 @@ export const getEmployeeWorkloads = async ({ projectId }) => {
             );
 
             const blockedTasks = activeTasks.filter(
-                (task) =>
-                    task.status === "BLOCKED" || task.isBlocked
+                (task) => task.status === "BLOCKED" || task.isBlocked
             );
 
             const activeStoryPoints = activeTasks.reduce(
