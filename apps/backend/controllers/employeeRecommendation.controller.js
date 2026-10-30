@@ -9,12 +9,12 @@ export const getEmployeeRecommendations = asyncHandler(async (req, res) => {
         20
     );
 
-   const recommendations = await recommendEmployees({
-    projectId,
-    userId: req.user.id,
-    userRole: req.user.role,
-    limit,
-});
+    const recommendations = await recommendEmployees({
+        projectId,
+        userId: req.user.id,
+        userRole: req.user.role,
+        limit,
+    });
 
     return res.status(200).json({
         success: true,
