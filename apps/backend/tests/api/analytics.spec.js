@@ -10,6 +10,8 @@ test.describe('Analytics API Tests', () => {
         expect(body.data).toHaveProperty('project_analytics');
         expect(body.data).toHaveProperty('team_analytics');
         expect(body.data).toHaveProperty('user_analytics');
+        expect(body.data.team_analytics).toHaveProperty("employee_workloads");
+        expect(body.data.team_analytics.employee_workloads).toBeInstanceOf(Array);
     });
 
     test('PM can see analytics (scoped to their projects)', async ({ pmApi, testProject }) => {
@@ -17,6 +19,8 @@ test.describe('Analytics API Tests', () => {
         expect(response.status()).toBe(200);
         const body = await response.json();
         expect(body.data.project_analytics).not.toBeNull();
+        expect(body.data.team_analytics).toHaveProperty("employee_workloads");
+        expect(body.data.team_analytics.employee_workloads).toBeInstanceOf(Array);
         expect(body.filters_applied.projectId).toBeNull(); 
     });
 
@@ -32,6 +36,7 @@ test.describe('Analytics API Tests', () => {
         expect(response.status()).toBe(200);
         const body = await response.json();
         expect(body.data.project_analytics).toBeNull();
+        expect(body.data.team_analytics).toBeNull();
         expect(body.data.team_analytics).toBeNull();
     });
 
