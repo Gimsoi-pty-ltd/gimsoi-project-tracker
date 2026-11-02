@@ -109,7 +109,7 @@ export default function Recommendations() {
               View Details →
             </button>
           </div>
-        ))}
+        ))} 
       </div>
     </div>
   );
