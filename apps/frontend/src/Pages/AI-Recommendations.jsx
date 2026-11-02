@@ -1,11 +1,20 @@
 import React from "react";
+import DropDown from "./DropDown";
 
 export default function Recommendations() {
+  const [selected, setSelected] = React.useState(null);
+  const [accepted, setAccepted] = React.useState([]);
+  const [dismissed, setDismissed] = React.useState([]);
+  const [filterPriority, setFilterPriority] = React.useState("All");
+  const [filterStatus, setFilterStatus] = React.useState("All");
+  const [sortBy, setSortBy] = React.useState("Priority");
+  
   const recommendations = [
     {
       id: 1,
       title: "Project Tracker Enhancement",
       desc: "Add automated milestone notifications to improve project visibility and stakeholder updates.",
+      why: "This will improve project visibility and keep stakeholders updated.",
       priority: "High",
       status: "New"
     },
@@ -13,6 +22,7 @@ export default function Recommendations() {
       id: 2,
       title: "Resource Allocation",
       desc: "Redistribute workload across team members to balance project delivery timelines.",
+      why: "This will balance workloads and help the team meet project deadlines.",
       priority: "Medium",
       status: "Active"
     },
@@ -20,17 +30,26 @@ export default function Recommendations() {
       id: 3,
       title: "Risk Monitoring",
       desc: "Enable predictive risk detection for projects approaching deadlines.",
+      why: "This will help identify project risks early and prevent deadline delays.",
       priority: "High",
       status: "Pending"
     }
   ];
+const visibleRecs = recommendations.filter((r) => {
+  const matchesPriority =
+    filterPriority === "All" || r.priority === filterPriority;
 
-  const total = recommendations.length;
+  const matchesStatus =
+    filterStatus === "All" || r.status === filterStatus;
+
+  return matchesPriority && matchesStatus;
+});
+  const total = visibleRecs.length;
   const highCount = recommendations.filter((r) => r.priority === "High").length;
   const newCount = recommendations.filter((r) => r.status === "New").length;
 
   // --- 1. EMPTY SCREEN LAYOUT ---
-  if (visibleRecs.length === 0) {
+  if (recommendations.length === 0) {
     return (
       <div className="p-8">
         <div className="mb-8">
@@ -70,22 +89,14 @@ export default function Recommendations() {
       <div className="mb-6 flex flex-wrap items-end gap-4 rounded-xl p-4">
         <DropDown
           label="Filter by Priority"
-          options={["All", "URGENT", "HIGH", "MEDIUM", "LOW"]}
+          options={["All", "High", "Medium"]}
           selectedOption={filterPriority}
           onSelect={setFilterPriority}
         />
 
         <DropDown
           label="Filter by Status"
-          options={[
-            "All",
-            "TODO",
-            "IN_PROGRESS",
-            "REVIEW",
-            "DONE",
-            "CANCELLED",
-            "BLOCKED"
-          ]}
+          options={["All", "New", "Active", "Pending"]}
           selectedOption={filterStatus}
           onSelect={setFilterStatus}
         />
@@ -114,7 +125,7 @@ export default function Recommendations() {
       </div>
 
       <div className="recommendations-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {recommendations.map((r) => (
+        {visibleRecs.map((r) => (
           <div
             key={r.id}
             className="recommendation-card bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition"
@@ -139,7 +150,9 @@ export default function Recommendations() {
 
             <h3 className="font-semibold text-slate-900 text-lg">{r.title}</h3>
             <p className="text-sm text-slate-600 mt-2 line-clamp-3">{r.desc}</p>
-            <button className="mt-4 text-sm font-medium text-indigo-600 hover:text-indigo-700">
+            <button 
+            onClick={() => setSelected(r)}
+            className="mt-4 text-sm font-medium text-indigo-600 hover:text-indigo-700">
               View Details →
             </button>
           </div>
