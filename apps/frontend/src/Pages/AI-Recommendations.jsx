@@ -1,36 +1,126 @@
-import React from "react";
+import { useState, useEffect } from "react";
+import DropDown from "../Components/DropDown";
+import { resourceAPI } from "../api/api";
+import { useProjectStore } from "../store/projectStore";
 
 export default function Recommendations() {
-  const recommendations = [
-    {
-      id: 1,
-      title: "Project Tracker Enhancement",
-      desc: "Add automated milestone notifications to improve project visibility and stakeholder updates.",
-      priority: "High",
-      status: "New"
-    },
-    {
-      id: 2,
-      title: "Resource Allocation",
-      desc: "Redistribute workload across team members to balance project delivery timelines.",
-      priority: "Medium",
-      status: "Active"
-    },
-    {
-      id: 3,
-      title: "Risk Monitoring",
-      desc: "Enable predictive risk detection for projects approaching deadlines.",
-      priority: "High",
-      status: "Pending"
+  const currentProject = useProjectStore((state) => state.currentProject);
+  const ensureDashboardLoaded = useProjectStore(
+    (state) => state.ensureDashboardLoaded
+  );
+
+  const dashboardLoading = useProjectStore((state) => state.dashboardLoading);
+
+  useEffect(() => {
+    ensureDashboardLoaded();
+  }, [ensureDashboardLoaded]);
+
+  console.log("Selected project:", currentProject);
+
+  console.log("Selected project:", currentProject);
+  console.log("Projects in store:", useProjectStore.getState().projects);
+  console.log(
+    "Dashboard loading:",
+    useProjectStore.getState().dashboardLoading
+  );
+  console.log("Dashboard error:", useProjectStore.getState().dashboardError);
+
+  const [recommendations, setRecommendations] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const [selected, setSelected] = useState(null);
+  const [accepted, setAccepted] = useState([]);
+  const [dismissed, setDismissed] = useState([]);
+
+  useEffect(() => {
+    if (!currentProject?.id) {
+      setRecommendations([]);
+      setLoading(false);
+      return;
     }
-  ];
+
+    const fetchTasks = async () => {
+      try {
+        setLoading(true);
+        setError("");
+
+        const response = await resourceAPI.get("/tasks", {
+          params: {
+            projectId: currentProject.id,
+            limit: 100
+          }
+        });
+
+        console.log("Project ID:", currentProject.id);
+        console.log("Project tasks:", response.data.data);
+
+        setRecommendations(response.data.data ?? []);
+      } catch (err) {
+        console.error("Failed to fetch project tasks:", err);
+
+        setError(
+          err.response?.data?.message || "Failed to load project tasks."
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTasks();
+  }, [currentProject?.id, dashboardLoading]);
 
   const total = recommendations.length;
-  const highCount = recommendations.filter((r) => r.priority === "High").length;
-  const newCount = recommendations.filter((r) => r.status === "New").length;
+
+  const highCount = recommendations.filter((r) =>
+    ["HIGH", "URGENT"].includes(r.priority?.toUpperCase())
+  ).length;
+
+  const newCount = recommendations.filter(
+    (r) => r.status?.toUpperCase() === "TODO"
+  ).length;
+  const [filterPriority, setFilterPriority] = useState("All");
+  const [filterStatus, setFilterStatus] = useState("All");
+  const [sortBy, setSortBy] = useState("Priority");
+
+  const filteredRecommendations = recommendations
+    .filter((r) => {
+      const matchesPriority =
+        filterPriority === "All" ||
+        r.priority?.toUpperCase() === filterPriority;
+
+      const matchesStatus =
+        filterStatus === "All" || r.status?.toUpperCase() === filterStatus;
+
+      return matchesPriority && matchesStatus;
+    })
+    .sort((a, b) => {
+      if (sortBy === "Priority") {
+        const priorityOrder = {
+          URGENT: 1,
+          HIGH: 2,
+          MEDIUM: 3,
+          LOW: 4
+        };
+
+        return (
+          (priorityOrder[a.priority?.toUpperCase()] ?? 99) -
+          (priorityOrder[b.priority?.toUpperCase()] ?? 99)
+        );
+      }
+
+      return (a.status ?? "").localeCompare(b.status ?? "");
+    });
+  if (loading) {
+    return <div className="p-8">Loading tasks...</div>;
+  }
+
+  if (error) {
+    return <div className="p-8 text-red-600">{error}</div>;
+  }
 
   // --- 1. EMPTY SCREEN LAYOUT ---
-  if (visibleRecs.length === 0) {
+  if (filteredRecommendations.length === 1) {
     return (
       <div className="p-8">
         <div className="mb-8">
@@ -98,6 +188,7 @@ export default function Recommendations() {
         />
       </div>
 
+      {/* SUMMARY COUNT TOTALS */}
       <div className="summary-counts grid grid-cols-3 md:grid-cols-4 gap-4 mb-8">
         <div className="bg-white p-4 rounded-xl border shadow-sm">
           <p className="text-xs uppercase text-slate-500">Total</p>
@@ -114,7 +205,7 @@ export default function Recommendations() {
       </div>
 
       <div className="recommendations-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {recommendations.map((r) => (
+        {filteredRecommendations.map((r) => (
           <div
             key={r.id}
             className="recommendation-card bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition"
@@ -138,8 +229,13 @@ export default function Recommendations() {
             </div>
 
             <h3 className="font-semibold text-slate-900 text-lg">{r.title}</h3>
-            <p className="text-sm text-slate-600 mt-2 line-clamp-3">{r.desc}</p>
-            <button className="mt-4 text-sm font-medium text-indigo-600 hover:text-indigo-700">
+            <p className="text-sm text-slate-600 mt-2 line-clamp-3">
+              {r.description}
+            </p>
+            <button
+              onClick={() => setSelected(r)}
+              className="mt-4 text-sm font-medium text-indigo-600 hover:text-indigo-700"
+            >
               View Details →
             </button>
           </div>
