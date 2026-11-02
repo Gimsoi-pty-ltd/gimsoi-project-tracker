@@ -197,7 +197,7 @@ export default function Recommendations() {
       </div>
 
       <div className="recommendations-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {visibleRecs.map((r) => (
+        {filteredRecommendations.map((r) => (
           <div
             key={r.id}
             className="recommendation-card bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition"
