@@ -4,41 +4,6 @@ import { resourceAPI } from "../api/api";
 import { useProjectStore } from "../store/projectStore";
 
 export default function Recommendations() {
-<<<<<<< HEAD
-  const recommendations = [
-     {
-    id: 1,
-    title: "Project Tracker Enhancement",
-    desc: "Add automated milestone notifications to improve project visibility and stakeholder updates.",
-    priority: "High",
-    status: "New",
-  },
-  {
-    id: 2,
-    title: "Resource Allocation",
-    desc: "Redistribute workload across team members to balance project delivery timelines.",
-    priority: "Medium",
-    status: "In Progress",
-  },
-  {
-    id: 3,
-    title: "Risk Monitoring",
-    desc: "Enable predictive risk detection for projects approaching deadlines.",
-    priority: "Low",
-    status: "Completed",
-  },
-];
-  const priorityStyles = {
-  High: "bg-red-100 text-red-700",
-  Medium: "bg-amber-100 text-amber-700",
-  Low: "bg-green-100 text-green-700",
-};
-  const statusStyles = {
-  New: "bg-blue-100 text-blue-700",
-  "In Progress": "bg-purple-100 text-purple-700",
-  Completed: "bg-emerald-100 text-emerald-700",
-};
-=======
   const currentProject = useProjectStore((state) => state.currentProject);
   const ensureDashboardLoaded = useProjectStore(
     (state) => state.ensureDashboardLoaded
@@ -105,7 +70,6 @@ export default function Recommendations() {
     fetchTasks();
   }, [currentProject?.id, dashboardLoading]);
 
->>>>>>> d0ddc1beb77240efd584b579a9f5565c5a1211a7
   const total = recommendations.length;
 
   const highCount = recommendations.filter((r) =>
@@ -240,23 +204,6 @@ export default function Recommendations() {
           >
             <div className="flex justify-between items-start mb-3">
               <span
-<<<<<<< HEAD
-  className={`rounded-full px-3 py-1 text-xs font-semibold ${
-    priorityStyles[r.priority] ||
-    "bg-gray-100 text-gray-700"
-  }`}
->
-  {r.priority}
-</span>
-   <span
-  className={`rounded-full px-3 py-1 text-xs font-semibold ${
-    statusStyles[r.status] ||
-    "bg-gray-100 text-gray-700"
-  }`}
->
-  {r.status}
-</span>
-=======
                 className={`text-xs px-2 py-1 rounded-full ${
                   ["HIGH", "URGENT"].includes(r.priority?.toUpperCase())
                     ? "bg-red-100 text-red-700"
@@ -271,28 +218,27 @@ export default function Recommendations() {
               <span className="text-xs px-2 py-1 rounded-full bg-slate-100 text-slate-600">
                 {r.status}
               </span>
->>>>>>> d0ddc1beb77240efd584b579a9f5565c5a1211a7
             </div>
 
             <h3 className="font-semibold text-slate-900 text-lg">{r.title}</h3>
             <p className="text-sm text-slate-600 mt-2 line-clamp-3">{r.desc}</p>
             <button
               onClick={() => setSelected(r)}
-              className="mt-4 text-sm font-medium text-indigo-600 hover:text-indigo-700"
+              className="mt-4 text-sm font-medium text-indigo-600"
             >
-              View Details →
+              View details
             </button>
           </div>
-        ))} 
+        ))}
       </div>
 
       {selected && (
         <div
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
           onClick={() => setSelected(null)}
         >
           <div
-            className="bg-white rounded-2xl max-w-lg w-full p-6"
+            className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
             <h2 className="text-xl font-bold">{selected.title}</h2>
