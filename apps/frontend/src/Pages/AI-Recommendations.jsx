@@ -160,22 +160,14 @@ export default function Recommendations() {
       <div className="mb-6 flex flex-wrap items-end gap-4 rounded-xl p-4">
         <DropDown
           label="Filter by Priority"
-          options={["All", "URGENT", "HIGH", "MEDIUM", "LOW"]}
+          options={["All", "High", "Medium"]}
           selectedOption={filterPriority}
           onSelect={setFilterPriority}
         />
 
         <DropDown
           label="Filter by Status"
-          options={[
-            "All",
-            "TODO",
-            "IN_PROGRESS",
-            "REVIEW",
-            "DONE",
-            "CANCELLED",
-            "BLOCKED"
-          ]}
+          options={["All", "New", "Active", "Pending"]}
           selectedOption={filterStatus}
           onSelect={setFilterStatus}
         />
@@ -205,7 +197,7 @@ export default function Recommendations() {
       </div>
 
       <div className="recommendations-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredRecommendations.map((r) => (
+        {visibleRecs.map((r) => (
           <div
             key={r.id}
             className="recommendation-card bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition"
@@ -229,9 +221,7 @@ export default function Recommendations() {
             </div>
 
             <h3 className="font-semibold text-slate-900 text-lg">{r.title}</h3>
-            <p className="text-sm text-slate-600 mt-2 line-clamp-3">
-              {r.description}
-            </p>
+            <p className="text-sm text-slate-600 mt-2 line-clamp-3">{r.desc}</p>
             <button
               onClick={() => setSelected(r)}
               className="mt-4 text-sm font-medium text-indigo-600 hover:text-indigo-700"
