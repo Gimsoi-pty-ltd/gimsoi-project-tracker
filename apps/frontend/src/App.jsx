@@ -506,11 +506,11 @@ function App() {
           />
           {/* Kanban Board */}
           <Route
-            path="/reccomendations"
+            path="/Recommendations"
             element={
               <ProtectedRoute>
                 <DashboardLayout>
-                  <reccomendations />
+                  <Recommendations />
                 </DashboardLayout>
               </ProtectedRoute>
             }
