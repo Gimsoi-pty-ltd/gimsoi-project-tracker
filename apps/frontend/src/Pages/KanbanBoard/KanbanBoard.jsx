@@ -55,7 +55,7 @@ const KanbanCard = ({
 }) => {
   const priorityLabel = getPriorityLabel(priority, columnId);
   const cardStyle = departmentColor
-    ? { backgroundColor: `${departmentColor}40`, borderColor: `${departmentColor}66` }
+    ? { backgroundColor: `${departmentColor}66`, borderColor: `${departmentColor}66` }
     : undefined;
 
   const getPriorityColor = (label) => {
@@ -500,7 +500,7 @@ const Kanban = () => {
             <span className="font-semibold text-gray-500">Department:</span>
             {DEPARTMENT_LABELS.map(({ name, color }) => (
               <div key={name} className="flex items-center gap-1.5">
-                <span className="h-3.5 w-3.5 rounded-sm border" style={{ backgroundColor: `${color}25`, borderColor: `${color}80` }} />
+                <span className="h-3.5 w-3.5 rounded-sm border" style={{ backgroundColor: `${color}66`, borderColor: `${color}80` }} />
                 {name}
               </div>
             ))}

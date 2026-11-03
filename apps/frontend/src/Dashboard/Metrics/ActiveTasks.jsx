@@ -379,7 +379,7 @@ export default function ActiveTasksCard() {
             <button type="button" onClick={() => setTaskScope("sprint")} aria-pressed={taskScope === "sprint"} className={`rounded-md px-3 py-1.5 text-xs font-medium ${taskScope === "sprint" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-800"}`}>Current sprint</button>
             <button type="button" onClick={() => setTaskScope("project")} aria-pressed={taskScope === "project"} className={`rounded-md px-3 py-1.5 text-xs font-medium ${taskScope === "project" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-800"}`}>Entire project</button>
           </div>
-          {taskScope === "project" && <span className="text-xs text-gray-500">{projectTasks.length} tasks across all sprints</span>}
+          {taskScope === "project" && <span className="text-xs text-gray-500">{projectTasks.length} All tasks</span>}
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <select
@@ -391,8 +391,8 @@ export default function ActiveTasksCard() {
             <option value="Latest">Due Date: Latest</option>
           </select>
           {canCreateTask && <>
-            <ImportButton onFileSelect={handleTaskImport} disabled={taskImporting || !currentProject} label={taskImporting ? "Importing..." : "Import tasks CSV"} />
-            <button type="button" onClick={downloadTaskTemplate} className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50">CSV template</button>
+            <ImportButton onFileSelect={handleTaskImport} disabled={taskImporting || !currentProject} label={taskImporting ? "Importing..." : "Import tasks"} />
+            <button type="button" onClick={downloadTaskTemplate} className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50">template</button>
           </>}
           {hasPermission(user?.role, "VIEW_TASKS") && <ExportButton onExport={handleTaskExport} disabled={!tasks.length || projectTasksLoading} label={`Export ${taskScope === "project" ? "project" : "sprint"} tasks`} loadingLabel="Preparing CSV..." />}
           {canCreateTask && <button 
@@ -410,7 +410,7 @@ export default function ActiveTasksCard() {
 
       {taskScope === "project" && projectTasksLoading && <p role="status" className="mb-4 text-sm text-gray-500">Loading all project tasks…</p>}
       {projectTasksError && taskScope === "project" && <p role="alert" className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{projectTasksError}</p>}
-      {canCreateTask && <p className="-mt-2 mb-4 text-xs text-gray-500">Task CSV needs a title. Optional columns: description, priority, dueDate, storyPoints, sprint, phase, assignee, owners, teamMembers, department. New imports start as To Do; member names are matched against this project.</p>}
+      
       {taskImportResult && (
         <div role={taskImportResult.error ? "alert" : "status"} className={`mb-4 rounded-lg border p-3 text-sm ${taskImportResult.error ? "border-red-200 bg-red-50 text-red-700" : "border-emerald-200 bg-emerald-50 text-emerald-800"}`}>
           {taskImportResult.error ? taskImportResult.error : <>
