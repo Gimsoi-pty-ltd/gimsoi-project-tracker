@@ -67,9 +67,10 @@ const Clients = lazy(() => import("./Pages/Users/Clients"));
 const Kanban = lazy(() => import("./Pages/KanbanBoard/KanbanBoard"));
 
 import { useAuthStore } from "./store/authStore";
+import { hasPermission } from "./utils/accessControl";
 
 // ─── Auth Guard Components  ─────────────────────────────
-const ProtectedRoute = ({ children }) => {
+const ProtectedRoute = ({ children, permission }) => {
   const { isAuthenticated, user } = useAuthStore();
 
   if (!isAuthenticated) {
@@ -78,6 +79,10 @@ const ProtectedRoute = ({ children }) => {
 
   if (!user?.isVerified) {
     return <Navigate to='/verify-email' replace />;
+  }
+
+  if (permission && !hasPermission(user?.role, permission)) {
+    return <Navigate to="/dashboard" replace />;
   }
 
   return children;
@@ -161,71 +166,71 @@ function App() {
 
         {/* Tasks Group */}
         <Route path="/tasks" element={
-          <ProtectedRoute>
+          <ProtectedRoute permission="VIEW_TASKS">
             <DashboardLayout><TasksPage /></DashboardLayout>
           </ProtectedRoute>
         } />
         <Route path="/tasks/active-projects" element={
-          <ProtectedRoute>
+          <ProtectedRoute permission="VIEW_PROJECTS">
             <DashboardLayout><ActiveProjects /></DashboardLayout>
           </ProtectedRoute>
         } />
 
         {/* Projects & Phases */}
         <Route path="/projects" element={
-          <ProtectedRoute>
+          <ProtectedRoute permission="VIEW_PROJECTS">
             <DashboardLayout><Projects /></DashboardLayout>
           </ProtectedRoute>
         } />
         <Route path="/projects/:id" element={
-          <ProtectedRoute>
+          <ProtectedRoute permission="VIEW_PROJECTS">
             <DashboardLayout><ProjectOverview /></DashboardLayout>
           </ProtectedRoute>
         } />
 
         <Route path="/phases" element={
-          <ProtectedRoute>
+          <ProtectedRoute permission="VIEW_PHASES">
             <DashboardLayout><ProjectPhasesGantt /></DashboardLayout>
           </ProtectedRoute>
         } />
 
         {/* Reports Group */}
         <Route path="/reports" element={
-          <ProtectedRoute>
+          <ProtectedRoute permission="VIEW_REPORTS">
             <DashboardLayout><ReportsHub /></DashboardLayout>
           </ProtectedRoute>
         } />
         <Route path="/reports/sprint-report" element={
-          <ProtectedRoute>
+          <ProtectedRoute permission="VIEW_REPORTS">
             <DashboardLayout><SprintReports /></DashboardLayout>
           </ProtectedRoute>
         } />
         <Route path="/reports/project-report" element={
-          <ProtectedRoute>
+          <ProtectedRoute permission="VIEW_REPORTS">
             <DashboardLayout><ProjectReport /></DashboardLayout>
           </ProtectedRoute>
         } />
         <Route path="/reports/team-performance" element={
-          <ProtectedRoute>
+          <ProtectedRoute permission="VIEW_REPORTS">
             <DashboardLayout><TeamPerformance /></DashboardLayout>
           </ProtectedRoute>
         } />
 
         {/* Team-Insights */}
         <Route path="/teamInsights" element={
-          <ProtectedRoute>
+          <ProtectedRoute permission="VIEW_ANALYTICS">
             <DashboardLayout><TeamInsights /></DashboardLayout>
           </ProtectedRoute>
         } />
 
         {/* Calendar & Documents */}
         <Route path="/calendar" element={
-          <ProtectedRoute>
+          <ProtectedRoute permission="VIEW_TASKS">
             <DashboardLayout><Calendar /></DashboardLayout>
           </ProtectedRoute>
         } />
         <Route path="/documents" element={
-          <ProtectedRoute>
+          <ProtectedRoute permission="VIEW_PROGRESS">
             <DashboardLayout><Documents /></DashboardLayout>
           </ProtectedRoute>
         } />
@@ -283,29 +288,29 @@ function App() {
 
         {/* User Management */}
         <Route path="/users" element={
-          <ProtectedRoute>
+          <ProtectedRoute permission="VIEW_USERS">
             <DashboardLayout><Usermanagement /></DashboardLayout>
           </ProtectedRoute>
         } />
         <Route path="/clients" element={
-          <ProtectedRoute>
+          <ProtectedRoute permission="VIEW_CLIENTS">
             <DashboardLayout><Clients /></DashboardLayout>
           </ProtectedRoute>
         } />
         <Route path="/teams" element={
-          <ProtectedRoute>
+          <ProtectedRoute permission="MANAGE_PROJECTS">
             <DashboardLayout><Teams /></DashboardLayout>
           </ProtectedRoute>
         } />
         <Route path="/users-list" element={
-          <ProtectedRoute>
+          <ProtectedRoute permission="VIEW_USERS">
             <DashboardLayout><Users /></DashboardLayout>
           </ProtectedRoute>
         } />
 
         {/* Kanban Board */}
         <Route path="/kanban-board" element={
-          <ProtectedRoute>
+          <ProtectedRoute permission="VIEW_TASKS">
             <DashboardLayout><Kanban /></DashboardLayout>
           </ProtectedRoute>
         } />
