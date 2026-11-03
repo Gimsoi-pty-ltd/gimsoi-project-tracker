@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import NavyButton from '../../Components/Buttons';
-import EmptyState from '../../Components/EmptyState';
+import NavyButton from '../../Components/Buttons/NavyButton';
+import EmptyState from '../../Components/utils/EmptyState';
 import { Calendar, HeartPulse, AlertCircle, Users, Check, Loader2, Download } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
 import { useProjectStore } from '../../store/projectStore';
