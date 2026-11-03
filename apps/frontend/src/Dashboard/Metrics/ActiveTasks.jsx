@@ -10,7 +10,7 @@ import { useAuthStore } from "../../store/authStore";
 import { resourceAPI } from "../../api/api";
 import { hasPermission } from "../../utils/accessControl";
 import ImportButton from "../../Components/Buttons/ImportButton";
-import ExportButton from "../../Components/Buttons/exportButton";
+import ExportButton from "../../Components/Buttons/ExportButton";
 import { fetchAllProjectTasks, mapTaskForDashboard } from "../../store/projectStore";
 import TaskModal from "./TaskModal";
 

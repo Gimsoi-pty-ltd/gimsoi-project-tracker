@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useDashboardStore } from "../../store/dashboardStore";
 import { resourceAPI } from "../../api/api";
 import ImportButton from "../../Components/Buttons/ImportButton";
-import ExportButton from "../../Components/Buttons/exportButton";
+import ExportButton from "../../Components/Buttons/ExportButton";
 
 
 const USER_CSV_HEADERS = ["email", "fullName", "role", "password"];
