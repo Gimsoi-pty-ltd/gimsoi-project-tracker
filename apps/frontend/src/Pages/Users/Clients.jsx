@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useClientStore } from "../../store/clientStore";
+import { useAuthStore } from "../../store/authStore";
+import { hasPermission } from "../../utils/accessControl";
 
 const emptyForm = { name: "", contactEmail: "" };
 
 const Clients = () => {
+  const user = useAuthStore((state) => state.user);
+  const canManageClients = hasPermission(user?.role, "MANAGE_CLIENTS");
   const { clients, isLoading, error, getClients, createClient, updateClient, deleteClient, clearError } = useClientStore();
   const [showModal, setShowModal] = useState(false);
   const [editingClient, setEditingClient] = useState(null);
@@ -58,8 +62,8 @@ const Clients = () => {
         <div>
           <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-6">Manage Clients</h2>
           <nav className="flex mt-1 text-sm text-gray-500">
-            <Link to="/users">
-              <span className="text-slate-900 hover:text-slate-600 cursor-pointer">User Management</span>
+            <Link to="/dashboard">
+              <span className="text-slate-900 hover:text-slate-600 cursor-pointer">Dashboard</span>
             </Link>
             <span className="mx-2">/</span>
             <span>Clients</span>
@@ -74,7 +78,7 @@ const Clients = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="border rounded-lg px-4 py-2 w-72 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
-          <button
+          {canManageClients && <button
             onClick={() => {
               setEditingClient(null);
               setForm(emptyForm);
@@ -83,7 +87,7 @@ const Clients = () => {
             className="bg-[#002D62] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#001f44] transition"
           >
             + Add Client
-          </button>
+          </button>}
         </div>
       </div>
 
@@ -103,18 +107,18 @@ const Clients = () => {
               <th className="p-4">Client Company</th>
               <th>Contact Email</th>
               <th>Added</th>
-              <th>Actions</th>
+              {canManageClients && <th>Actions</th>}
             </tr>
           </thead>
           <tbody>
             {isLoading && (
               <tr>
-                <td colSpan={4} className="text-center py-12 text-gray-400">Loading clients...</td>
+                <td colSpan={canManageClients ? 4 : 3} className="text-center py-12 text-gray-400">Loading clients...</td>
               </tr>
             )}
             {!isLoading && filtered.length === 0 && (
               <tr>
-                <td colSpan={4} className="text-center py-12 text-gray-400">
+                <td colSpan={canManageClients ? 4 : 3} className="text-center py-12 text-gray-400">
                   {searchTerm ? `No clients matching "${searchTerm}"` : "No clients yet. Add your first client!"}
                 </td>
               </tr>
@@ -130,7 +134,7 @@ const Clients = () => {
                   </td>
                   <td>{client.contactEmail || "—"}</td>
                   <td>{client.createdAt ? new Date(client.createdAt).toLocaleDateString() : "—"}</td>
-                  <td>
+                  {canManageClients && <td>
                     <div className="flex gap-2 py-2">
                       <button
                         onClick={() => {
@@ -149,7 +153,7 @@ const Clients = () => {
                         Delete
                       </button>
                     </div>
-                  </td>
+                  </td>}
                 </tr>
               ))}
           </tbody>
