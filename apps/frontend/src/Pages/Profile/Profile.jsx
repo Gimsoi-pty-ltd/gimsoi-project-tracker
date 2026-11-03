@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useAuthStore } from "../../store/authStore";
 import { useProjectStore } from "../../store/projectStore";
-import NavyButton from "../../Components/Buttons";
+import NavyButton from "../../Components/Buttons/NavyButton";
 import {
   CalendarDays,
   Camera,
