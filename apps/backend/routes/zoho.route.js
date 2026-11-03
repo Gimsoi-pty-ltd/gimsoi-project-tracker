@@ -54,7 +54,7 @@ router.post("/transform/projects", (req, res) => {
   }
 });
 
-router.get("/login", (req, res) => {
+const handleZohoLogin = (req, res) => {
   const params = new URLSearchParams({
     scope: "ZohoProjects.projects.READ",
     client_id: process.env.ZOHO_CLIENT_ID,
@@ -66,7 +66,10 @@ router.get("/login", (req, res) => {
   const authUrl = `https://accounts.zoho.com/oauth/v2/auth?${params.toString()}`;
 
   res.redirect(authUrl);
-});
+};
+
+router.get("/auth", handleZohoLogin);
+router.get("/login", handleZohoLogin);
 
 router.get("/callback", async (req, res) => {
   try {

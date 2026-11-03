@@ -13,8 +13,43 @@ import {
     capacityQuerySchema,
     assignedTasksQuerySchema,
 } from "../schemas/employee.schema.js";
+import prisma from "../lib/prisma.js";
 
 const router = express.Router();
+
+/**
+ * GET /api/employees
+ * List employee members (users who are not CLIENT)
+ */
+router.get(
+    "/",
+    readLimiter,
+    verifyToken,
+    requireAnyRole(["ADMIN", "PM"]),
+    async (req, res, next) => {
+        try {
+            const employees = await prisma.user.findMany({
+                where: {
+                    isDeleted: false,
+                    role: { in: ["ADMIN", "PM", "INTERN"] },
+                },
+                select: {
+                    id: true,
+                    email: true,
+                    fullName: true,
+                    role: true,
+                    avatarUrl: true,
+                    jobTitle: true,
+                    phone: true,
+                },
+                orderBy: { fullName: "asc" },
+            });
+            return res.status(200).json({ success: true, data: employees });
+        } catch (err) {
+            next(err);
+        }
+    }
+);
 
 /**
  * GET /api/employees/capacity?projectId=
