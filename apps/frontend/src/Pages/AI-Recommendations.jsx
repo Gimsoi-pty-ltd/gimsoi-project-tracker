@@ -5,52 +5,44 @@ import { resourceAPI } from "../api/api";
 import { useProjectStore } from "../store/projectStore";
 
 export default function Recommendations() {
-  // PROJECT STORE
-  console.log("Recommendations component loaded");
   const currentProject = useProjectStore((state) => state.currentProject);
-
-  console.log("Current Project:", currentProject);
-  console.log("Project ID:", currentProject?.id);
 
   const ensureDashboardLoaded = useProjectStore(
     (state) => state.ensureDashboardLoaded
   );
 
-  // LOAD PROJECT INFORMATION
+  // Load project information
   useEffect(() => {
     ensureDashboardLoaded();
   }, [ensureDashboardLoaded]);
 
-  // RECOMMENDATION DATA STATES
+  // Recommendation states
   const [recommendations, setRecommendations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // SEARCH, FILTER AND SORT STATES
+  // Search, filter and sort states
   const [searchTerm, setSearchTerm] = useState("");
   const [filterWorkload, setFilterWorkload] = useState("All");
   const [sortBy, setSortBy] = useState("Recommended");
 
-  // RETRY STATE
+  // Retry state
   const [refreshKey, setRefreshKey] = useState(0);
 
-  // FETCH EMPLOYEE RECOMMENDATIONS
+  // Fetch employee recommendations
   useEffect(() => {
     let isMounted = true;
 
     const fetchRecommendations = async () => {
+      if (!currentProject?.id) {
+        setRecommendations([]);
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
         setError("");
-
-        if (!currentProject?.id) {
-          if (isMounted) {
-            setRecommendations([]);
-          }
-          return;
-        }
-
-        console.log("Fetching recommendations for project:", currentProject.id);
 
         const response = await resourceAPI.get(
           `/projects/${currentProject.id}/employee-recommendations`,
@@ -96,7 +88,7 @@ export default function Recommendations() {
     };
   }, [currentProject?.id, refreshKey]);
 
-  // SUMMARY COUNTS
+  // Summary counts
   const total = recommendations.length;
 
   const availableEmployees = recommendations.filter(
@@ -107,13 +99,19 @@ export default function Recommendations() {
     (r) => (r.workload?.overdueTasks ?? 0) > 0
   ).length;
 
-  // FILTERING, SEARCHING AND SORTING
+  // Search, filter and sort recommendations
   const filteredRecommendations = useMemo(() => {
     const search = searchTerm.trim().toLowerCase();
 
     const filtered = recommendations.filter((r) => {
       const employeeName = (r.employee?.fullName || "").toLowerCase();
-      const jobTitle = (r.employee?.jobTitle || "").toLowerCase();
+
+      const jobTitle = (
+        r.employee?.jobTitle ||
+        r.employee?.role ||
+        ""
+      ).toLowerCase();
+
       const reason = (r.reason || "").toLowerCase();
       const workload = r.workload || {};
 
@@ -136,7 +134,6 @@ export default function Recommendations() {
       return matchesSearch && matchesWorkload;
     });
 
-    // SORT RECOMMENDATIONS
     return [...filtered].sort((a, b) => {
       const workloadA = a.workload || {};
       const workloadB = b.workload || {};
@@ -162,23 +159,23 @@ export default function Recommendations() {
         );
       }
 
-      return (a.rank ?? Infinity) - (b.rank ?? Infinity);
+      return 0;
     });
   }, [recommendations, searchTerm, filterWorkload, sortBy]);
 
-  // RESET FILTERS AND SEARCH
+  // Reset filters
   const clearFilters = () => {
     setSearchTerm("");
     setFilterWorkload("All");
     setSortBy("Recommended");
   };
 
-  // RETRY API REQUEST
+  // Retry API request
   const handleRetry = () => {
     setRefreshKey((previous) => previous + 1);
   };
 
-  // LOADING STATE
+  // Loading state
   if (loading) {
     return (
       <div className="p-8 text-slate-600" role="status">
@@ -187,7 +184,7 @@ export default function Recommendations() {
     );
   }
 
-  // ERROR STATE
+  // Error state
   if (error) {
     return (
       <div className="p-8">
@@ -212,7 +209,7 @@ export default function Recommendations() {
 
   return (
     <div className="min-h-screen bg-slate-50 p-6 md:p-8">
-      {/* PAGE HEADER */}
+      {/* Page header */}
       <div className="mb-6">
         <h1 className="text-3xl font-bold tracking-tight text-slate-900">
           Recommendations
@@ -224,14 +221,13 @@ export default function Recommendations() {
         </p>
       </div>
 
-      {/* SEARCH AND FILTERS */}
+      {/* Search and filters */}
       <div className="mb-8 rounded-xl border bg-white p-5 shadow-sm">
         <h2 className="mb-4 text-lg font-semibold text-slate-800">
           Search and Filter
         </h2>
 
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end">
-          {/* SEARCH */}
           <div className="w-full lg:flex-1">
             <label
               htmlFor="recommendation-search"
@@ -243,14 +239,13 @@ export default function Recommendations() {
             <input
               id="recommendation-search"
               type="search"
-              placeholder="Search by name, job title or recommendation reason..."
+              placeholder="Search by name, job title or reason..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full rounded-lg border border-slate-300 px-4 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
             />
           </div>
 
-          {/* WORKLOAD FILTER */}
           <div className="w-full lg:flex-1">
             <DropDown
               label="Filter by Workload"
@@ -266,7 +261,6 @@ export default function Recommendations() {
             />
           </div>
 
-          {/* SORT */}
           <div className="w-full lg:flex-1">
             <DropDown
               label="Sort by"
@@ -282,7 +276,6 @@ export default function Recommendations() {
           </div>
         </div>
 
-        {/* RESULTS AND RESET */}
         <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-slate-500">
             Showing {filteredRecommendations.length} of {total} employees
@@ -298,7 +291,7 @@ export default function Recommendations() {
         </div>
       </div>
 
-      {/* SUMMARY COUNTS */}
+      {/* Summary counts */}
       <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="rounded-xl border bg-white p-5 shadow-sm">
           <p className="text-sm text-slate-500">Total Recommendations</p>
@@ -322,10 +315,9 @@ export default function Recommendations() {
         </div>
       </div>
 
-      {/* RECOMMENDATION RESULTS */}
+      {/* Recommendation cards */}
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
         {filteredRecommendations.length === 0 ? (
-          // EMPTY STATE
           <div className="col-span-full rounded-2xl border border-dashed border-slate-300 bg-white py-16 text-center">
             <h3 className="text-xl font-semibold text-slate-800">
               {total === 0
@@ -350,7 +342,6 @@ export default function Recommendations() {
             )}
           </div>
         ) : (
-          // REUSABLE RECOMMENDATION CARDS
           filteredRecommendations.map((r) => (
             <RecommendationCard
               key={r.employee?.id || r.rank}
