@@ -1,13 +1,15 @@
 
-import NavyButton from "../../Components/Buttons";
+import NavyButton from "../../Components/Buttons/NavyButton";
 import ProjectForm from "../../Components/ProjectForm/ProjectForm";
 import { useProjectStore } from "../../store/projectStore";
-import EmptyState from "../../Components/EmptyState";
-import ErrorAlert from "../../Components/ErrorAlert";
-import LoadingSpinner from "../../Components/LoadingSpinner";
+import EmptyState from "../../Components/utils/EmptyState";
+import ErrorAlert from "../../Components/utils/ErrorAlert";
+import LoadingSpinner from "../../Components/LoadingState/LoadingSpinner";
 import { useNavigate, Link } from "react-router-dom";  
 import { useState,  useEffect, useRef } from "react"; 
-import { Search, Plus, Zap, MoreHorizontal, ChevronDown } from "lucide-react";
+import { Search, Plus, Zap, MoreHorizontal, ChevronDown, Pencil, Trash2 } from "lucide-react";
+import { useAuthStore } from "../../store/authStore";
+import { hasPermission } from "../../utils/accessControl";
 
 // ─── Status config ────────────────────────────────────────────────────────────
 // Must match the backend's ProjectStatus enum exactly (see project.schema.js)
@@ -68,7 +70,7 @@ function StatusBadge({ status, onChange }) {
 }
 
 // ─── Project Row ──────────────────────────────────────────────────────────────
-function ProjectRow({ project, onNavigate, onDelete, onStatusChange }) {
+function ProjectRow({ project, onNavigate, onDelete, onStatusChange, canManageProjects }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
   const pct = project.percentComplete || 0;
@@ -91,7 +93,9 @@ function ProjectRow({ project, onNavigate, onDelete, onStatusChange }) {
       <div className="text-sm font-semibold text-gray-900 truncate pr-4">{project.name || "Unnamed Project"}</div>
 
       <div onClick={(e) => e.stopPropagation()}>
-        <StatusBadge status={project.status} onChange={(s) => onStatusChange(project.id, s)} />
+        {canManageProjects
+          ? <StatusBadge status={project.status} onChange={(s) => onStatusChange(project.id, s)} />
+          : <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium ${getStatusCfg(project.status).bg} ${getStatusCfg(project.status).text}`}>{getStatusCfg(project.status).label}</span>}
       </div>
 
       <div className="text-sm text-gray-500 pr-4">
@@ -110,7 +114,7 @@ function ProjectRow({ project, onNavigate, onDelete, onStatusChange }) {
         <span className="text-sm font-semibold text-gray-500 w-9 text-right tabular-nums">{pct}%</span>
       </div>
 
-      <div onClick={(e) => e.stopPropagation()} ref={menuRef} className="relative flex justify-center">
+      {canManageProjects && <div onClick={(e) => e.stopPropagation()} ref={menuRef} className="relative flex justify-center">
         <button
           onClick={() => setMenuOpen((p) => !p)}
           className="p-1.5 text-gray-300 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
@@ -133,7 +137,7 @@ function ProjectRow({ project, onNavigate, onDelete, onStatusChange }) {
             </button>
           </div>
         )}
-      </div>
+      </div>}
     </div>
   );
 }
@@ -160,6 +164,9 @@ function DeleteModal({ onCancel, onConfirm }) {
 // ─── Main Projects Page ───────────────────────────────────────────────────────
 export default function Projects() {
   const navigate = useNavigate();
+  const user = useAuthStore((state) => state.user);
+  const canManageProjects = hasPermission(user?.role, "MANAGE_PROJECTS");
+  const canViewAnalytics = hasPermission(user?.role, "VIEW_ANALYTICS");
   const { projects, isLoading, error, fetchProjects, deleteProject, updateProject, clearError } = useProjectStore();
   const [searchTerm, setSearchTerm] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState(null);
@@ -231,9 +238,9 @@ const filteredProjects = projects.filter((p) => {
     </p>
   </div>
 
-  <button onClick={() => alert('Insights clicked!')} className="bg-[#172554] text-white text-xs font-semibold px-4 py-2 rounded hover:bg-blue-800">
+  {canViewAnalytics && <button onClick={() => alert('Insights clicked!')} className="bg-[#172554] text-white text-xs font-semibold px-4 py-2 rounded hover:bg-blue-800">
     View Insights
-  </button>
+  </button>}
 
   <button onClick={() => document.getElementById('bar').style.display='none'} className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200 font-bold">
     ×
@@ -257,12 +264,12 @@ const filteredProjects = projects.filter((p) => {
                 className="pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none w-56 bg-white shadow-sm transition-all"
               />
             </div>
-            <NavyButton
+            {canManageProjects && <NavyButton
               onClick={() => setShowCreateModal(true)}
               className="flex items-center gap-2 px-4 py-2 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl shadow-sm transition-colors"
             >
               <Plus className="w-4 h-4" /> New Project
-            </NavyButton>
+            </NavyButton>}
 
             <Link to="/kanban-board">
               <NavyButton className="flex items-center gap-2 px-4 py-2 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl shadow-sm transition-colors">
@@ -319,6 +326,7 @@ const filteredProjects = projects.filter((p) => {
               onNavigate={handleNavigate}
               onDelete={setDeleteConfirm}
               onStatusChange={handleStatusChange}
+              canManageProjects={canManageProjects}
             />
           ))}
         </div>
@@ -331,12 +339,12 @@ const filteredProjects = projects.filter((p) => {
         />
       )}
 
-      <ProjectForm
+      {canManageProjects && <ProjectForm
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
         project={null}
         onSuccess={() => { fetchProjects(); setShowCreateModal(false); }}
-      />
+      />}
 
       {taskToast && (
         <div
