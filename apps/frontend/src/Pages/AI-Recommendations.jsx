@@ -28,7 +28,7 @@ export default function Recommendations() {
   const [recommendations, setRecommendations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
+  const [searchTerm, setSearchTerm] = useState("");
   const [selected, setSelected] = useState(null);
   const [accepted, setAccepted] = useState([]);
   const [dismissed, setDismissed] = useState([]);
@@ -84,40 +84,61 @@ export default function Recommendations() {
   const [sortBy, setSortBy] = useState("Priority");
 
   const filteredRecommendations = recommendations
-    .filter((r) => {
-      const matchesPriority =
-        filterPriority === "All" ||
-        r.priority?.toUpperCase() === filterPriority;
+  .filter((r) => {
+    // Search by title, description or explanation
+    const search = searchTerm.toLowerCase();
 
-      const matchesStatus =
-        filterStatus === "All" || r.status?.toUpperCase() === filterStatus;
+    const matchesSearch =
+      (r.title ?? "").toLowerCase().includes(search) ||
+      (r.desc ?? "").toLowerCase().includes(search) ||
+      (r.why ?? "").toLowerCase().includes(search);
 
-      return matchesPriority && matchesStatus;
-    })
-    .sort((a, b) => {
-      if (sortBy === "Priority") {
-        const priorityOrder = {
-          URGENT: 1,
-          HIGH: 2,
-          MEDIUM: 3,
-          LOW: 4
-        };
+    // Filter by priority
+    const matchesPriority =
+      filterPriority === "All" ||
+      r.priority?.toUpperCase() === filterPriority.toUpperCase();
 
-        return (
-          (priorityOrder[a.priority?.toUpperCase()] ?? 99) -
-          (priorityOrder[b.priority?.toUpperCase()] ?? 99)
-        );
-      }
+    // Map backend statuses to user-friendly filter values
+    const status = r.status?.toUpperCase();
 
+    const statusGroups = {
+      New: ["TODO", "NEW"],
+      Active: ["IN_PROGRESS", "ACTIVE"],
+      Pending: ["PENDING"],
+      Completed: ["DONE", "COMPLETED"]
+    };
+
+    const matchesStatus =
+      filterStatus === "All" ||
+      statusGroups[filterStatus]?.includes(status);
+
+    return matchesSearch && matchesPriority && matchesStatus;
+  })
+  .sort((a, b) => {
+    const priorityOrder = {
+      URGENT: 1,
+      HIGH: 2,
+      MEDIUM: 3,
+      LOW: 4
+    };
+
+    if (sortBy === "Priority") {
+      return (
+        (priorityOrder[a.priority?.toUpperCase()] ?? 99) -
+        (priorityOrder[b.priority?.toUpperCase()] ?? 99)
+      );
+    }
+
+    if (sortBy === "Status") {
       return (a.status ?? "").localeCompare(b.status ?? "");
-    });
-  if (loading) {
-    return <div className="p-8">Loading tasks...</div>;
-  }
+    }
 
-  if (error) {
-    return <div className="p-8 text-red-600">{error}</div>;
-  }
+    if (sortBy === "Title") {
+      return (a.title ?? "").localeCompare(b.title ?? "");
+    }
+
+    return 0;
+  });
 
   // --- 1. EMPTY SCREEN LAYOUT ---
   if (filteredRecommendations.length === 1) {
@@ -156,29 +177,52 @@ export default function Recommendations() {
         </p>
       </div>
 
-      {/* FILTERS AND SORTING */}
-      <div className="mb-6 flex flex-wrap items-end gap-4 rounded-xl p-4">
-        <DropDown
-          label="Filter by Priority"
-          options={["All", "High", "Medium"]}
-          selectedOption={filterPriority}
-          onSelect={setFilterPriority}
-        />
+{/* FILTERS, SEARCH AND SORTING */}
+<div className="mb-6 flex flex-wrap items-end gap-4 rounded-xl">
 
-        <DropDown
-          label="Filter by Status"
-          options={["All", "New", "Active", "Pending"]}
-          selectedOption={filterStatus}
-          onSelect={setFilterStatus}
-        />
+  <DropDown
+    label="Filter by Priority"
+    options={["All", "Urgent", "High", "Medium", "Low"]}
+    selectedOption={filterPriority}
+    onSelect={setFilterPriority}
+  />
 
-        <DropDown
-          label="Sort by"
-          options={["Priority", "Status"]}
-          selectedOption={sortBy}
-          onSelect={setSortBy}
-        />
-      </div>
+  <DropDown
+    label="Filter by Status"
+    options={["All", "New", "Active", "Pending", "Completed"]}
+    selectedOption={filterStatus}
+    onSelect={setFilterStatus}
+  />
+
+  <DropDown
+    label="Sort by"
+    options={["Priority", "Status", "Title"]}
+    selectedOption={sortBy}
+    onSelect={setSortBy}
+  />
+
+  {/* SEARCH */}
+  <div className="flex flex-col gap-1">
+    <label
+      htmlFor="recommendation-search"
+      className="text-sm text-slate-700"
+    >
+      Search recommendations
+    </label>
+
+    <input
+      id="recommendation-search"
+      type="search"
+      placeholder="Search..."
+      value={searchTerm}
+      onChange={(e) => setSearchTerm(e.target.value)}
+      className="border border-slate-300 rounded-lg px-3 py-2
+      text-sm focus:outline-none focus:ring-2
+      focus:ring-indigo-500 w-full sm:w-56"
+    />
+  </div>
+
+</div>
 
       {/* SUMMARY COUNT TOTALS */}
       <div className="summary-counts grid grid-cols-3 md:grid-cols-4 gap-4 mb-8">
