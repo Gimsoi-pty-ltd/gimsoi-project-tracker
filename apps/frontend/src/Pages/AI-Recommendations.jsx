@@ -185,27 +185,27 @@ export default function Recommendations() {
   }
 
   // Error state
-  if (error) {
-    return (
-      <div className="p-8">
-        <div className="rounded-xl border border-red-200 bg-red-50 p-6">
-          <h2 className="font-semibold text-red-700">
-            Unable to load recommendations
-          </h2>
+  // if (error) {
+  //   return (
+  //     <div className="p-8">
+  //       <div className="rounded-xl border border-red-200 bg-red-50 p-6">
+  //         <h2 className="font-semibold text-red-700">
+  //           Unable to load recommendations
+  //         </h2>
 
-          <p className="mt-2 text-sm text-red-600">{error}</p>
+  //         <p className="mt-2 text-sm text-red-600">{error}</p>
 
-          <button
-            type="button"
-            onClick={handleRetry}
-            className="mt-4 rounded-lg bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-700"
-          >
-            Try Again
-          </button>
-        </div>
-      </div>
-    );
-  }
+  //         <button
+  //           type="button"
+  //           onClick={handleRetry}
+  //           className="mt-4 rounded-lg bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-700"
+  //         >
+  //           Try Again
+  //         </button>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="min-h-screen bg-slate-50 p-6 md:p-8">
