@@ -1,6 +1,8 @@
 import express from "express";
 import { verifyToken } from "../middleware/verify-token.middleware.js";
-import authorize from "../middleware/auth.middleware.js";
+import authorize, {
+  authorizeEmployeeRecommendations
+} from "../middleware/auth.middleware.js";
 import { readLimiter, writeLimiter } from "../middleware/rate-limiter.middleware.js";
 import {
   createProject,
@@ -12,6 +14,7 @@ import {
   syncProjectAnalytics,
 } from "../controllers/project.controller.js";
 import * as projectMemberController from "../controllers/projectMember.controller.js";
+import * as employeeRecommendationController from "../controllers/employeeRecommendation.controller.js";
 import * as labelController from "../controllers/label.controller.js";
 import * as taskController from "../controllers/task.controller.js";
 import { requireCSRF } from "../middleware/csrf.middleware.js";
@@ -19,6 +22,7 @@ import { validate } from "../middleware/validate.middleware.js";
 import { createProjectSchema, updateProjectSchema } from "../schemas/project.schema.js";
 import { bulkUpdateTasksSchema, bulkDeleteTasksSchema } from "../schemas/task.schema.js";
 import { addMemberSchema, updateMemberRoleSchema } from "../schemas/projectMember.schema.js";
+
 
 const router = express.Router();
 
@@ -40,6 +44,15 @@ router.post("/:id/analytics", writeLimiter, verifyToken, authorize("MANAGE_PROJE
 // Member Management
 router.post("/:id/members", writeLimiter, verifyToken, authorize("MANAGE_PROJECTS"), requireCSRF, validate(addMemberSchema), projectMemberController.addMember);
 router.get("/:id/members", readLimiter, verifyToken, authorize("VIEW_PROJECTS"), projectMemberController.getMembers);
+
+router.get(
+  "/:id/employee-recommendations",
+  readLimiter,
+  verifyToken,
+  authorizeEmployeeRecommendations,
+  employeeRecommendationController.getEmployeeRecommendations
+);
+
 router.patch("/:id/members/:userId", writeLimiter, verifyToken, authorize("MANAGE_PROJECTS"), requireCSRF, validate(updateMemberRoleSchema), projectMemberController.updateMemberRole);
 router.delete("/:id/members/:userId", writeLimiter, verifyToken, authorize("MANAGE_PROJECTS"), requireCSRF, projectMemberController.removeMember);
 

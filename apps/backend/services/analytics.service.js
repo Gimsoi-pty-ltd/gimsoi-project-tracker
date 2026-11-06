@@ -1,5 +1,6 @@
 import prisma, { Prisma } from "../lib/prisma.js";
 import { TASK_STATUS } from "../constants/statuses.js";
+import { getEmployeeWorkloads } from "./employeeCapacity.service.js";
 
 // Must match Prisma schema enum names exactly
 const SPRINT_STATUS_ENUM = '"SprintStatus"';
@@ -107,6 +108,10 @@ export const getTeamAnalytics = async ({ projectId, ownerIdForRaw }) => {
             return acc;
         }, {}),
         velocity_trend: await getVelocityTrend({ projectId, ownerIdForRaw }),
+        employee_workloads: await getEmployeeWorkloads({
+            projectId,
+            ownerIdForRaw,
+        }),
     };
 };
 
@@ -229,3 +234,5 @@ export const getTeamPerformance = async ({ limit = 20, cursor } = {}) => {
         };
     });
 };
+
+

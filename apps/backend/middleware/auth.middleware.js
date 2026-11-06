@@ -24,5 +24,23 @@ const authorize = (requiredPermission) => {
         }
     };
 };
+export const authorizeEmployeeRecommendations = (req, res, next) => {
+    const allowedRoles = ["ADMIN", "PM"];
 
+    if (!req.user?.role) {
+        return res.status(401).json({
+            success: false,
+            message: "Authentication required."
+        });
+    }
+
+    if (!allowedRoles.includes(req.user.role)) {
+        return res.status(403).json({
+            success: false,
+            message: "Only administrators and project managers can access employee recommendations."
+        });
+    }
+
+    next();
+};
 export default authorize;
