@@ -1,4 +1,5 @@
 import { createReport, getReportById, getReports } from '../services/report.service.js';
+import { parsePagination, buildPage } from '../utils/pagination.js';
 import { generateProjectReportPDF } from '../utils/pdf.js';
 
 export const createReportHandler = async (req, res, next) => {
@@ -12,9 +13,10 @@ export const createReportHandler = async (req, res, next) => {
 
 export const getReportsHandler = async (req, res, next) => {
     try {
-        const { limit, cursor } = req.query;
+        const { limit, cursor } = parsePagination(req.query);
         const reports = await getReports({ limit, cursor, createdByUserId: req.user.id });
-        return res.status(200).json({ success: true, data: reports });
+        const { data, nextCursor } = buildPage(reports, limit);
+        return res.status(200).json({ success: true, data, nextCursor });    
     } catch (err) {
         next(err);
     }

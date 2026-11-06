@@ -51,11 +51,21 @@ export const getReportById = async (id) => {
  */
 export const getReports = async ({ limit = 20, cursor, createdByUserId } = {}) => {
     const take = Math.min(Number(limit) || 20, 100);
+
     return prisma.report.findMany({
-        where: { createdByUserId },
+        where: {
+            createdByUserId,
+        },
         take: take + 1,
         ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
         orderBy: { createdAt: 'desc' },
-        include: { project: { select: { id: true, name: true } } },
+        include: {
+            project: {
+                select: {
+                    id: true,
+                    name: true,
+                },
+            },
+        },
     });
 };
