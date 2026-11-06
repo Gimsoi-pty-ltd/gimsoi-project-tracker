@@ -2,7 +2,7 @@ import axios from "axios";
 
 const BASE_API_URL =
   import.meta.env.MODE === "development"
-    ? ""
+    ? "/api"
     : "https://project-fly-by-10136948328.development.catalystappsail.com/api";
 
 const AUTH_API_URL = `${BASE_API_URL}/auth`;
