@@ -6,10 +6,12 @@ import { useSprintStore } from "../../store/sprintStore";
 import { useTaskStore } from "../../store/taskStore";
 import { resourceAPI } from "../../api/api";
 import { useProjectStore } from "../../store/projectStore";
-import EmptyState from "../../Components/EmptyState";
-import ErrorAlert from "../../Components/ErrorAlert";
-import LoadingSpinner from "../../Components/LoadingSpinner";
-import NavyButton from "../../Components/Buttons";
+import EmptyState from "../../Components/utils/EmptyState";
+import ErrorAlert from "../../Components/utils/ErrorAlert";
+import LoadingSpinner from "../../Components/LoadingState/LoadingSpinner";
+import NavyButton from "../../Components/Buttons/NavyButton";
+import { useAuthStore } from "../../store/authStore";
+import { hasPermission } from "../../utils/accessControl";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const STATUS_CONFIG = {
@@ -95,6 +97,9 @@ function DeleteModal({ projectName, onCancel, onConfirm, isLoading }) {
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function ProjectOverview() {
+  const user = useAuthStore((state) => state.user);
+  const canManageProjects = hasPermission(user?.role, "MANAGE_PROJECTS");
+  const canManageSprints = hasPermission(user?.role, "MANAGE_SPRINTS");
   const { id } = useParams();
   const navigate = useNavigate();
   const {
@@ -230,7 +235,7 @@ export default function ProjectOverview() {
             </div>
 
             {/* Action buttons using NavyButton + plain red */}
-            <div className="flex items-center gap-2">
+            {canManageProjects && <div className="flex items-center gap-2">
               <NavyButton
                 onClick={() => setShowEditForm(true)}
                 className="min-w-0! px-4! py-2! rounded-xl! flex items-center gap-2 text-sm!"
@@ -245,7 +250,7 @@ export default function ProjectOverview() {
                 <Trash2 className="w-4 h-4" />
                 Delete
               </button>
-            </div>
+            </div>}
           </div>
         </div>
 
@@ -386,7 +391,7 @@ export default function ProjectOverview() {
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wider">Sprints</h2>
-            <button onClick={() => setShowSprintModal(true)} className="text-sm text-blue-600">+ Add Sprint</button>
+            {canManageSprints && <button onClick={() => setShowSprintModal(true)} className="text-sm text-blue-600">+ Add Sprint</button>}
           </div>
           <div>
             {/* Show existing sprints from currentProject.sprints if available */}
@@ -400,7 +405,7 @@ export default function ProjectOverview() {
                     </div>
                     <div className="flex items-center gap-3">
                       <div className="text-xs text-gray-500">{(s.tasks && s.tasks.length) || 0} tasks</div>
-                      <button
+                      {canManageSprints && <button
                         className="text-xs text-blue-600 hover:underline"
                         onClick={() => {
                           setEditingSprint(s);
@@ -412,8 +417,8 @@ export default function ProjectOverview() {
                         }}
                       >
                         Edit
-                      </button>
-                      <button
+                      </button>}
+                      {canManageSprints && <button
                         type="button"
                         title={`Delete sprint ${s.name}`}
                         aria-label={`Delete sprint ${s.name}`}
@@ -435,7 +440,7 @@ export default function ProjectOverview() {
                         }}
                       >
                         <Trash2 className="w-4 h-4" />
-                      </button>
+                      </button>}
                     </div>
                   </div>
                 ))}
@@ -639,7 +644,7 @@ export default function ProjectOverview() {
         </div>
       )}
 
-      <ProjectForm
+      {canManageProjects && <ProjectForm
         isOpen={showEditForm}
         onClose={() => setShowEditForm(false)}
         project={currentProject}
@@ -648,7 +653,7 @@ export default function ProjectOverview() {
           if (id) getProjectById(id);
           setProjectToast({ type: 'success', message: 'Project updated successfully.' });
         }}
-      />
+      />}
 
       {projectToast && (
         <div

@@ -3,7 +3,7 @@ import { Download, TrendingUp, CheckCircle, Clock, Zap, Search, ChevronDown, Arr
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { Link } from 'react-router-dom';
 import { resourceAPI } from '../../api/api';
-import NavyButton from '../../Components/Buttons';
+import NavyButton from '../../Components/Buttons/NavyButton';
 
 const TeamPerformance = () => {
   const [teamData, setTeamData] = useState([]);
