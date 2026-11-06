@@ -7,6 +7,7 @@ export default function TaskForm({
   parentTaskOptions = [],
   sprintOptions = [],
   phaseOptions = [],
+  departmentOptions = [],
 }) {
   const toggleSelection = (field, value) => {
     setFormData((prev) => {
@@ -28,10 +29,13 @@ export default function TaskForm({
     : [];
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+    <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-2">
 
-      {/* Left Column */}
-      <div className="space-y-4">
+      <section className="space-y-4 rounded-xl border border-gray-200 bg-gray-50/70 p-4">
+        <div>
+          <h3 className="text-sm font-semibold text-gray-900">Task details</h3>
+          <p className="mt-1 text-xs text-gray-500">Name the work and describe the expected outcome.</p>
+        </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -40,6 +44,8 @@ export default function TaskForm({
           <input
             type="text"
             required
+            maxLength={200}
+            placeholder="What needs to be done?"
             className="w-full border border-gray-300 rounded-lg p-2.5 text-sm"
             value={formData.title}
             onChange={(e) =>
@@ -54,6 +60,8 @@ export default function TaskForm({
           </label>
           <textarea
             className="w-full border border-gray-300 rounded-lg p-2.5 text-sm h-24"
+            maxLength={5000}
+            placeholder="Add context, acceptance criteria, or useful links..."
             value={formData.description}
             onChange={(e) =>
               setFormData({ ...formData, description: e.target.value })
@@ -75,8 +83,10 @@ export default function TaskForm({
             >
               <option value="TODO">To Do</option>
               <option value="IN_PROGRESS">In Progress</option>
+              <option value="REVIEW">In Review</option>
               <option value="BLOCKED">Blocked</option>
               <option value="DONE">Done</option>
+          
             </select>
           </div>
 
@@ -121,6 +131,7 @@ export default function TaskForm({
             <input
               type="number"
               min="0"
+              step="1"
               placeholder="e.g. 5"
               className="w-full border border-gray-300 rounded-lg p-2.5 text-sm"
               value={formData.storyPoints}
@@ -131,10 +142,52 @@ export default function TaskForm({
           </div>
         </div>
 
-      </div>
+        <label className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700">
+          <input
+            type="checkbox"
+            checked={Boolean(formData.isBlocked)}
+            onChange={(e) => setFormData({ ...formData, isBlocked: e.target.checked })}
+            className="h-4 w-4 accent-blue-800"
+          />
+          Mark this task as blocked
+        </label>
+      </section>
 
-      {/* Right Column */}
-      <div className="space-y-4">
+      <section className="space-y-4 rounded-xl border border-gray-200 bg-gray-50/70 p-4">
+        <div>
+          <h3 className="text-sm font-semibold text-gray-900">Planning &amp; people</h3>
+          <p className="mt-1 text-xs text-gray-500">Connect this task to delivery work and project members.</p>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Departments
+          </label>
+          {departmentOptions.length ? (
+            <div className="flex flex-wrap gap-2">
+              {departmentOptions.map((department) => {
+                const isSelected = (formData.labelIds || []).includes(department.id);
+                return (
+                  <label
+                    key={department.id}
+                    className={`inline-flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium ${isSelected ? "border-blue-300 bg-blue-50 text-blue-900" : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"}`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => toggleSelection("labelIds", department.id)}
+                      className="sr-only"
+                    />
+                    <span className="h-2 w-2 rounded-full" style={{ backgroundColor: department.color }} />
+                    {department.name}
+                  </label>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-xs text-gray-500">Department tags will be available when configured for this project.</p>
+          )}
+        </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div>
@@ -272,7 +325,7 @@ export default function TaskForm({
           </div>
         </div>
 
-      </div>
+      </section>
 
     </div>
   );

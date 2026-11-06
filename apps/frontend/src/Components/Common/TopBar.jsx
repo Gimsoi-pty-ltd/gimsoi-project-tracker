@@ -4,6 +4,7 @@ import { Link, useLocation } from "react-router-dom";
 import { HelpCircle, Search, Settings, Menu } from "lucide-react";
 import logo from "../../assets/Gimsoi-AI.png";
 import { useAuthStore } from "../../store/authStore";
+import { hasPermission } from "../../utils/accessControl";
 
 const getInitials = (name) => {
   if (!name) return "?";
@@ -34,14 +35,14 @@ export default function TopBar({ onMenuClick }) {
 
   const navItems = [
     { label: "Dashboard", href: "/dashboard" },
-    { label: "Tasks", href: "/tasks" },
-    { label: "Kanban", href: "/kanban-board" },
-    { label: "Users", href: "/users" },
-    { label: "Reports", href: "/reports" },
-    { label: "Documents", href: "/documents" },
-    { label: "Phases", href: "/phases" },
-    { label: "Calendar", href: "/calendar" },
-  ];
+    { label: "Tasks", href: "/tasks", permission: "VIEW_TASKS" },
+    { label: "Kanban", href: "/kanban-board", permission: "VIEW_TASKS" },
+    { label: "Users", href: "/users", permission: "VIEW_USERS" },
+    { label: "Reports", href: "/reports", permission: "VIEW_REPORTS" },
+    { label: "Documents", href: "/documents", permission: "VIEW_PROGRESS" },
+    { label: "Phases", href: "/phases", permission: "VIEW_PHASES" },
+    { label: "Calendar", href: "/calendar", permission: "VIEW_TASKS" },
+  ].filter((item) => !item.permission || hasPermission(user?.role, item.permission));
 
   const buttonItems = [
     { label: "Help", button: <HelpCircle size={24} />, href: "/help" },

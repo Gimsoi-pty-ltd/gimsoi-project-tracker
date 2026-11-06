@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
-import { X, AlertCircle, ChevronDown, Check, Calendar } from "lucide-react";
-import NavyButton from "../Buttons";
+import { X, AlertCircle, ChevronDown, Check, Plus, Trash2 } from "lucide-react";
+import NavyButton from "../Buttons/NavyButton";
 import { useProjectStore } from "../../store/projectStore";
-import { resourceAPI } from "../../api/api";
+import { fetchAllPages } from "../../api/fetchAllPages";
 
 const STATUS_OPTIONS = [
   { value: "DRAFT",   label: "Draft"   },
@@ -18,7 +18,7 @@ const inputCls =
 const labelCls = "block text-sm font-medium text-gray-700 mb-1.5";
 
 // ─── Custom Dropdown ──────────────────────────────────────────────────────────
-function Dropdown({ label, value, onChange, options, placeholder }) {
+function Dropdown({ value, onChange, options, placeholder, disabled = false }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   const selected = options.find((o) => (o.id || o.value) === value);
@@ -34,7 +34,8 @@ function Dropdown({ label, value, onChange, options, placeholder }) {
       <button
         type="button"
         onClick={() => setOpen((p) => !p)}
-        className={`${inputCls} flex items-center justify-between text-left ${!selected ? "text-gray-400" : ""}`}
+        disabled={disabled}
+        className={`${inputCls} flex items-center justify-between text-left disabled:cursor-not-allowed disabled:opacity-60 ${!selected ? "text-gray-400" : ""}`}
       >
         <span>{selected ? (selected.name || selected.label) : placeholder}</span>
         <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`} />
@@ -67,7 +68,7 @@ function Dropdown({ label, value, onChange, options, placeholder }) {
 
 // ─── Main Form ────────────────────────────────────────────────────────────────
 export default function ProjectForm({ isOpen, onClose, project = null, onSuccess = null }) {
-  const { createProject, updateProject, isLoading, error } = useProjectStore();
+  const { createProject, updateProject, isLoading, error, clearError } = useProjectStore();
 
   const empty = {
     name: "",
@@ -83,20 +84,35 @@ export default function ProjectForm({ isOpen, onClose, project = null, onSuccess
   const [formData, setFormData] = useState(empty);
   const [formError, setFormError] = useState(null);
   const [clientOptions, setClientOptions] = useState([]);
+  const [clientsLoading, setClientsLoading] = useState(false);
+  const [clientsError, setClientsError] = useState(null);
+  const [clientsVersion, setClientsVersion] = useState(0);
 
   useEffect(() => {
     if (!isOpen) return;
+    let cancelled = false;
+    setClientOptions(project?.client?.id ? [project.client] : []);
     const fetchOptions = async () => {
+      setClientsLoading(true);
+      setClientsError(null);
       try {
-        const clientsRes = await resourceAPI.get('/clients');
-        const clients = clientsRes.data?.data ?? clientsRes.data.clients ?? [];
-        setClientOptions(clients);
+        const clients = await fetchAllPages('/clients');
+        if (!cancelled) {
+          const currentClient = project?.client;
+          const options = currentClient?.id && !clients.some((client) => client.id === currentClient.id)
+            ? [currentClient, ...clients]
+            : clients;
+          setClientOptions(options);
+        }
       } catch (err) {
-        console.error("Failed to fetch form options:", err);
+        if (!cancelled) setClientsError(err.response?.data?.message || "Could not load client options.");
+      } finally {
+        if (!cancelled) setClientsLoading(false);
       }
     };
     fetchOptions();
-  }, [isOpen]);
+    return () => { cancelled = true; };
+  }, [isOpen, project?.id, clientsVersion]);
 
   useEffect(() => {
     if (project) {
@@ -115,6 +131,9 @@ export default function ProjectForm({ isOpen, onClose, project = null, onSuccess
           parsedMilestones = [project.milestones]; // fallback for legacy plain-text values
         }
       }
+      parsedMilestones = parsedMilestones.map((milestone) =>
+        typeof milestone === "string" ? milestone : milestone?.label || milestone?.name || "",
+      );
 
       setFormData({
         name:        project.name        || "",
@@ -130,7 +149,8 @@ export default function ProjectForm({ isOpen, onClose, project = null, onSuccess
       setFormData(empty);
     }
     setFormError(null);
-  }, [project, isOpen]);
+    clearError();
+  }, [project, isOpen, clearError]);
 
   const set = (field, value) =>
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -149,6 +169,20 @@ export default function ProjectForm({ isOpen, onClose, project = null, onSuccess
       return;
     }
 
+    if (formData.startDate && formData.endDate && formData.endDate < formData.startDate) {
+      setFormError("End date must be on or after the start date.");
+      return;
+    }
+
+    const milestones = formData.milestones
+      .map((milestone) => milestone.trim())
+      .filter(Boolean);
+    const serializedMilestones = JSON.stringify(milestones);
+    if (serializedMilestones.length > 4000) {
+      setFormError("Milestones exceed the 4,000 character limit. Shorten or remove some entries.");
+      return;
+    }
+
     // Only send fields the backend's Zod schema actually accepts
     // (createProjectSchema / updateProjectSchema). Anything else — like the
     // old `team` field — gets dropped here instead of causing a 400.
@@ -161,8 +195,8 @@ export default function ProjectForm({ isOpen, onClose, project = null, onSuccess
       status: formData.status,
       startDate: formData.startDate || null,
       endDate: formData.endDate || null,
-      milestones: formData.milestones?.length
-        ? JSON.stringify(formData.milestones.filter((m) => m.trim() !== ""))
+      milestones: milestones.length
+        ? serializedMilestones
         : null,
       setupNotes: formData.setupNotes || null,
     };
@@ -199,6 +233,7 @@ export default function ProjectForm({ isOpen, onClose, project = null, onSuccess
             <h2 className="text-lg font-bold text-gray-900">
               {project ? project.name : "New Project"}
             </h2>
+            <p className="mt-1 text-sm text-gray-500">Set the project details, delivery window, and key milestones.</p>
           </div>
           <button
             onClick={onClose}
@@ -213,10 +248,13 @@ export default function ProjectForm({ isOpen, onClose, project = null, onSuccess
           <div className="px-6 py-5 overflow-y-auto flex-1">
 
             {/* Error */}
-            {(formError || error) && (
+            {(formError || error || clientsError) && (
               <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl flex gap-3">
                 <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
-                <p className="text-sm text-red-700">{formError || error}</p>
+                <div className="flex-1">
+                  <p className="text-sm text-red-700">{formError || error || clientsError}</p>
+                  {clientsError && !formError && !error && <button type="button" onClick={() => setClientsVersion((version) => version + 1)} className="mt-1 text-xs font-semibold text-red-800 underline">Retry loading clients</button>}
+                </div>
               </div>
             )}
 
@@ -224,11 +262,17 @@ export default function ProjectForm({ isOpen, onClose, project = null, onSuccess
 
               {/* Left column */}
               <div className="space-y-4">
+                <div className="border-b border-gray-100 pb-3">
+                  <h3 className="text-sm font-semibold text-gray-900">Project details</h3>
+                  <p className="mt-1 text-xs text-gray-500">Core information visible to project members.</p>
+                </div>
                 {/* Project Name */}
                 <div>
                   <label className={labelCls}>Project Name *</label>
                   <input
                     type="text"
+                    required
+                    maxLength={100}
                     value={formData.name}
                     onChange={(e) => set("name", e.target.value)}
                     placeholder="e.g. Website Redesign"
@@ -243,8 +287,10 @@ export default function ProjectForm({ isOpen, onClose, project = null, onSuccess
                     value={formData.clientId}
                     onChange={(v) => set("clientId", v)}
                     options={clientOptions}
-                    placeholder="Acme Corp, TechStart Inc..."
+                    disabled={clientsLoading || Boolean(project)}
+                    placeholder={clientsLoading ? "Loading clients..." : "Select a client"}
                   />
+                  {!clientsLoading && clientOptions.length === 0 && !clientsError && <p className="mt-1 text-xs text-amber-700">No clients are available. Add a client before creating a project.</p>}
                   {project && (
                     <p className="mt-1 text-xs text-gray-400">Client can't be changed after a project is created.</p>
                   )}
@@ -268,14 +314,20 @@ export default function ProjectForm({ isOpen, onClose, project = null, onSuccess
                     value={formData.description}
                     onChange={(e) => set("description", e.target.value)}
                     placeholder="Brief project description..."
+                    maxLength={2000}
                     rows={4}
                     className={`${inputCls} resize-none`}
                   />
+                  <p className="mt-1 text-right text-xs text-gray-400">{formData.description.length}/2000</p>
                 </div>
               </div>
 
               {/* Right column */}
               <div className="space-y-4">
+                <div className="border-b border-gray-100 pb-3">
+                  <h3 className="text-sm font-semibold text-gray-900">Schedule &amp; milestones</h3>
+                  <p className="mt-1 text-xs text-gray-500">Dates help teams understand the intended delivery window.</p>
+                </div>
                 {/* Start + End Date */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -305,39 +357,47 @@ export default function ProjectForm({ isOpen, onClose, project = null, onSuccess
                     value={formData.setupNotes}
                     onChange={(e) => set("setupNotes", e.target.value)}
                     placeholder="Internal notes about getting this project up and running..."
+                    maxLength={4000}
                     rows={3}
                     className={`${inputCls} resize-none`}
                   />
+                  <p className="mt-1 text-right text-xs text-gray-400">{formData.setupNotes.length}/4000</p>
                 </div>
 
                 {/* Milestones */}
                 <div>
                   <label className={labelCls}>Milestones</label>
+                  <p className="mb-3 text-xs leading-relaxed text-gray-500">
+                    Milestones are major project checkpoints that mark meaningful outcomes, not individual tasks or work phases. Examples: “Design approved”, “Beta launched”, or “Client handoff”. They appear on the project timeline; track day-to-day work in tasks and phases.
+                  </p>
                   <div className="space-y-2">
                     {formData.milestones?.map((m, idx) => (
                       <div key={idx} className="flex items-center gap-2">
                         <input
                           type="text"
+                          maxLength={250}
+                          aria-label={`Milestone ${idx + 1}`}
+                          placeholder={`Milestone ${idx + 1}`}
                           value={m}
                           onChange={(e) => {
                             const newMilestones = [...formData.milestones];
                             newMilestones[idx] = e.target.value;
                             set("milestones", newMilestones);
                           }}
-                          className="flex-1 px-3 py-2 border border-gray-200 rounded-md text-sm" />
-                        <button type="button" onClick={() => {
+                          className={inputCls} />
+                        <button type="button" aria-label={`Remove milestone ${idx + 1}`} onClick={() => {
                           const newMilestones = formData.milestones.filter((_, i) => i !== idx);
                           set("milestones", newMilestones);
-                        }} className="text-red-500 ml-2">Remove</button>
+                        }} className="rounded-lg border border-gray-200 p-2 text-red-600 hover:bg-red-50"><Trash2 size={16} /></button>
                       </div>
                     ))}
                   </div>
                   <button
                     type="button"
-                    className="mt-3 text-sm font-semibold text-blue-600 hover:text-blue-800"
+                    className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-blue-700 hover:text-blue-900"
                     onClick={() => set("milestones", [...(formData.milestones || []), ""])}
                   >
-                    + Add milestone
+                    <Plus size={16} /> Add milestone
                   </button>
                 </div>
 
@@ -365,7 +425,7 @@ export default function ProjectForm({ isOpen, onClose, project = null, onSuccess
             </button>
             <NavyButton
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || clientsLoading || (!project && clientOptions.length === 0)}
               className="flex-1 px-4 py-2.5  hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading

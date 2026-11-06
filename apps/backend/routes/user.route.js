@@ -15,7 +15,7 @@ import {
   updateAvatar,
   removeAvatar,
 } from "../controllers/user.controller.js";
-import { changePassword } from "../controllers/auth.controller.js";
+import { changePassword, checkAuth } from "../controllers/auth.controller.js";
 import { upload } from "../utils/upload.js";
 import { validate } from "../middleware/validate.middleware.js";
 import {
@@ -68,6 +68,10 @@ router.delete(
 /**
  * AUTHENTICATED Endpoints (Any Role)
  */
+
+// Get current user profile (alias)
+router.get("/profile", readLimiter, verifyToken, checkAuth);
+router.get("/me", readLimiter, verifyToken, checkAuth);
 
 // Update own profile
 router.patch(

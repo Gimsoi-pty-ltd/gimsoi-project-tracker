@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useProjectStore } from "../../store/projectStore";
 import { Download, TrendingUp, CheckCircle2, AlertCircle, LineChart } from "lucide-react";
-import EmptyState from "../../Components/EmptyState";
+import EmptyState from "../../Components/utils/EmptyState";
 
 export const sprintReports = [
   {

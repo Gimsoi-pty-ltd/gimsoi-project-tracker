@@ -158,16 +158,27 @@ function buildPriorityHeatmap(sprintTasks) {
     }));
 }
 
-function mapTaskForDashboard(task) {
+export function mapTaskForDashboard(task) {
     return {
         id: task.id,
+        projectId: task.projectId,
+        sprintId: task.sprintId,
+        sprintName: task.sprint?.name || "Backlog",
+        assigneeId: task.assigneeId,
+        reporterId: task.reporterId,
+        phaseId: task.phaseId,
+        parentTaskId: task.parentTaskId,
+        labels: task.labels || [],
         title: task.title,
         status: STATUS_UI[task.status] || task.status,
+        rawStatus: task.status,
         priority: PRIORITY_UI[task.priority] || task.priority,
+        rawPriority: task.priority,
         assignee: task.assignee?.fullName || "Unassigned",
         dueDate: task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "—",
         storyPoints: task.storyPoints,
         tag: task.labels?.[0]?.name || "—",
+        tags: (task.labels || []).map((label) => label.name).filter(Boolean),
         tagColor: "bg-gray-100 text-gray-600",
         version: task.version,
         description: task.description,

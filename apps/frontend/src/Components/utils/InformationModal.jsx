@@ -1,5 +1,5 @@
 import React from "react";
-import CloseButton from "./CloseButton";
+import CloseButton from "../Buttons/CloseButton";
 
 function InformationModal({ isOpen, onClose, title, children }) {
   if (!isOpen) {

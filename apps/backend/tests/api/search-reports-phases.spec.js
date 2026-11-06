@@ -71,6 +71,22 @@ test.describe('Search, Reports, and Phases API Tests', () => {
             expect(body.data.name).toBe('Performance Report');
         });
 
+                test('GET /api/reports › returns a paginated list', async ({ pmApi, testProject }) => {
+            await pmApi.post('/api/reports', {
+                data: { name: 'Report List Test', type: 'PROJECT_PROGRESS', projectId: testProject.id }
+            });
+
+            const response = await pmApi.get('/api/reports?limit=1');
+
+            expect(response.status()).toBe(200);
+            const body = await response.json();
+
+            expect(body.success).toBe(true);
+            expect(Array.isArray(body.data)).toBe(true);
+            expect(body.data.length).toBeLessThanOrEqual(1);
+            expect(body).toHaveProperty('nextCursor');
+        });
+
         test('GET /api/reports/:id/pdf › downloads a binary PDF', async ({ pmApi, testProject }) => {
             const createRes = await pmApi.post('/api/reports', {
                 data: { name: 'PDF Export Test', type: 'PROJECT_PROGRESS', projectId: testProject.id }

@@ -4,6 +4,17 @@ import "dotenv/config";
 import { defineConfig } from "prisma/config";
 
 const DATABASE_URL = process.env.DATABASE_URL || "postgresql://ci:ci@localhost:5432/ci_placeholder";
+const directDatabaseUrl = () => {
+  if (process.env.DIRECT_URL) return process.env.DIRECT_URL;
+  if (!process.env.DATABASE_URL) return DATABASE_URL;
+
+  const url = new URL(process.env.DATABASE_URL);
+  if (url.hostname === "pooled.db.prisma.io") {
+    url.hostname = "db.prisma.io";
+  }
+  return url.toString();
+};
+
 export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {
@@ -11,6 +22,6 @@ export default defineConfig({
     seed: "node prisma/seed.js",
   },
   datasource: {
-    url: DATABASE_URL,
+    url: directDatabaseUrl(),
   },
 });
