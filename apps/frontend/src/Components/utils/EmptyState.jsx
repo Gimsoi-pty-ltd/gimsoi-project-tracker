@@ -1,6 +1,6 @@
 import React from 'react';
 import { Inbox } from 'lucide-react';
-import NavyButton from "./Buttons";
+import NavyButton from "../Buttons/NavyButton";
 
 /**
  * Reusable empty state component

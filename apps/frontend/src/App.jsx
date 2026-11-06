@@ -97,9 +97,10 @@ const Clients = lazy(() => import("./Pages/Users/Clients"));
 const Kanban = lazy(() => import("./Pages/KanbanBoard/KanbanBoard"));
 
 import { useAuthStore } from "./store/authStore";
+import { hasPermission } from "./utils/accessControl";
 
 // ─── Auth Guard Components  ─────────────────────────────
-const ProtectedRoute = ({ children }) => {
+const ProtectedRoute = ({ children, permission }) => {
   const { isAuthenticated, user } = useAuthStore();
 
   if (!isAuthenticated) {
@@ -108,6 +109,10 @@ const ProtectedRoute = ({ children }) => {
 
   if (!user?.isVerified) {
     return <Navigate to="/verify-email" replace />;
+  }
+
+  if (permission && !hasPermission(user?.role, permission)) {
+    return <Navigate to="/dashboard" replace />;
   }
 
   return children;

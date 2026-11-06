@@ -1,12 +1,12 @@
 import React, { useState } from "react";
 import { Mail, Loader } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import NavyButton from "../../Components/Buttons";
+import NavyButton from "../../Components/Buttons/NavyButton";
 import logo from "../../assets/Gimsoi-AI.png";
 import { useAuthStore } from "../../store/authStore";
-import InfoIcon from "../../Components/InfoIcon";
-import InformationModal from "../../Components/InformationModal";
-import PasswordInput from "../../Components/PasswordEye";
+import InfoIcon from "../../Components/utils/InfoIcon";
+import InformationModal from "../../Components/utils/InformationModal";
+import PasswordInput from "../../Components/utils/PasswordEye";
 
 function LoginPage() {
   const [email, setEmail] = useState("");

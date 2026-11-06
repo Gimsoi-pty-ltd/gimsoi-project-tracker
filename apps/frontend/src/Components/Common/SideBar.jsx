@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Home, FolderKanban, ListTodo, Users, PieChart, X, LogOut, ChevronDown, Sparkles } from "lucide-react";
+import { Home, FolderKanban, ListTodo, Users, PieChart, X, LogOut, ChevronDown } from "lucide-react";
 import { useProjectStore } from "../../store/projectStore";
 import { useAuthStore } from "../../store/authStore";
+import { hasPermission } from "../../utils/accessControl";
 
 const PROJECT_DOT_COLORS = {
     ACTIVE: "bg-blue-500",
@@ -107,16 +108,18 @@ export default function Sidebar({ isOpen, onClose }) {
 
     const menuItems = [
         { label: "Home", icon: Home, href: "/dashboard" },
-        { label: "Kanban", icon: FolderKanban, href: "/kanban-board" },
-        { label: "Projects", icon: FolderKanban, href: "/projects" },
-        { label: "Phases", icon: ListTodo, href: "/phases" },
-    ];
+        { label: "Tasks", icon: ListTodo, href: "/tasks", permission: "VIEW_TASKS" },
+        { label: "Kanban", icon: FolderKanban, href: "/kanban-board", permission: "VIEW_TASKS" },
+        { label: "Projects", icon: FolderKanban, href: "/projects", permission: "VIEW_PROJECTS" },
+        { label: "Clients", icon: Users, href: "/clients", permission: "VIEW_CLIENTS" },
+        { label: "Phases", icon: ListTodo, href: "/phases", permission: "VIEW_PHASES" },
+    ].filter((item) => !item.permission || hasPermission(authUser?.role, item.permission));
 
-       const insightItems = [
-        { label: "Team Insights", icon: Users, href: "/teamInsights" },
-        { label: "Reports", icon: PieChart, href: "/reports" },
-        { label: "AI Recommendations", icon: Sparkles, href: "/recommendations" },
-    ];
+    const insightItems = [
+        { label: "Users", icon: Users, href: "/users", permission: "VIEW_USERS" },
+        { label: "Team Insights", icon: Users, href: "/teamInsights", permission: "VIEW_ANALYTICS" },
+        { label: "Reports", icon: PieChart, href: "/reports", permission: "VIEW_REPORTS" },
+    ].filter((item) => hasPermission(authUser?.role, item.permission));
     return (
         <>
             {isOpen && (

@@ -2,6 +2,8 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useProjectStore } from '../../store/projectStore';
 import { useTaskStore } from '../../store/taskStore';
 import TaskModal from '../../Dashboard/Metrics/TaskModal';
+import { useAuthStore } from '../../store/authStore';
+import { DEPARTMENT_LABELS } from '../../utils/departmentLabels';
 
 // BLOCKED goes to 'blocked' if we had one, but QA goes to 'review'
 const COLUMN_TO_STATUS = {
@@ -22,47 +24,13 @@ const ALLOWED_COLUMN_TRANSITIONS = {
 
 // Kanban Cards
 
-const DARK_CARD_COLORS = [
-  'bg-gray-600', 'bg-gray-700', 'bg-gray-800', 'bg-gray-900',
-  'bg-blue-500', 'bg-blue-600', 'bg-blue-700', 'bg-blue-800',
-  'bg-green-500', 'bg-green-600', 'bg-green-700', 'bg-green-800',
-  'bg-red-500', 'bg-red-600', 'bg-red-700', 'bg-red-800',
-  'bg-purple-500', 'bg-purple-600', 'bg-purple-700', 'bg-purple-800',
-  'bg-pink-500', 'bg-pink-600', 'bg-pink-700', 'bg-pink-800',
-  'bg-orange-500', 'bg-orange-600', 'bg-orange-700', 'bg-orange-800',
-  'bg-yellow-600', 'bg-yellow-700', 'bg-yellow-800',
-  'bg-teal-500', 'bg-teal-600', 'bg-teal-700',
-  'bg-indigo-500', 'bg-indigo-600', 'bg-indigo-700',
-  'bg-black',
-];
+const DEPARTMENT_COLORS = new Map(
+  DEPARTMENT_LABELS.map(({ name, color }) => [name.toLowerCase(), color]),
+);
 
-const getTextColors = (cardColor = 'bg-white') => {
-  const isDark = DARK_CARD_COLORS.includes(cardColor);
-  return isDark
-    ? {
-        title:          'text-white',
-        sub:            'text-white/75',
-        tag:            'bg-white/20 text-white',
-        border:         'border-white/25',
-        priorityHigh:   'text-orange-200 border-orange-200/60',
-        priorityMedium: 'text-yellow-200 border-yellow-200/60',
-        priorityLow:    'text-blue-200   border-blue-200/60',
-        priorityDefault:'text-white/60   border-white/30',
-        columnIdReview:   'text-purple-200 border-purple-200/60',
-        columnIdDone:     'text-green-200  border-green-200/60',
-      }
-    : {
-        title:          'text-gray-800',
-        sub:            'text-gray-600',
-        tag:            'bg-blue-100 text-blue-700',
-        border:         'border-gray-200',
-        priorityHigh:   'text-orange-600 border-orange-300',
-        priorityMedium: 'text-yellow-600 border-yellow-300',
-        priorityLow:    'text-blue-600   border-blue-300',
-        priorityDefault:'text-gray-600   border-gray-300',
-        columnIdReview:   'text-purple-700 border-purple-300',
-        columnIdDone:     'text-green-700  border-green-300',
-      };
+const getDepartmentColor = (tags = []) => {
+  const department = tags.find((tag) => DEPARTMENT_COLORS.has(tag.toLowerCase()));
+  return department ? DEPARTMENT_COLORS.get(department.toLowerCase()) : null;
 };
 
 
@@ -77,7 +45,7 @@ const KanbanCard = ({
   priority,
   assignee,
   tags = [],
-  cardColor = 'bg-white',
+  departmentColor = null,
   columnId,             
   onClick,
   onDragStart,
@@ -85,17 +53,19 @@ const KanbanCard = ({
   isDragging,
   readOnly = false,
 }) => {
-  const textColor = getTextColors(cardColor);
   const priorityLabel = getPriorityLabel(priority, columnId);
+  const cardStyle = departmentColor
+    ? { backgroundColor: `${departmentColor}66`, borderColor: `${departmentColor}66` }
+    : undefined;
 
   const getPriorityColor = (label) => {
     switch (label) {
-      case 'High':        return textColor.priorityHigh;
-      case 'Medium':      return textColor.priorityMedium;
-      case 'Low':         return textColor.priorityLow;
-      case 'QA Review':   return textColor.columnIdReview;  
-      case 'QA Approved': return textColor.columnIdDone;
-      default:            return textColor.priorityDefault;
+      case 'High':        return 'text-orange-700 border-orange-300 bg-orange-50';
+      case 'Medium':      return 'text-amber-700 border-amber-300 bg-amber-50';
+      case 'Low':         return 'text-blue-700 border-blue-300 bg-blue-50';
+      case 'QA Review':   return 'text-purple-700 border-purple-300 bg-purple-50';
+      case 'QA Approved': return 'text-emerald-700 border-emerald-300 bg-emerald-50';
+      default:            return 'text-gray-700 border-gray-300 bg-gray-50';
     }
   };
 
@@ -105,10 +75,11 @@ const KanbanCard = ({
       onDragStart={readOnly ? undefined : onDragStart}
       onDragEnd={readOnly ? undefined : onDragEnd}
       onClick={onClick}
-      className={`${cardColor} rounded-md p-3 ${readOnly ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'} hover:shadow-md transition-all duration-200 border ${textColor.border} ${isDragging ? 'opacity-40 scale-95' : ''}`}
+      style={cardStyle}
+      className={`rounded-md border bg-white p-3 ${readOnly ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'} hover:shadow-md transition-all duration-200 ${isDragging ? 'opacity-40 scale-95' : ''}`}
     >
       <div className="flex justify-between items-start gap-2 mb-2">
-        <h3 className={`min-w-0 flex-1 wrap-break-word font-semibold text-sm ${textColor.title}`}>{title}</h3>
+        <h3 className="min-w-0 flex-1 wrap-break-word font-semibold text-sm text-gray-800">{title}</h3>
 
         
         {priorityLabel && (
@@ -121,15 +92,21 @@ const KanbanCard = ({
       {tags.length > 0 && (
         <div className="flex flex-wrap gap-1 mb-2">
           {tags.map((tag, i) => (
-            <span key={i} className={`text-xs px-2 py-0.5 rounded font-medium ${textColor.tag}`}>
+            <span
+              key={i}
+              className="text-xs px-2 py-0.5 rounded font-medium"
+              style={getDepartmentColor([tag])
+                ? { backgroundColor: `${getDepartmentColor([tag])}1A`, color: getDepartmentColor([tag]) }
+                : { backgroundColor: '#F3F4F6', color: '#4B5563' }}
+            >
               {tag}
             </span>
           ))}
         </div>
       )}
 
-      <div className={`mt-3 pt-2 border-t ${textColor.border}`}>
-        <span className={`text-xs font-medium ${textColor.sub}`}>{assignee}</span>
+      <div className="mt-3 border-t border-gray-200 pt-2">
+        <span className="text-xs font-medium text-gray-700">{assignee}</span>
       </div>
     </div>
   );
@@ -251,6 +228,7 @@ const DEPRECATED_SAMPLE_COLUMNS = [
 // Main Kanban Component
 const Kanban = () => {
   const { projects, switchProject, activeSprint, currentProject, isLoading, error, fetchDashboard } = useProjectStore();
+  const user = useAuthStore((state) => state.user);
   const [selectedCard, setSelectedCard] = useState(null);
   const [draggedCard, setDraggedCard] = useState(null);
   const [apiError, setApiError] = useState(null);
@@ -259,7 +237,8 @@ const Kanban = () => {
   const [taskToast, setTaskToast] = useState(null);
   const updateTask = useTaskStore((state) => state.updateTask);
   const getTaskById = useTaskStore((state) => state.getTaskById);
-  const isBoardReadOnly =
+  const isRoleReadOnly = ['INTERN', 'CLIENT'].includes(user?.role);
+  const isBoardReadOnly = isRoleReadOnly ||
     ['COMPLETED', 'ARCHIVED'].includes(currentProject?.status) ||
     activeSprint?.status === 'CLOSED';
 
@@ -314,15 +293,17 @@ const Kanban = () => {
                             task.priority === 'HIGH' || task.priority === 'High' ? 'High' : 
                             task.priority === 'MEDIUM' || task.priority === 'Medium' ? 'Medium' : 
                             'Low';
-      const colors = ['bg-blue-700', 'bg-orange-400', 'bg-yellow-400', 'bg-green-600'];
-      
+      const tags = task.labels?.length
+        ? task.labels.map((label) => label.name).filter(Boolean)
+        : task.label ? [task.label] : [];
+
       cardsByStatus[columnId].push({
         id: task.id?.toString() || Math.random().toString(),
         title: task.title || '—',
         priority: priorityLabel,
         assignee: task.assignee || 'Unassigned',
-        tags: task.label ? [task.label] : [],
-        cardColor: colors[Object.keys(cardsByStatus).findIndex(k => k === columnId) % colors.length],
+        tags,
+        departmentColor: getDepartmentColor(tags),
         version: task.version,
       });
     });
@@ -457,7 +438,9 @@ const Kanban = () => {
 
         {isBoardReadOnly && (
           <div className="mb-4 p-4 rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-800">
-            This board is read-only because the selected project is completed/archived or the sprint is closed.
+            {isRoleReadOnly
+              ? "This board is view-only for your account."
+              : "This board is read-only because the selected project is completed/archived or the sprint is closed."}
           </div>
         )}
 
@@ -513,16 +496,12 @@ const Kanban = () => {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center justify-start gap-3 mt-4 text-xs lg:justify-end lg:gap-4">
-            {[
-              { color: 'bg-purple-600', label: 'New Feature' },
-              { color: 'bg-blue-600',   label: 'Technical Task' },
-              { color: 'bg-yellow-400', label: 'Improvement' },
-              { color: 'bg-orange-400', label: 'Bug Fix' },
-            ].map(({ color, label }) => (
-              <div key={label} className="flex items-center gap-1">
-                <span className={`w-4 h-4 ${color} rounded-full`} />
-                {label}
+          <div className="mt-4 flex flex-wrap items-center justify-start gap-x-4 gap-y-2 text-xs text-gray-700 lg:justify-end">
+            <span className="font-semibold text-gray-500">Department:</span>
+            {DEPARTMENT_LABELS.map(({ name, color }) => (
+              <div key={name} className="flex items-center gap-1.5">
+                <span className="h-3.5 w-3.5 rounded-sm border" style={{ backgroundColor: `${color}66`, borderColor: `${color}80` }} />
+                {name}
               </div>
             ))}
           </div>
@@ -576,6 +555,7 @@ const Kanban = () => {
       <TaskModal
         isOpen={isTaskModalOpen}
         task={editingTask}
+        readOnly={isRoleReadOnly}
         initialSprintId={activeSprint?.id || null}
         onSuccess={(mode) => setTaskToast({ type: 'success', message: mode === 'updated' ? 'Task updated successfully.' : 'Task created successfully.' })}
         onClose={() => {

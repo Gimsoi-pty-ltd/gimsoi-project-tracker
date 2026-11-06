@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Loader } from "lucide-react";
-import NavyButton from "../../Components/Buttons";
+import NavyButton from "../../Components/Buttons/NavyButton";
 import { useAuthStore } from "../../store/authStore";
 
 export default function EmailVerification() {
