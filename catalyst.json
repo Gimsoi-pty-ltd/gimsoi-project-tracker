@@ -1,11 +1,14 @@
 {
   "appsail": [
     {
-      "source": "apps\\backend",
-      "name": "backend-appsail"
+      "source": "apps/backend",
+      "name": "project-fly-by"
     }
   ],
   "client": {
-    "source": "apps\\frontend\\dist"
+    "source": "apps/frontend/dist"
+  },
+  "apig": {
+    "enabled": false
   }
 }
