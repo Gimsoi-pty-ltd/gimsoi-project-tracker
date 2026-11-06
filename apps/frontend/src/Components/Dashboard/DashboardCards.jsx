@@ -2,8 +2,8 @@ import React, { useEffect } from "react";
 import { Info } from "lucide-react";
 import { useProjectStore } from "../../store/projectStore";
 import SprintDateFilter from "../../Dashboard/SprintDateFilter";
-import LoadingSpinner from "../LoadingSpinner";
-import ErrorAlert from "../ErrorAlert";
+import LoadingSpinner from "../LoadingState/LoadingSpinner";
+import ErrorAlert from "../utils/ErrorAlert";
 
 import TotalTasks from "../../Dashboard/Metrics/totalTasks";
 import CompletionPercentage from "../../Dashboard/Metrics/completionPercentage";
@@ -32,7 +32,6 @@ const DashboardCards = () => {
     dashboardError,
     clearDashboardError,
   } = useProjectStore((state) => state);
-
   useEffect(() => {
     fetchDashboard();
   }, [fetchDashboard]);

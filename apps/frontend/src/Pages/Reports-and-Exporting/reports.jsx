@@ -3,7 +3,7 @@ import React, { useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Download } from "lucide-react";
 import { useProjectStore } from "../../store/projectStore";
-import EmptyState from "../../Components/EmptyState";
+import EmptyState from "../../Components/utils/EmptyState";
 
 export default function ReportsHub() {
   const activeSprint = useProjectStore((state) => state.activeSprint);

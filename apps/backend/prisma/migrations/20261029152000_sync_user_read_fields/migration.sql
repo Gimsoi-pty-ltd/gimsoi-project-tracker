@@ -1,0 +1,8 @@
+ALTER TABLE "User" RENAME COLUMN "profilePic" TO "avatarUrl";
+
+ALTER TABLE "User"
+  ALTER COLUMN "avatarUrl" DROP NOT NULL,
+  ADD COLUMN "version" INTEGER NOT NULL DEFAULT 1,
+  ADD COLUMN "isDeleted" BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN "jobTitle" TEXT,
+  ADD COLUMN "phone" TEXT;
