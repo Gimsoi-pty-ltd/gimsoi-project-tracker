@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   # ------------------------------------------------------------------
-  # JOB 1: CHECK CI SYNTAX (Ensures workflow file structure is correct)
+  # JOB 1: CHECK CI SYNTAX
   # ------------------------------------------------------------------
   lint-ci:
     name: Lint CI Config
@@ -111,9 +111,16 @@ jobs:
         run: >
           jscpd apps/backend apps/frontend
           --threshold 5
+<<<<<<< HEAD
           --ignore "**/node_modules/**,**/*.test.*,**/*.spec.*"
           --reporters html
           --output ./jscpd-report
+=======
+          --ignore "**/node_modules/**,**/*.test.*,**/*.spec.*,**/dist/**"
+          --reporters html
+          --output ./jscpd-report
+
+>>>>>>> 835cc3e (ci: fix yaml syntax and line lengths)
       - name: Upload Duplicate Code Report
         if: always()
         uses: actions/upload-artifact@v4
