@@ -166,3 +166,35 @@ jobs:
         with:
           name: frontend-package
           path: artifacts/frontend
+
+  # ------------------------------------------------------------------
+  # JOB 6: DEPLOY TO ZOHO CATALYST
+  # ------------------------------------------------------------------
+  deploy-to-catalyst:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install Catalyst CLI
+        run: npm install -g zcatalyst-cli
+
+      - name: Deploy Backend (AppSail)
+        working-directory: ./apps/backend
+        run: catalyst deploy appsail --project ${{ secrets.CATALYST_PROJECT_ID_PROD }} --token ${{ secrets.CATALYST_TOKEN }}
+
+      - name: Deploy Frontend (Web Client)
+        run: |
+          cd apps/frontend
+          npm run build
+          cd ../..
+          catalyst deploy --only client --project ${{ secrets.CATALYST_PROJECT_ID_PROD }} --token ${{ secrets.CATALYST_TOKEN }}
+          
