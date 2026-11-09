@@ -189,12 +189,16 @@ jobs:
 
       - name: Deploy Backend (AppSail)
         working-directory: ./apps/backend
-        run: catalyst deploy appsail --project ${{ secrets.CATALYST_PROJECT_ID_PROD }} --token ${{ secrets.CATALYST_TOKEN }}
+        run: >
+          catalyst deploy appsail
+          --project ${{ secrets.CATALYST_PROJECT_ID_PROD }}
+          --token ${{ secrets.CATALYST_TOKEN }}
 
       - name: Deploy Frontend (Web Client)
         run: |
           cd apps/frontend
           npm run build
           cd ../..
-          catalyst deploy --only client --project ${{ secrets.CATALYST_PROJECT_ID_PROD }} --token ${{ secrets.CATALYST_TOKEN }}
-          
+          catalyst deploy --only client \
+            --project ${{ secrets.CATALYST_PROJECT_ID_PROD }} \
+            --token ${{ secrets.CATALYST_TOKEN }}
