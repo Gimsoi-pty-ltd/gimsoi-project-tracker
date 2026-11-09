@@ -510,7 +510,7 @@ function App() {
             element={
               <ProtectedRoute>
                 <DashboardLayout>
-                  <Recommendations />
+                  <Route path="/recommendations" element={<Recommendations />} />
                 </DashboardLayout>
               </ProtectedRoute>
             }
