@@ -1,4 +1,4 @@
----
+﻿---
 name: CI Pipeline
 
 "on":
@@ -166,4 +166,3 @@ jobs:
         with:
           name: frontend-package
           path: artifacts/frontend
-          
