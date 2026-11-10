@@ -20,6 +20,7 @@ import TaskDistributionCard from "../../Dashboard/charts/TaskDistributionCard";
 import PriorityHeatmap from "../../Dashboard/PriorityHeatmap";
 import KanbanSummary from "../../Dashboard/KanbanSummary";
 import ActiveTasks from "../../Dashboard/Metrics/ActiveTasks";
+import ProjectHealthPanel from "./ProjectHealthPanel";
 
 const DashboardCards = () => {
   const {
@@ -30,7 +31,7 @@ const DashboardCards = () => {
     fetchDashboard,
     dashboardLoading,
     dashboardError,
-    clearDashboardError,
+    clearDashboardError
   } = useProjectStore((state) => state);
   useEffect(() => {
     fetchDashboard();
@@ -49,7 +50,9 @@ const DashboardCards = () => {
       <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-4 shadow-sm">
         <div className="flex flex-col gap-1">
           {currentProject?.name && (
-            <p className="text-xs text-gray-500 font-medium">{currentProject.name}</p>
+            <p className="text-xs text-gray-500 font-medium">
+              {currentProject.name}
+            </p>
           )}
           <SprintDateFilter
             sprints={projectSprints}
@@ -65,7 +68,10 @@ const DashboardCards = () => {
 
       {dashboardError && (
         <div className="px-4 sm:px-6 pt-4">
-          <ErrorAlert message={dashboardError} onDismiss={clearDashboardError} />
+          <ErrorAlert
+            message={dashboardError}
+            onDismiss={clearDashboardError}
+          />
         </div>
       )}
 
@@ -82,6 +88,11 @@ const DashboardCards = () => {
           <VelocityTrend />
           <SprintGoal />
           <SprintHealth />
+        </div>
+
+        {/* Project Health Panel */}
+        <div className="w-full">
+          <ProjectHealthPanel />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
