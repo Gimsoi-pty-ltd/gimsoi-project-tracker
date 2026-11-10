@@ -111,10 +111,6 @@ const ProtectedRoute = ({ children, permission }) => {
     return <Navigate to="/verify-email" replace />;
   }
 
-  if (permission && !hasPermission(user?.role, permission)) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
   return children;
 };
 
@@ -509,18 +505,7 @@ function App() {
               </ProtectedRoute>
             }
           />
-          {/* Kanban Board */}
-          <Route
-            path="/Recommendations"
-            element={
-              <ProtectedRoute>
-                <DashboardLayout>
-                  <Route path="/recommendations" element={<Recommendations />} />
-                </DashboardLayout>
-              </ProtectedRoute>
-            }
-          />
-
+          
           {/* === CATCH-ALL: Redirect to login when unauthenticated === */}
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
