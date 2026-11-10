@@ -1,9 +1,10 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo } from "react";
 import { Info } from "lucide-react";
 import { useProjectStore } from "../../store/projectStore";
 import SprintDateFilter from "../../Dashboard/SprintDateFilter";
 import LoadingSpinner from "../LoadingState/LoadingSpinner";
 import ErrorAlert from "../utils/ErrorAlert";
+import FocusTodayCard from "../FocusToday/FocusTodayCard.jsx";
 
 import TotalTasks from "../../Dashboard/Metrics/totalTasks";
 import CompletionPercentage from "../../Dashboard/Metrics/completionPercentage";
@@ -20,7 +21,7 @@ import TaskDistributionCard from "../../Dashboard/charts/TaskDistributionCard";
 import PriorityHeatmap from "../../Dashboard/PriorityHeatmap";
 import KanbanSummary from "../../Dashboard/KanbanSummary";
 import ActiveTasks from "../../Dashboard/Metrics/ActiveTasks";
-import ProjectHealthPanel from "./ProjectHealthPanel";
+import ProjectHealthPanel from "./ProjectHealthPanel.jsx";
 
 const DashboardCards = () => {
   const {
@@ -31,7 +32,8 @@ const DashboardCards = () => {
     fetchDashboard,
     dashboardLoading,
     dashboardError,
-    clearDashboardError
+    clearDashboardError,
+    updateTaskStatus
   } = useProjectStore((state) => state);
   useEffect(() => {
     fetchDashboard();
@@ -117,6 +119,13 @@ const DashboardCards = () => {
             <KanbanSummary sprintId={activeSprint?.id} />
           </div>
         </div>
+
+        <FocusTodayCard
+          tasks={activeSprint?.tasks || []}
+          loading={dashboardLoading}
+          error={dashboardError}
+          onUpdateStatus={updateTaskStatus}
+        />
 
         <div>
           <ActiveTasks sprintId={activeSprint?.id} />
