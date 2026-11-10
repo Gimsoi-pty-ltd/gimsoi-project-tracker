@@ -32,6 +32,7 @@ const DashboardCards = () => {
     dashboardLoading,
     dashboardError,
     clearDashboardError,
+    updateTaskStatus,
   } = useProjectStore((state) => state);
   useEffect(() => {
     fetchDashboard();
@@ -108,7 +109,12 @@ const DashboardCards = () => {
           </div>
         </div>
 
-        <FocusTodayCard tasks={activeSprint?.tasks || []} />
+        <FocusTodayCard
+  tasks={activeSprint?.tasks || []}
+  loading={dashboardLoading}
+  error={dashboardError}
+  onUpdateStatus={updateTaskStatus}
+/>
 
         <div>
           <ActiveTasks sprintId={activeSprint?.id} />

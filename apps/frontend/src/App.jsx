@@ -197,16 +197,7 @@ function App() {
             }
           />
 
-          <Route
-            path="/recommendations"
-            element={
-              <ProtectedRoute>
-                <DashboardLayout>
-                  <Recommendations />
-                </DashboardLayout>
-              </ProtectedRoute>
-            }
-          />
+          <Route path="/recommendations" element={<div style={{fontSize:'50px', padding:'20px'}}>TEST WORKS</div>} />
 
           {/* === ROOT REDIRECT  === */}
           <Route path="/" element={<Navigate to="/login" replace />} />
