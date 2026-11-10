@@ -1,7 +1,6 @@
-// src/Components/Common/TopBar.jsx
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { HelpCircle, Search, Settings, Menu } from "lucide-react";
+import { HelpCircle, Search, Settings, Menu, Bell } from "lucide-react";
 import logo from "../../assets/Gimsoi-AI.png";
 import { useAuthStore } from "../../store/authStore";
 import { hasPermission } from "../../utils/accessControl";
@@ -16,7 +15,7 @@ const getInitials = (name) => {
     .toUpperCase();
 };
 
-export default function TopBar({ onMenuClick }) {
+export default function TopBar({ onMenuClick, onNotificationClick, unreadCount = 0 }) {
   const location = useLocation();
   const user = useAuthStore((state) => state.user);
   const initials = getInitials(user?.fullName || user?.name);
@@ -178,6 +177,21 @@ export default function TopBar({ onMenuClick }) {
         {/* RIGHT */}
         <div className="flex items-center gap-[10px] sm:gap-[20px]">
           <div className="flex items-center gap-[6px] sm:gap-[12px]">
+            {/* Notifications Bell */}
+            <button
+              type="button"
+              onClick={onNotificationClick}
+              aria-label="Open notifications"
+              className="relative p-2 sm:p-3 hover:bg-blue-500 rounded-full text-blue-100 hover:text-white transition-colors"
+            >
+              <Bell size={24} />
+              {unreadCount > 0 && (
+                <span className="absolute top-1.5 right-1.5 bg-red-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+                  {unreadCount}
+                </span>
+              )}
+            </button>
+
             {buttonItems.map((item) => (
               <Link
                 key={item.href}
@@ -191,7 +205,7 @@ export default function TopBar({ onMenuClick }) {
             ))}
           </div>
 
-          {/* Avatar — shows user initials from context */}
+          {/* Avatar */}
           <Link
             to="/profile"
             title={user?.fullName || user?.name || "Profile"}
