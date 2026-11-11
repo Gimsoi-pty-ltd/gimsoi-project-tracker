@@ -140,6 +140,20 @@ export default function TopBar({ onMenuClick }) {
             >
               More
             </button>
+            {/* Notifications Bell */}
+<button
+  type="button"
+  onClick={onNotificationClick}
+  aria-label="Open notifications"
+  className="relative p-2 sm:p-3 hover:bg-blue-500 rounded-full text-blue-100 hover:text-white transition-colors"
+>
+  <Bell size={24} />
+  {unreadCount > 0 && (
+    <span className="absolute top-1.5 right-1.5 bg-red-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+      {unreadCount}
+    </span>
+  )}
+</button>
 
             {moreOpen && (
               <div
