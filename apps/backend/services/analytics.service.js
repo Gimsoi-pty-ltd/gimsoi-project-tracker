@@ -2,6 +2,7 @@ import prisma, { Prisma } from "../lib/prisma.js";
 import { TASK_STATUS } from "../constants/statuses.js";
 import { getEmployeeWorkloads } from "./employeeCapacity.service.js";
 import { calculateProjectHealth } from "../utils/projectHealth.util.js";
+import { NotFoundError } from "../utils/errors.js";
 // Must match Prisma schema enum names exactly
 const SPRINT_STATUS_ENUM = '"SprintStatus"';
 const TASK_STATUS_ENUM   = '"TaskStatus"';
@@ -236,17 +237,20 @@ export const getTeamPerformance = async ({ limit = 20, cursor } = {}) => {
 };
 
 
-export const getProjectHealth = async ({ projectId }) => {
-  const project = await prisma.project.findUnique({
-    where: { id: projectId },
+export const getProjectHealth = async ({ projectId, userId, role }) => {
+  const project = await prisma.project.findFirst({
+    where: {
+      id: projectId,
+      ...(role === "ADMIN" ? {} : { createdByUserId: userId }),
+    },
     include: {
       analytics: true,
     },
   });
 
   if (!project) {
-    throw new Error("Project not found");
-  }
+  throw new NotFoundError("Project not found");
+}
 
   const analytics = project.analytics;
 
