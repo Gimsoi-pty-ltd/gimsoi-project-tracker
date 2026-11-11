@@ -1,20 +1,21 @@
 // src/Components/Common/TopBar.jsx
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { HelpCircle, Search, Settings, Menu } from "lucide-react";
+import { HelpCircle, Search, Settings, Menu , Bell} from "lucide-react";
 import logo from "../../assets/Gimsoi-AI.png";
 import { useAuthStore } from "../../store/authStore";
 import { hasPermission } from "../../utils/accessControl";
 
-const getInitials = (name) => {
-  if (!name) return "?";
-  return name
-    .split(" ")
-    .map((part) => part[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-};
+
+  function getInitials(name) {
+    if (!name) return "?";
+    return name
+      .split(" ")
+      .map((part) => part[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase();
+  }
 
 export default function TopBar({ onMenuClick }) {
   const location = useLocation();
@@ -140,20 +141,7 @@ export default function TopBar({ onMenuClick }) {
             >
               More
             </button>
-            {/* Notifications Bell */}
-<button
-  type="button"
-  onClick={onNotificationClick}
-  aria-label="Open notifications"
-  className="relative p-2 sm:p-3 hover:bg-blue-500 rounded-full text-blue-100 hover:text-white transition-colors"
->
-  <Bell size={24} />
-  {unreadCount > 0 && (
-    <span className="absolute top-1.5 right-1.5 bg-red-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
-      {unreadCount}
-    </span>
-  )}
-</button>
+            
 
             {moreOpen && (
               <div

@@ -9,7 +9,9 @@ const DashboardLayout = ({ children }) => {
 
     return (
         <div className="min-h-screen bg-[#F8FAFC]" style={{ fontFamily: "Arial, sans-serif" }}>
-            <TopBar onMenuClick={() => setSidebarOpen(true)} />
+            <TopBar onMenuClick={() => setSidebarOpen(true)}
+            onNotificationClick={() => setNotificationsOpen(true)}
+            />
 
             <Sidebar
                 isOpen={sidebarOpen}
