@@ -20,7 +20,7 @@ import TaskDistributionCard from "../../Dashboard/charts/TaskDistributionCard";
 import PriorityHeatmap from "../../Dashboard/PriorityHeatmap";
 import KanbanSummary from "../../Dashboard/KanbanSummary";
 import ActiveTasks from "../../Dashboard/Metrics/ActiveTasks";
-
+import AIProjectInsights from "./AIProjectInsights";
 const DashboardCards = () => {
   const {
     activeSprint,
@@ -77,11 +77,11 @@ const DashboardCards = () => {
         )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          <TotalTasks />
-          <CompletionPercentage />
-          <VelocityTrend />
-          <SprintGoal />
-          <SprintHealth />
+         <TotalTasks />
+         <CompletionPercentage />
+         <VelocityTrend />
+         <SprintGoal />
+         <SprintHealth />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -106,9 +106,12 @@ const DashboardCards = () => {
             <KanbanSummary sprintId={activeSprint?.id} />
           </div>
         </div>
-
+     
         <div>
           <ActiveTasks sprintId={activeSprint?.id} />
+        </div>
+         <div className="w-full">
+         <AIProjectInsights />
         </div>
       </main>
     </div>
