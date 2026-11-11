@@ -88,18 +88,3 @@ export const getAIContext = asyncHandler(async (req, res) => {
 
     return res.status(200).json({ success: true, ...payload });
 });
-export const getProjectHealthHandler = asyncHandler(async (req, res) => {
-    const { projectId } = req.params;
-    const { id: userId, role } = req.user;
-
-    const data = await analyticsService.getProjectHealth({
-        projectId,
-        userId,
-        role,
-    });
-
-    return res.status(200).json({
-        success: true,
-        data,
-    });
-});
