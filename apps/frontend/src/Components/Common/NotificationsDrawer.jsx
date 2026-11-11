@@ -71,17 +71,6 @@ export default function NotificationsDrawer({ isOpen, onClose, children }) {
             )}
           </div>
 
-          {/* Footer */}
-          <div className="p-4 border-t border-gray-100 bg-gray-50 text-center">
-            <button
-              type="button"
-              onClick={onClose}
-              className="text-xs font-medium text-gray-500 hover:text-gray-800 transition-colors"
-            >
-              Close Panel
-            </button>
-          </div>
-
         </div>
       </div>
     </div>

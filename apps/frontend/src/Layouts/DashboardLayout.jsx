@@ -6,6 +6,7 @@ import NotificationsDrawer from "../Components/Common/NotificationsDrawer";
 
 const DashboardLayout = ({ children }) => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [notificationsOpen, setNotificationsOpen] = useState(false);
 
     return (
         <div className="min-h-screen bg-[#F8FAFC]" style={{ fontFamily: "Arial, sans-serif" }}>
