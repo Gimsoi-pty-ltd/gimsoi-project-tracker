@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Outlet } from "react-router-dom";
 import Sidebar from "../Components/Common/SideBar";
 import TopBar from "../Components/Common/TopBar";
+import NotificationsDrawer from "../Components/Common/NotificationsDrawer";
 
 const DashboardLayout = ({ children }) => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
