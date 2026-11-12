@@ -22,19 +22,41 @@ export default function NotificationsDrawer({ isOpen, onClose, children }) {
         onClick={onClose} 
       />
 
-      {/* Slide-out Drawer Panel on the right */}
-      <div className="fixed inset-y-0 right-0 w-full max-w-sm bg-white shadow-xl flex flex-col z-50 transition-transform duration-300">
-        
-        {/* Drawer Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-800">Notifications</h2>
-          <button 
-            onClick={onClose}
-            className="p-1 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100"
-            aria-label="Close notifications panel"
-          >
-            ✕
-          </button>
+      {/* Drawer Panel */}
+      <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
+        <div className="w-screen max-w-md bg-white shadow-2xl flex flex-col transform transition-transform duration-300 ease-in-out">
+          
+          {/* Header */}
+          <div className="px-6 py-5 bg-[#002D62] text-white flex items-center justify-between shadow-sm">
+            <div className="flex items-center gap-3">
+              <Bell className="w-5 h-5 text-blue-200" />
+              <h2 className="text-lg font-semibold text-white m-0">Notifications</h2>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-1.5 rounded-lg text-blue-200 hover:text-white hover:bg-blue-700/50 transition-colors focus:outline-none"
+              aria-label="Close notifications drawer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Body Content */}
+          <div className="flex-1 overflow-y-auto p-6 space-y-4">
+            {children || (
+              <div className="flex flex-col items-center justify-center h-64 text-center">
+                <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 mb-3">
+                  <Bell className="w-6 h-6" />
+                </div>
+                <p className="text-sm font-medium text-gray-900">No new notifications</p>
+                <p className="text-xs text-gray-500 mt-1 max-w-[200px]">
+                  When you get updates about tasks or projects, they'll show up here.
+                </p>
+              </div>
+            )}
+          </div>
+
         </div>
 
         {/* Empty Body ready for real notification cards */}
