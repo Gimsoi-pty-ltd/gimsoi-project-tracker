@@ -1,7 +1,7 @@
 import prisma, { Prisma } from "../lib/prisma.js";
 import { TASK_STATUS } from "../constants/statuses.js";
 import { getEmployeeWorkloads } from "./employeeCapacity.service.js";
-import { calculateProjectHealth } from "../utils/projectHealth.util.js";
+
 // Must match Prisma schema enum names exactly
 const SPRINT_STATUS_ENUM = '"SprintStatus"';
 const TASK_STATUS_ENUM   = '"TaskStatus"';
@@ -235,53 +235,4 @@ export const getTeamPerformance = async ({ limit = 20, cursor } = {}) => {
     });
 };
 
-
-export const getProjectHealth = async ({ projectId }) => {
-  const project = await prisma.project.findUnique({
-    where: { id: projectId },
-    include: {
-      analytics: true,
-    },
-  });
-
-  if (!project) {
-    throw new Error("Project not found");
-  }
-
-  const analytics = project.analytics;
-
-  const totalTasks = analytics?.totalTasks ?? 0;
-  const completedTasks = analytics?.completedTasks ?? 0;
-
-  const percentComplete =
-    totalTasks > 0
-      ? Math.round((completedTasks / totalTasks) * 100)
-      : 0;
-
-  const health = calculateProjectHealth({
-    percentComplete,
-    plannedEndDate: project.endDate,
-    openTasks: totalTasks - completedTasks,
-    closedTasks: completedTasks,
-  });
-
-  return {
-    projectId: project.id,
-    projectName: project.name,
-    projectStatus: project.status,
-
-    totalTasks,
-    completedTasks,
-    blockedTasks: analytics?.blockedTasks ?? 0,
-    cancelledTasks: analytics?.cancelledTasks ?? 0,
-
-    totalSprints: analytics?.totalSprints ?? 0,
-    activeSprints: analytics?.activeSprints ?? 0,
-
-    healthScore: health.score,
-    healthStatus: health.status,
-    taskCompletionRate: health.taskCompletionRate,
-    isOverdue: health.isOverdue,
-  };
-};
 
