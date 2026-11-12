@@ -176,7 +176,7 @@ export default function ProjectHealthPanel() {
 
             {/* health score, performance metrics and risk reasons */}
 
-           <HealthMetrics /> 
+            <HealthMetrics />
           </section>
 
           {/* AI Insights and Recommendations */}
