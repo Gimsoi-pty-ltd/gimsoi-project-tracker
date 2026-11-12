@@ -711,65 +711,6 @@ export const useProjectStore = create((set, get) => ({
         });
     },
 
-updateTaskStatus: async (taskId, newStatus) => {
-  const STATUS_API = {
-    todo: "TODO",
-    inProgress: "IN_PROGRESS",
-    review: "REVIEW",
-    done: "DONE",
-    blocked: "BLOCKED",
-  };
-
-  // Card might send UI status OR backend status - handle both
-  const apiStatus = STATUS_API[newStatus] || newStatus;
-
-  try {
-    const response = await resourceAPI.patch(`/tasks/${taskId}`, {
-      status: apiStatus,
-    });
-    const updatedRaw = response?.data?.data ?? response?.data ?? null;
-
-    // Update both lists so Dashboard + FocusToday refresh instantly
-    set((state) => {
-      const updateList = (list) =>
-        list.map((t) =>
-          t.id === taskId
-            ? { ...t, status: STATUS_UI[apiStatus] || apiStatus, rawStatus: apiStatus }
-            : t
-        );
-
-      const nextProjectTasks = updateList(state.projectTasks);
-
-      // Rebuild activeSprint with new tasks + metrics
-      let nextActiveSprint = state.activeSprint;
-      if (state.activeSprint) {
-        const sprintTasks = nextProjectTasks.filter(
-          (t) => t.sprintId === state.activeSprint.id
-        );
-        nextActiveSprint = {
-          ...state.activeSprint,
-          tasks: sprintTasks
-            .filter((t) => t.status !== "CANCELLED" && t.rawStatus !== "CANCELLED")
-            .map(mapTaskForDashboard),
-          metrics: {
-            ...state.activeSprint.metrics,
-            ...computeSprintMetrics(sprintTasks),
-          },
-        };
-      }
-
-      return {
-        projectTasks: nextProjectTasks,
-        activeSprint: nextActiveSprint,
-      };
-    });
-
-    return updatedRaw;
-  } catch (error) {
-    throw error;
-  }
-},
-
     clearCurrentProject: () => set({ currentProject: null }),
     clearError: () => set({ error: null }),
     clearDashboardError: () => set({ dashboardError: null }),

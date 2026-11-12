@@ -2,11 +2,12 @@ import axios from "axios";
 
 const BASE_API_URL =
   import.meta.env.MODE === "development"
-    ? "http://localhost:5001/api" // <-- Added /api here
+    ? "/api"
     : "https://project-fly-by-10136948328.development.catalystappsail.com/api";
 
 const AUTH_API_URL = `${BASE_API_URL}/auth`;
 const RESOURCE_API_URL = BASE_API_URL;
+
 // Auth API instance for authentication endpoints
 const authAPI = axios.create({
   baseURL: AUTH_API_URL,
