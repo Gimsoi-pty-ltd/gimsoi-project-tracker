@@ -33,6 +33,7 @@ export const getTeamPerformanceHandler = async (req, res, next) => {
     }
 };
 
+// SINGLE, CORRECT VERSION of getProjectHealthHandler
 export const getProjectHealthHandler = asyncHandler(async (req, res) => {
     const { projectId } = req.params;
     const { id: userId, role } = req.user;
