@@ -21,6 +21,7 @@ import labelRoutes from "./routes/label.route.js";
 import activityRoutes from "./routes/activity.route.js";
 import zohoRoutes from "./routes/zoho.route.js";
 import employeeRoutes from "./routes/employee.route.js";
+import notificationRoutes from "./routes/notification.route.js";
 
 import { swaggerSpec } from "./lib/swagger.js";
 import swaggerUi from "swagger-ui-express";
@@ -116,6 +117,7 @@ app.use("/api/labels", labelRoutes);
 app.use("/api/activity", activityRoutes);
 app.use("/api/zoho", zohoRoutes);
 app.use("/api/employees", employeeRoutes);
+app.use("/api/notifications", notificationRoutes);
 app.use(csrfProtection);
 
 // CSRF error handler — must be after routes
