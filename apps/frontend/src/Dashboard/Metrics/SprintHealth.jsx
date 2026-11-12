@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { React } from "react";
 import { useNavigate } from "react-router-dom";
 import { Info, ShieldCheck, ArrowRight, X } from "lucide-react";
 import { useProjectStore } from "../../../store/useProjectStore";

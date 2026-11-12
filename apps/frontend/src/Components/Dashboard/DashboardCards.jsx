@@ -21,8 +21,8 @@ import TaskDistributionCard from "../../Dashboard/charts/TaskDistributionCard";
 import PriorityHeatmap from "../../Dashboard/PriorityHeatmap";
 import KanbanSummary from "../../Dashboard/KanbanSummary";
 import ActiveTasks from "../../Dashboard/Metrics/ActiveTasks";
-import HealthMetrics from "../../Dashboard/Metrics/HealthMetrics"
-import ProjectHealthPanel from "./ProjectHealthPanel.jsx";
+import HealthMetrics from "./HealthMetrics";
+import ProjectHealthPanel from "./ProjectHealthPanel";
 
 const DashboardCards = () => {
   const {
@@ -131,9 +131,6 @@ const DashboardCards = () => {
 
         <div>
           <ActiveTasks sprintId={activeSprint?.id} />
-        </div>
-        <div>
-          <HealthMetrics />
         </div>
       </main>
     </div>

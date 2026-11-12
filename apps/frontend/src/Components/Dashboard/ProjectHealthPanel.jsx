@@ -4,7 +4,7 @@ import { useAuthStore } from "../../store/authStore";
 // import { Info } from "lucide-react";
 import { useProjectStore } from "../../store/projectStore";
 import AIProjectInsights from "./AIProjectInsights";
-
+import HealthMetrics from "./HealthMetrics";
 export default function ProjectHealthPanel() {
   const { user } = useAuthStore();
 
@@ -176,11 +176,7 @@ export default function ProjectHealthPanel() {
 
             {/* health score, performance metrics and risk reasons */}
 
-            <div className="rounded-xl border border-gray-200 p-5 text-center">
-              <p className="text-sm text-gray-500">
-                Health metrics and risk reasons will appear here.
-              </p>
-            </div>
+           <HealthMetrics /> 
           </section>
 
           {/* AI Insights and Recommendations */}
