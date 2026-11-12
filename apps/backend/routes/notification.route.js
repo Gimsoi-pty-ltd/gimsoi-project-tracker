@@ -17,8 +17,9 @@ const notificationLimiter = rateLimit({
 });
 
 // Apply auth and rate limiting to all routes below
-router.use(verifyToken);
+// Apply rate limiting before authentication
 router.use(notificationLimiter);
+router.use(verifyToken);
 
 router.get("/", getMyNotifications);
 router.patch("/read-all", markAllAsRead);

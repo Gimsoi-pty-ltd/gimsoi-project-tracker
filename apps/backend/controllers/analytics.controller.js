@@ -2,7 +2,6 @@ import { z } from 'zod';
 import * as analyticsService from "../services/analytics.service.js";
 import { asyncHandler } from "../middleware/async-handler.middleware.js";
 import { buildPage } from '../utils/pagination.js';
-import prisma from "../lib/prisma.js"; 
 
 export const teamAnalyticsSchema = z.object({
     limit: z.string().optional().transform(val => val ? parseInt(val, 10) : 20),
@@ -33,6 +32,23 @@ export const getTeamPerformanceHandler = async (req, res, next) => {
         next(err);
     }
 };
+
+// SINGLE, CORRECT VERSION of getProjectHealthHandler
+export const getProjectHealthHandler = asyncHandler(async (req, res) => {
+    const { projectId } = req.params;
+    const { id: userId, role } = req.user;
+
+    const data = await analyticsService.getProjectHealth({
+        projectId,
+        userId,
+        userRole: role,
+    });
+
+    return res.status(200).json({
+        success: true,
+        data,
+    });
+});
 
 export const getAIContext = asyncHandler(async (req, res) => {
     const { canViewProject, canViewTeam, taskFilter, ownerIdForRaw } = req.analyticsScope;
@@ -89,43 +105,3 @@ export const getAIContext = asyncHandler(async (req, res) => {
 
     return res.status(200).json({ success: true, ...payload });
 });
-
-// ------------------------------------------------------------------
-// FIXED: Removed duplicate, added security check for PMs
-// ------------------------------------------------------------------
-export const getProjectHealthHandler = async (req, res, next) => {
-    try {
-        const { projectId } = req.params;
-        const userId = req.user.id;
-        const userRole = req.user.role;
-
-        // 1. Fetch the project and its analytics
-        const project = await prisma.project.findUnique({
-            where: { id: projectId },
-            include: { 
-                analytics: true,
-                members: true 
-            }
-        });
-
-        if (!project) {
-            return res.status(404).json({ success: false, message: "Project not found" });
-        }
-
-        // 2. Security Check: PMs can only view projects they are a member of
-        if (userRole === 'PM') {
-            const isMember = project.members.some(member => member.userId === userId);
-            if (!isMember) {
-                return res.status(404).json({ success: false, message: "Project not found" });
-            }
-        }
-
-        // 3. Return the data
-        res.status(200).json({ 
-            success: true, 
-            data: project.analytics || { message: "No analytics data available yet" } 
-        });
-    } catch (error) {
-        next(error);
-    }
-};
