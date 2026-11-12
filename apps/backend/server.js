@@ -118,6 +118,7 @@ app.use("/api/activity", activityRoutes);
 app.use("/api/zoho", zohoRoutes);
 app.use("/api/employees", employeeRoutes);
 app.use("/api/notifications", notificationRoutes);
+
 app.use(csrfProtection);
 
 // CSRF error handler — must be after routes
