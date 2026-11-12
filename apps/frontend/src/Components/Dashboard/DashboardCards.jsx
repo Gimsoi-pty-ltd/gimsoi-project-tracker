@@ -131,10 +131,7 @@ const DashboardCards = () => {
         <div>
           <ActiveTasks sprintId={activeSprint?.id} />
         </div>
-<<<<<<< HEAD
-=======
        
->>>>>>> 728c2ce51304900b11ce3e16501d15fa3a4573f7
       </main>
     </div>
   );
