@@ -1,9 +1,10 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo } from "react";
 import { Info } from "lucide-react";
 import { useProjectStore } from "../../store/projectStore";
 import SprintDateFilter from "../../Dashboard/SprintDateFilter";
 import LoadingSpinner from "../LoadingState/LoadingSpinner";
 import ErrorAlert from "../utils/ErrorAlert";
+import FocusTodayCard from "../FocusToday/FocusTodayCard.jsx";
 
 import TotalTasks from "../../Dashboard/Metrics/totalTasks";
 import CompletionPercentage from "../../Dashboard/Metrics/completionPercentage";
@@ -20,6 +21,8 @@ import TaskDistributionCard from "../../Dashboard/charts/TaskDistributionCard";
 import PriorityHeatmap from "../../Dashboard/PriorityHeatmap";
 import KanbanSummary from "../../Dashboard/KanbanSummary";
 import ActiveTasks from "../../Dashboard/Metrics/ActiveTasks";
+import HealthMetrics from "./HealthMetrics";
+import ProjectHealthPanel from "./ProjectHealthPanel";
 
 const DashboardCards = () => {
   const {
@@ -31,6 +34,7 @@ const DashboardCards = () => {
     dashboardLoading,
     dashboardError,
     clearDashboardError,
+    updateTaskStatus
   } = useProjectStore((state) => state);
   useEffect(() => {
     fetchDashboard();
@@ -49,7 +53,9 @@ const DashboardCards = () => {
       <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-4 shadow-sm">
         <div className="flex flex-col gap-1">
           {currentProject?.name && (
-            <p className="text-xs text-gray-500 font-medium">{currentProject.name}</p>
+            <p className="text-xs text-gray-500 font-medium">
+              {currentProject.name}
+            </p>
           )}
           <SprintDateFilter
             sprints={projectSprints}
@@ -65,7 +71,10 @@ const DashboardCards = () => {
 
       {dashboardError && (
         <div className="px-4 sm:px-6 pt-4">
-          <ErrorAlert message={dashboardError} onDismiss={clearDashboardError} />
+          <ErrorAlert
+            message={dashboardError}
+            onDismiss={clearDashboardError}
+          />
         </div>
       )}
 
@@ -83,6 +92,12 @@ const DashboardCards = () => {
           <SprintGoal />
           <SprintHealth />
         </div>
+
+        {/* Project Health Panel */}
+        <div className="w-full">
+          <ProjectHealthPanel />
+        </div>
+       
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <OverdueTasks />
@@ -106,6 +121,13 @@ const DashboardCards = () => {
             <KanbanSummary sprintId={activeSprint?.id} />
           </div>
         </div>
+
+        <FocusTodayCard
+          tasks={activeSprint?.tasks || []}
+          loading={dashboardLoading}
+          error={dashboardError}
+          onUpdateStatus={updateTaskStatus}
+        />
 
         <div>
           <ActiveTasks sprintId={activeSprint?.id} />
