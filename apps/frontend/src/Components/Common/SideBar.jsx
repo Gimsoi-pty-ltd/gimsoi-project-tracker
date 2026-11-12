@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Home, FolderKanban, ListTodo, Users, PieChart, X, LogOut, ChevronDown } from "lucide-react";
+import { Home, FolderKanban, ListTodo, Users, PieChart, X, LogOut, ChevronDown, Sparkles } from "lucide-react";
 import { useProjectStore } from "../../store/projectStore";
 import { useAuthStore } from "../../store/authStore";
 import { hasPermission } from "../../utils/accessControl";
@@ -119,6 +119,8 @@ export default function Sidebar({ isOpen, onClose }) {
         { label: "Users", icon: Users, href: "/users", permission: "VIEW_USERS" },
         { label: "Team Insights", icon: Users, href: "/teamInsights", permission: "VIEW_ANALYTICS" },
         { label: "Reports", icon: PieChart, href: "/reports", permission: "VIEW_REPORTS" },
+        { label: "AI Recommendations", icon: Sparkles, href: "/Recommendations", permission: "VIEW_REPORTS" },
+        
     ].filter((item) => hasPermission(authUser?.role, item.permission));
     return (
         <>
