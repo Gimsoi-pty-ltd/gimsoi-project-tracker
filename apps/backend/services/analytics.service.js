@@ -1,7 +1,8 @@
 import prisma, { Prisma } from "../lib/prisma.js";
 import { TASK_STATUS } from "../constants/statuses.js";
 import { getEmployeeWorkloads } from "./employeeCapacity.service.js";
-
+import { NotFoundError } from "../utils/errors.js";
+import { assertOwnership } from "../utils/ownership.js";
 // Must match Prisma schema enum names exactly
 const SPRINT_STATUS_ENUM = '"SprintStatus"';
 const TASK_STATUS_ENUM   = '"TaskStatus"';
