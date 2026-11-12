@@ -1,5 +1,5 @@
 import prisma from "../lib/prisma.js";
- 
+
 // 1. Get all notifications for the logged-in user
 export const getMyNotifications = async (req, res, next) => {
   try {
@@ -13,7 +13,7 @@ export const getMyNotifications = async (req, res, next) => {
     next(error);
   }
 };
- 
+
 // 2. Mark a specific notification as read
 export const markAsRead = async (req, res, next) => {
   try {
@@ -30,7 +30,7 @@ export const markAsRead = async (req, res, next) => {
     next(error);
   }
 };
- 
+
 // 3. Mark ALL notifications as read
 export const markAllAsRead = async (req, res, next) => {
   try {
@@ -43,7 +43,7 @@ export const markAllAsRead = async (req, res, next) => {
     next(error);
   }
 };
- 
+
 // 4. Helper function to create a notification (to be used in other controllers)
 export const createNotification = async (userId, title, message, type = "INFO") => {
   try {
@@ -53,4 +53,4 @@ export const createNotification = async (userId, title, message, type = "INFO") 
   } catch (error) {
     console.error("Failed to create notification:", error);
   }
-}
+};
