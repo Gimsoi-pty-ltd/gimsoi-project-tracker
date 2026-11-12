@@ -2,6 +2,7 @@ import { z } from 'zod';
 import * as analyticsService from "../services/analytics.service.js";
 import { asyncHandler } from "../middleware/async-handler.middleware.js";
 import { buildPage } from '../utils/pagination.js';
+import prisma from "../lib/prisma.js"; // Added for the new handler
 
 export const teamAnalyticsSchema = z.object({
     limit: z.string().optional().transform(val => val ? parseInt(val, 10) : 20),
@@ -88,3 +89,29 @@ export const getAIContext = asyncHandler(async (req, res) => {
 
     return res.status(200).json({ success: true, ...payload });
 });
+
+// ------------------------------------------------------------------
+// ADDED: The missing handler that was crashing the server
+// ------------------------------------------------------------------
+export const getProjectHealthHandler = async (req, res, next) => {
+    try {
+        const { projectId } = req.params;
+        
+        // Fetch the project and its analytics from Prisma
+        const project = await prisma.project.findUnique({
+            where: { id: projectId },
+            include: { analytics: true }
+        });
+
+        if (!project) {
+            return res.status(404).json({ success: false, message: "Project not found" });
+        }
+
+        res.status(200).json({ 
+            success: true, 
+            data: project.analytics || { message: "No analytics data available yet" } 
+        });
+    } catch (error) {
+        next(error);
+    }
+};
