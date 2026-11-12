@@ -1,7 +1,8 @@
 import prisma, { Prisma } from "../lib/prisma.js";
 import { TASK_STATUS } from "../constants/statuses.js";
 import { getEmployeeWorkloads } from "./employeeCapacity.service.js";
-
+import { ForbiddenError, NotFoundError } from "../utils/errors.js";
+import { assertOwnership } from "../utils/ownership.js";
 // Must match Prisma schema enum names exactly
 const SPRINT_STATUS_ENUM = '"SprintStatus"';
 const TASK_STATUS_ENUM   = '"TaskStatus"';
@@ -236,3 +237,55 @@ export const getTeamPerformance = async ({ limit = 20, cursor } = {}) => {
 };
 
 
+
+/**
+ * Retrieves project health analytics.
+ *
+ * @param {object} options
+ * @param {string} options.projectId
+ * @param {string} options.userId
+ * @param {string} options.userRole
+ * @returns {Promise<object>}
+ */
+export const getProjectHealth = async ({
+    projectId,
+    userId,
+    userRole,
+}) => {
+    const project = await prisma.project.findUnique({
+        where: {
+            id: String(projectId),
+        },
+        include: {
+            analytics: true,
+        },
+    });
+      
+    if (!project) {
+    throw new NotFoundError('Project not found');
+    }
+
+    
+   // Apply the existing project ownership rules.
+try {
+    assertOwnership(project, userId, userRole);
+} catch (error) {
+    // Hide projects belonging to another PM.
+    if (userRole === 'PM' && error instanceof ForbiddenError) {
+        throw new NotFoundError('Project not found');
+    }
+
+    throw error;
+}
+
+    // Return a meaningful response if analytics have not been generated.
+    if (!project.analytics) {
+        return {
+            projectId: project.id,
+            syncStatus: 'pending',
+            message: 'No analytics data available yet',
+        };
+    }
+
+    return project.analytics;
+};
