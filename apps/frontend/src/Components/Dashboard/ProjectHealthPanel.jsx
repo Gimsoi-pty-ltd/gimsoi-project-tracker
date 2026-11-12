@@ -103,9 +103,9 @@ export default function ProjectHealthPanel() {
     fetchHealthData();
   }, [fetchHealthData]);
 
-  // if (!isProjectManager) {
-  //   return null;
-  // }
+  if (!isProjectManager) {
+    return null;
+  }
 
   return (
     <div className="w-full bg-white border border-gray-200 rounded-2xl p-5 shadow-sm sm:p-5 min-w-0">
