@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { ShieldCheck, AlertCircle } from "lucide-react";
 import { useAuthStore } from "../../store/authStore";
 import { Info } from "lucide-react";
+import AIProjectInsights from "./AIProjectInsights";
 
 export default function ProjectHealthPanel() {
   const { user } = useAuthStore();
@@ -88,19 +89,13 @@ export default function ProjectHealthPanel() {
           </section>
 
           {/* AI Insights and Recommendations */}
-          <section className="space-y-4">
-            <h3 className="text-base font-semibold text-gray-800">
-              AI Insights & Recommendations
-            </h3>
+            <section className="space-y-4">
+             <h3 className="text-base font-semibold text-gray-800">
+                 AI Insights & Recommendations
+             </h3>
 
-            {/*AI insights and recommendations */}
-
-            <div className="rounded-xl border border-gray-200 p-5 text-center">
-              <p className="text-sm text-gray-500">
-                AI insights and recommendations will appear here.
-              </p>
-            </div>
-          </section>
+              <AIProjectInsights />
+            </section>
         </div>
       )}
     </div>
