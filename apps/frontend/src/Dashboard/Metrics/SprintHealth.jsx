@@ -1,7 +1,7 @@
-import { React } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Info, ShieldCheck, ArrowRight, X } from "lucide-react";
-import { useProjectStore } from "../../../store/useProjectStore";
+import { Info, ShieldCheck, ArrowRight, X, TrendingUp } from "lucide-react";
+import { useProjectStore } from "../../store/projectStore";
 
 const SprintHealth = () => {
   const [showInfo, setShowInfo] = useState(false);
