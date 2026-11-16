@@ -4,7 +4,7 @@ import { useProjectStore } from "../../store/projectStore";
 import SprintDateFilter from "../../Dashboard/SprintDateFilter";
 import LoadingSpinner from "../LoadingState/LoadingSpinner";
 import ErrorAlert from "../utils/ErrorAlert";
-import FocusTodayCard from "../FocusToday/FocusTodayCard.jsx";
+import FocusNotification from "../FocusToday/FocusNotification.jsx";
 
 import TotalTasks from "../../Dashboard/Metrics/totalTasks";
 import CompletionPercentage from "../../Dashboard/Metrics/completionPercentage";
@@ -23,8 +23,15 @@ import KanbanSummary from "../../Dashboard/KanbanSummary";
 import ActiveTasks from "../../Dashboard/Metrics/ActiveTasks";
 import HealthMetrics from "./HealthMetrics";
 import ProjectHealthPanel from "./ProjectHealthPanel";
+import { useAuthStore } from "../../store/authStore";
 
 const DashboardCards = () => {
+  const user = useAuthStore((state) => state.user);
+
+  // Check role: Hides ONLY for PM and Client
+  const userRole = user?.role?.toLowerCase() || "";
+  const isEmployeeView = !["pm", "project_manager", "project manager", "client"].includes(userRole);
+
   const {
     activeSprint,
     projectSprints,
@@ -36,6 +43,7 @@ const DashboardCards = () => {
     clearDashboardError,
     updateTaskStatus
   } = useProjectStore((state) => state);
+
   useEffect(() => {
     fetchDashboard();
   }, [fetchDashboard]);
@@ -79,6 +87,11 @@ const DashboardCards = () => {
       )}
 
       <main className="flex-1 p-4 sm:p-6 max-w-[1920px] mx-auto w-full space-y-6 relative">
+        {/* Hidden for PM & Client / Shown for Employees & Interns */}
+        {isEmployeeView && (
+          <FocusNotification taskCount={activeSprint?.tasks?.length || 0} />
+        )}
+        
         {dashboardLoading && (
           <div className="absolute inset-0 bg-white/60 z-10 flex items-center justify-center rounded-lg">
             <LoadingSpinner size="sm" message="Updating sprint…" />
@@ -121,13 +134,6 @@ const DashboardCards = () => {
             <KanbanSummary sprintId={activeSprint?.id} />
           </div>
         </div>
-
-        <FocusTodayCard
-          tasks={activeSprint?.tasks || []}
-          loading={dashboardLoading}
-          error={dashboardError}
-          onUpdateStatus={updateTaskStatus}
-        />
 
         <div>
           <ActiveTasks sprintId={activeSprint?.id} />
