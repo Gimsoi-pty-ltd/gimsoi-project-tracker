@@ -55,9 +55,9 @@ const normalizeStatus = (status) => {
 function TasksPageContent() {
   const user = useAuthStore((state) => state.user);
 
-  // Check role: Hides ONLY for PM and Client
-  const userRole = user?.role?.toLowerCase() || "";
-  const isEmployeeView = !["pm", "project_manager", "project manager", "client"].includes(userRole);
+  // Check role: ONLY interns can see
+  const userRole = user?.role?.toLowerCase().trim() || "";
+  const isIntern = userRole === "intern" || userRole === "interns";
 
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get("tab") || "overdue";
@@ -121,8 +121,8 @@ function TasksPageContent() {
           </button>
         </div>
 
-        {/* Focus Today Card - Hidden for PM & Client / Shown for Employees & Interns */}
-        {isEmployeeView && (
+        {/* Focus Today Card - Shown ONLY for Interns */}
+        {isIntern && (
           <div className="mb-6">
             <FocusTodayCard
               tasks={taskSource}

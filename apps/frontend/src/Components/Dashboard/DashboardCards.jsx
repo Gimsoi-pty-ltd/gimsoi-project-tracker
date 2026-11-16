@@ -28,9 +28,9 @@ import { useAuthStore } from "../../store/authStore";
 const DashboardCards = () => {
   const user = useAuthStore((state) => state.user);
 
-  // Check role: Hides ONLY for PM and Client
-  const userRole = user?.role?.toLowerCase() || "";
-  const isEmployeeView = !["pm", "project_manager", "project manager", "client"].includes(userRole);
+  // Check role: ONLY interns can see
+  const userRole = user?.role?.toLowerCase().trim() || "";
+  const isIntern = userRole === "intern" || userRole === "interns";
 
   const {
     activeSprint,
@@ -87,8 +87,8 @@ const DashboardCards = () => {
       )}
 
       <main className="flex-1 p-4 sm:p-6 max-w-[1920px] mx-auto w-full space-y-6 relative">
-        {/* Hidden for PM & Client / Shown for Employees & Interns */}
-        {isEmployeeView && (
+        {/* Shown ONLY for Interns */}
+        {isIntern && (
           <FocusNotification taskCount={activeSprint?.tasks?.length || 0} />
         )}
         
