@@ -21,9 +21,15 @@ import TaskDistributionCard from "../../Dashboard/charts/TaskDistributionCard";
 import PriorityHeatmap from "../../Dashboard/PriorityHeatmap";
 import KanbanSummary from "../../Dashboard/KanbanSummary";
 import ActiveTasks from "../../Dashboard/Metrics/ActiveTasks";
-import HealthMetrics from "./HealthMetrics";
+import { useAuthStore } from "../../store/authStore";
 
 const DashboardCards = () => {
+  const user = useAuthStore((state) => state.user);
+
+  // Check role: ONLY interns can see
+  const userRole = user?.role?.toLowerCase().trim() || "";
+  const isIntern = userRole === "intern" || userRole === "interns";
+
   const {
     activeSprint,
     projectSprints,
@@ -78,6 +84,11 @@ const DashboardCards = () => {
       )}
 
       <main className="flex-1 p-4 sm:p-6 max-w-[1920px] mx-auto w-full space-y-6 relative">
+        {/* Shown ONLY for Interns
+        {isIntern && (
+          // <FocusNotification taskCount={activeSprint?.tasks?.length || 0} />
+        )} */}
+
         {dashboardLoading && (
           <div className="absolute inset-0 bg-white/60 z-10 flex items-center justify-center rounded-lg">
             <LoadingSpinner size="sm" message="Updating sprint…" />
