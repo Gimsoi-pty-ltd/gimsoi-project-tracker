@@ -64,7 +64,7 @@ const AIProjectInsights = () => {
 
           <div>
             <h2 className="text-xs sm:text-sm font-bold text-sky-500 uppercase tracking-wide">
-              Project Insights
+              AI Project Insights
             </h2>
             <p className="text-sm text-gray-500">
               Rule-based project recommendations

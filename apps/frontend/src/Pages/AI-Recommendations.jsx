@@ -3,6 +3,7 @@ import DropDown from "../Components/DropDown";
 import RecommendationCard from "../Components/RecommendationCard";
 import { resourceAPI } from "../api/api";
 import { useProjectStore } from "../store/projectStore";
+import AIProjectInsights from "./AIProjectInsights";
 
 export default function Recommendations() {
   const currentProject = useProjectStore((state) => state.currentProject);
@@ -349,7 +350,12 @@ export default function Recommendations() {
             />
           ))
         )}
-      </div>
+          
+        </div>
+        {/* AI Project Insights */}
+          <div className="mt-8">
+           <AIProjectInsights />
+        </div>
     </div>
   );
 }

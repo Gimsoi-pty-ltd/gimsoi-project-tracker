@@ -3,7 +3,7 @@ import { ShieldCheck, RefreshCw, AlertCircle } from "lucide-react";
 import { useAuthStore } from "../../store/authStore";
 // import { Info } from "lucide-react";
 import { useProjectStore } from "../../store/projectStore";
-import AIProjectInsights from "./AIProjectInsights";
+
 import HealthMetrics from "./HealthMetrics";
 export default function ProjectHealthPanel() {
   const { user } = useAuthStore();
@@ -179,14 +179,7 @@ export default function ProjectHealthPanel() {
             <HealthMetrics />
           </section>
 
-          {/* AI Insights and Recommendations */}
-          <section className="space-y-4">
-            <h3 className="text-base font-semibold text-gray-800">
-              AI Insights & Recommendations
-            </h3>
-
-            <AIProjectInsights />
-          </section>
+         
         </div>
       )}
     </div>
