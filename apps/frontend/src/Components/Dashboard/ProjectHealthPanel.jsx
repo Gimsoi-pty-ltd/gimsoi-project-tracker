@@ -13,7 +13,8 @@ export default function ProjectHealthPanel() {
   console.log("User role:", user?.role);
 
   const userRole = user?.role?.toLowerCase().replace(/_/g, " ");
-  const isProjectManager = userRole === "project manager";
+
+  const isProjectManager = userRole === "project manager" || userRole === "pm";
 
   const currentProject = useProjectStore((state) => state.currentProject);
   const ensureDashboardLoaded = useProjectStore(
@@ -103,12 +104,12 @@ export default function ProjectHealthPanel() {
     fetchHealthData();
   }, [fetchHealthData]);
 
-  if (!isProjectManager) {
-    return null;
-  }
+  // if (!isProjectManager) {
+  //   return null;
+  // }
 
   return (
-    <div className="w-full bg-white border border-gray-200 rounded-2xl p-5 shadow-sm sm:p-5 min-w-0">
+    <div className="w-full rounded-2xl bg-white border border-gray-100 shadow-sm p-6">
       {/* Panel header */}
       <div className="flex items-center gap-3 mb-5">
         <div className="p-2 bg-blue-50 rounded-lg">

@@ -22,7 +22,6 @@ import PriorityHeatmap from "../../Dashboard/PriorityHeatmap";
 import KanbanSummary from "../../Dashboard/KanbanSummary";
 import ActiveTasks from "../../Dashboard/Metrics/ActiveTasks";
 import HealthMetrics from "./HealthMetrics";
-import ProjectHealthPanel from "./ProjectHealthPanel";
 
 const DashboardCards = () => {
   const {
@@ -92,12 +91,6 @@ const DashboardCards = () => {
           <SprintGoal />
           <SprintHealth />
         </div>
-
-        {/* Project Health Panel */}
-        <div className="w-full">
-          <ProjectHealthPanel />
-        </div>
-       
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <OverdueTasks />
