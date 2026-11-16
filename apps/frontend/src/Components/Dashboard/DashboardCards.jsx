@@ -4,7 +4,7 @@ import { useProjectStore } from "../../store/projectStore";
 import SprintDateFilter from "../../Dashboard/SprintDateFilter";
 import LoadingSpinner from "../LoadingState/LoadingSpinner";
 import ErrorAlert from "../utils/ErrorAlert";
-import FocusTodayCard from "../FocusToday/FocusTodayCard.jsx";
+import FocusNotification from "../FocusToday/FocusNotification.jsx";
 
 import TotalTasks from "../../Dashboard/Metrics/totalTasks";
 import CompletionPercentage from "../../Dashboard/Metrics/completionPercentage";
@@ -24,9 +24,10 @@ import ActiveTasks from "../../Dashboard/Metrics/ActiveTasks";
 import { useAuthStore } from "../../store/authStore";
 
 const DashboardCards = () => {
+  
   const user = useAuthStore((state) => state.user);
 
-  // Check role: ONLY interns can see
+  //role Check : ONLY interns can see
   const userRole = user?.role?.toLowerCase().trim() || "";
   const isIntern = userRole === "intern" || userRole === "interns";
 
@@ -84,10 +85,14 @@ const DashboardCards = () => {
       )}
 
       <main className="flex-1 p-4 sm:p-6 max-w-[1920px] mx-auto w-full space-y-6 relative">
-        {/* Shown ONLY for Interns
-        {isIntern && (
-          // <FocusNotification taskCount={activeSprint?.tasks?.length || 0} />
-        )} */}
+      
+         {isIntern && <FocusNotification />}
+
+        {dashboardLoading && (
+          <div className="absolute inset-0 bg-white/60 z-10 flex items-center justify-center rounded-lg">
+            <LoadingSpinner size="sm" message="Updating sprint…" />
+          </div>
+        )}
 
         {dashboardLoading && (
           <div className="absolute inset-0 bg-white/60 z-10 flex items-center justify-center rounded-lg">
@@ -126,12 +131,7 @@ const DashboardCards = () => {
           </div>
         </div>
 
-        <FocusTodayCard
-          tasks={activeSprint?.tasks || []}
-          loading={dashboardLoading}
-          error={dashboardError}
-          onUpdateStatus={updateTaskStatus}
-        />
+    
 
         <div>
           <ActiveTasks sprintId={activeSprint?.id} />
