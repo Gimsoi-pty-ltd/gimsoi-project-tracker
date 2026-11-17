@@ -33,6 +33,23 @@ export const getTeamPerformanceHandler = async (req, res, next) => {
     }
 };
 
+// SINGLE, CORRECT VERSION of getProjectHealthHandler
+export const getProjectHealthHandler = asyncHandler(async (req, res) => {
+    const { projectId } = req.params;
+    const { id: userId, role } = req.user;
+
+    const data = await analyticsService.getProjectHealth({
+        projectId,
+        userId,
+        userRole: role,
+    });
+
+    return res.status(200).json({
+        success: true,
+        data,
+    });
+});
+
 export const getAIContext = asyncHandler(async (req, res) => {
     const { canViewProject, canViewTeam, taskFilter, ownerIdForRaw } = req.analyticsScope;
     const { projectId, cursor, limit: rawLimit, startDate, endDate } = req.query;
@@ -88,3 +105,4 @@ export const getAIContext = asyncHandler(async (req, res) => {
 
     return res.status(200).json({ success: true, ...payload });
 });
+
