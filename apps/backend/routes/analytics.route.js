@@ -9,7 +9,8 @@ import {
     getTeamPerformanceHandler,
     teamAnalyticsSchema,
     getAIContext,
-    ingestHealthScore
+    ingestHealthScore,
+    getProjectHealthHandler
 } from '../controllers/analytics.controller.js';
 import { requireCSRF } from '../middleware/csrf.middleware.js';
 import { writeLimiter } from '../middleware/rate-limiter.middleware.js';
@@ -32,6 +33,7 @@ router.post('/metrics', writeLimiter, verifyToken, authorize('VIEW_ANALYTICS'), 
  */
 router.get('/team', readLimiter, verifyToken, authorize('VIEW_ANALYTICS'), validate(teamAnalyticsSchema, 'query'), getTeamPerformanceHandler);
 
+router.get('/project-health/:projectId', readLimiter, verifyToken, requireAnyRole(['ADMIN', 'PM']), getProjectHealthHandler);
 /**
  * GET /api/analytics/ai-context
  *
