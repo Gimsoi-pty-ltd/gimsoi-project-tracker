@@ -2,7 +2,8 @@ import express from "express";
 import { verifyToken } from "../middleware/verify-token.middleware.js";
 import { requireAnyRole } from "../middleware/rbac.middleware.js";
 import { readLimiter } from "../middleware/rate-limiter.middleware.js";
-import { validate } from "../middleware/validate.middleware.js";
+import { validate } from "../middleware/validate.middleware.js"; 
+import { getMyWorkloadController } from "../controllers/workload.controller.js";
 import {
     listEmployeeCapacity,
     getEmployeeCapacityById,
@@ -15,7 +16,19 @@ import {
 } from "../schemas/employee.schema.js";
 import prisma from "../lib/prisma.js";
 
-const router = express.Router();
+const router = express.Router(); 
+
+/**
+ * GET /api/employees/me/workload
+ * Returns workload information for the authenticated employee.
+ */
+router.get(
+  "/me/workload",
+  readLimiter,
+  verifyToken,
+  requireAnyRole(["ADMIN", "PM", "INTERN"]),
+  getMyWorkloadController
+);
 
 /**
  * GET /api/employees
