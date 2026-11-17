@@ -1,23 +1,51 @@
-
 import NavyButton from "../../Components/Buttons/NavyButton";
 import ProjectForm from "../../Components/ProjectForm/ProjectForm";
 import { useProjectStore } from "../../store/projectStore";
 import EmptyState from "../../Components/utils/EmptyState";
 import ErrorAlert from "../../Components/utils/ErrorAlert";
 import LoadingSpinner from "../../Components/LoadingState/LoadingSpinner";
-import { useNavigate, Link } from "react-router-dom";  
-import { useState,  useEffect, useRef } from "react"; 
-import { Search, Plus, Zap, MoreHorizontal, ChevronDown, Pencil, Trash2 } from "lucide-react";
+import { useNavigate, Link } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
+import {
+  Search,
+  Plus,
+  Zap,
+  MoreHorizontal,
+  ChevronDown,
+  Pencil,
+  Trash2
+} from "lucide-react";
 import { useAuthStore } from "../../store/authStore";
 import { hasPermission } from "../../utils/accessControl";
+import ProjectHealthPanel from "../../Components/Dashboard/ProjectHealthPanel";
 
 // ─── Status config ────────────────────────────────────────────────────────────
 // Must match the backend's ProjectStatus enum exactly (see project.schema.js)
 const STATUS_CONFIG = {
-  DRAFT:     { label: "Draft",    dot: "bg-gray-400",    text: "text-gray-600",    bg: "bg-gray-100"   },
-  ACTIVE:    { label: "Active",   dot: "bg-blue-500",    text: "text-blue-600",    bg: "bg-blue-50"    },
-  COMPLETED: { label: "Complete", dot: "bg-emerald-500", text: "text-emerald-600", bg: "bg-emerald-50" },
-  ARCHIVED:  { label: "Archived", dot: "bg-slate-400",   text: "text-slate-600",   bg: "bg-slate-100"  },
+  DRAFT: {
+    label: "Draft",
+    dot: "bg-gray-400",
+    text: "text-gray-600",
+    bg: "bg-gray-100"
+  },
+  ACTIVE: {
+    label: "Active",
+    dot: "bg-blue-500",
+    text: "text-blue-600",
+    bg: "bg-blue-50"
+  },
+  COMPLETED: {
+    label: "Complete",
+    dot: "bg-emerald-500",
+    text: "text-emerald-600",
+    bg: "bg-emerald-50"
+  },
+  ARCHIVED: {
+    label: "Archived",
+    dot: "bg-slate-400",
+    text: "text-slate-600",
+    bg: "bg-slate-100"
+  }
 };
 
 const getStatusCfg = (status) =>
@@ -25,7 +53,7 @@ const getStatusCfg = (status) =>
 
 const PROGRESS_COLOR = (pct) => {
   if (pct >= 100) return "bg-emerald-500";
-  if (pct >= 60)  return "bg-blue-500";
+  if (pct >= 60) return "bg-blue-500";
   return "bg-orange-400";
 };
 
@@ -36,13 +64,19 @@ function StatusBadge({ status, onChange }) {
   const cfg = getStatusCfg(status);
 
   useEffect(() => {
-    const h = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    const h = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
     document.addEventListener("mousedown", h);
     return () => document.removeEventListener("mousedown", h);
   }, []);
 
   return (
-    <div className="relative inline-block" ref={ref} onClick={(e) => e.stopPropagation()}>
+    <div
+      className="relative inline-block"
+      ref={ref}
+      onClick={(e) => e.stopPropagation()}
+    >
       <button
         onClick={() => setOpen((p) => !p)}
         className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium ${cfg.bg} ${cfg.text} transition-all hover:opacity-80`}
@@ -56,7 +90,10 @@ function StatusBadge({ status, onChange }) {
           {Object.entries(STATUS_CONFIG).map(([key, val]) => (
             <button
               key={key}
-              onClick={() => { onChange && onChange(key); setOpen(false); }}
+              onClick={() => {
+                onChange && onChange(key);
+                setOpen(false);
+              }}
               className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
             >
               <span className={`w-2 h-2 rounded-full ${val.dot}`} />
@@ -70,38 +107,66 @@ function StatusBadge({ status, onChange }) {
 }
 
 // ─── Project Row ──────────────────────────────────────────────────────────────
-function ProjectRow({ project, onNavigate, onDelete, onStatusChange, canManageProjects }) {
+function ProjectRow({
+  project,
+  onNavigate,
+  onDelete,
+  onStatusChange,
+  canManageProjects
+}) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
   const pct = project.percentComplete || 0;
 
   useEffect(() => {
-    const h = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false); };
+    const h = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target))
+        setMenuOpen(false);
+    };
     document.addEventListener("mousedown", h);
     return () => document.removeEventListener("mousedown", h);
   }, []);
 
-  const clientName = typeof project.client === "object" ? project.client?.name : project.client;
+  const clientName =
+    typeof project.client === "object" ? project.client?.name : project.client;
   const sprints = Array.isArray(project.sprints) ? project.sprints : [];
-  const displaySprint = sprints.find((s) => s.status === "ACTIVE") || sprints[sprints.length - 1];
+  const displaySprint =
+    sprints.find((s) => s.status === "ACTIVE") || sprints[sprints.length - 1];
   return (
     <div
       className="grid grid-cols-[1fr_1.2fr_1fr_0.8fr_1.4fr_44px] items-center px-6 py-4 hover:bg-slate-50 transition-colors cursor-pointer border-b border-gray-100 last:border-0 group"
       onClick={() => onNavigate(project)}
     >
-      <div className="text-sm font-medium text-gray-700 truncate pr-4">{clientName || "—"}</div>
-      <div className="text-sm font-semibold text-gray-900 truncate pr-4">{project.name || "Unnamed Project"}</div>
+      <div className="text-sm font-medium text-gray-700 truncate pr-4">
+        {clientName || "—"}
+      </div>
+      <div className="text-sm font-semibold text-gray-900 truncate pr-4">
+        {project.name || "Unnamed Project"}
+      </div>
 
       <div onClick={(e) => e.stopPropagation()}>
-        {canManageProjects
-          ? <StatusBadge status={project.status} onChange={(s) => onStatusChange(project.id, s)} />
-          : <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium ${getStatusCfg(project.status).bg} ${getStatusCfg(project.status).text}`}>{getStatusCfg(project.status).label}</span>}
+        {canManageProjects ? (
+          <StatusBadge
+            status={project.status}
+            onChange={(s) => onStatusChange(project.id, s)}
+          />
+        ) : (
+          <span
+            className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium ${getStatusCfg(project.status).bg} ${getStatusCfg(project.status).text}`}
+          >
+            {getStatusCfg(project.status).label}
+          </span>
+        )}
       </div>
 
       <div className="text-sm text-gray-500 pr-4">
-        {displaySprint
-          ? <span className="px-2 py-1 bg-gray-100 rounded-lg text-xs font-medium text-gray-600">{displaySprint.name}</span>
-          : "—"}
+        {displaySprint ? (
+          <span className="px-2 py-1 bg-gray-100 rounded-lg text-xs font-medium text-gray-600">
+            {displaySprint.name}
+          </span>
+        ) : (
+          "—"
+        )}
       </div>
 
       <div className="flex items-center gap-3 pr-4">
@@ -111,33 +176,47 @@ function ProjectRow({ project, onNavigate, onDelete, onStatusChange, canManagePr
             className={`h-full rounded-full transition-all duration-500 ${PROGRESS_COLOR(pct)}`}
           />
         </div>
-        <span className="text-sm font-semibold text-gray-500 w-9 text-right tabular-nums">{pct}%</span>
+        <span className="text-sm font-semibold text-gray-500 w-9 text-right tabular-nums">
+          {pct}%
+        </span>
       </div>
 
-      {canManageProjects && <div onClick={(e) => e.stopPropagation()} ref={menuRef} className="relative flex justify-center">
-        <button
-          onClick={() => setMenuOpen((p) => !p)}
-          className="p-1.5 text-gray-300 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+      {canManageProjects && (
+        <div
+          onClick={(e) => e.stopPropagation()}
+          ref={menuRef}
+          className="relative flex justify-center"
         >
-          <MoreHorizontal className="w-4 h-4" />
-        </button>
-        {menuOpen && (
-          <div className="absolute right-0 top-8 z-30 w-36 bg-white rounded-xl shadow-xl border border-gray-100 py-1">
-            <button
-              onClick={() => { setMenuOpen(false); onNavigate(project); }}
-              className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors"
-            >
-              <Pencil className="w-4 h-4" /> View / Edit
-            </button>
-            <button
-              onClick={() => { setMenuOpen(false); onDelete(project.id); }}
-              className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-500 hover:bg-red-50 transition-colors"
-            >
-              <Trash2 className="w-4 h-4" /> Delete
-            </button>
-          </div>
-        )}
-      </div>}
+          <button
+            onClick={() => setMenuOpen((p) => !p)}
+            className="p-1.5 text-gray-300 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+          >
+            <MoreHorizontal className="w-4 h-4" />
+          </button>
+          {menuOpen && (
+            <div className="absolute right-0 top-8 z-30 w-36 bg-white rounded-xl shadow-xl border border-gray-100 py-1">
+              <button
+                onClick={() => {
+                  setMenuOpen(false);
+                  onNavigate(project);
+                }}
+                className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+              >
+                <Pencil className="w-4 h-4" /> View / Edit
+              </button>
+              <button
+                onClick={() => {
+                  setMenuOpen(false);
+                  onDelete(project.id);
+                }}
+                className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-500 hover:bg-red-50 transition-colors"
+              >
+                <Trash2 className="w-4 h-4" /> Delete
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -151,10 +230,22 @@ function DeleteModal({ onCancel, onConfirm }) {
           <Trash2 className="w-5 h-5 text-red-500" />
         </div>
         <h3 className="text-lg font-bold text-gray-900 mb-1">Delete Project</h3>
-        <p className="text-gray-500 text-sm mb-6">Are you sure? This cannot be undone.</p>
+        <p className="text-gray-500 text-sm mb-6">
+          Are you sure? This cannot be undone.
+        </p>
         <div className="flex gap-3">
-          <button onClick={onCancel} className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-gray-700 font-medium hover:bg-gray-50 text-sm transition-colors">Cancel</button>
-          <button onClick={onConfirm} className="flex-1 px-4 py-2.5 bg-red-500 text-white rounded-xl font-medium hover:bg-red-600 text-sm transition-colors">Delete</button>
+          <button
+            onClick={onCancel}
+            className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-gray-700 font-medium hover:bg-gray-50 text-sm transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            className="flex-1 px-4 py-2.5 bg-red-500 text-white rounded-xl font-medium hover:bg-red-600 text-sm transition-colors"
+          >
+            Delete
+          </button>
         </div>
       </div>
     </div>
@@ -167,25 +258,36 @@ export default function Projects() {
   const user = useAuthStore((state) => state.user);
   const canManageProjects = hasPermission(user?.role, "MANAGE_PROJECTS");
   const canViewAnalytics = hasPermission(user?.role, "VIEW_ANALYTICS");
-  const { projects, isLoading, error, fetchProjects, deleteProject, updateProject, clearError } = useProjectStore();
+  const {
+    projects,
+    isLoading,
+    error,
+    fetchProjects,
+    deleteProject,
+    updateProject,
+    clearError
+  } = useProjectStore();
   const [searchTerm, setSearchTerm] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [taskToast, setTaskToast] = useState(null);
 
-  useEffect(() => { fetchProjects(); }, [fetchProjects]);
+  useEffect(() => {
+    fetchProjects();
+  }, [fetchProjects]);
   useEffect(() => {
     if (!taskToast) return undefined;
     const timeoutId = window.setTimeout(() => setTaskToast(null), 4000);
     return () => window.clearTimeout(timeoutId);
-  }, [taskToast]); 
+  }, [taskToast]);
 
-const filteredProjects = projects.filter((p) => {
-  const term = searchTerm.toLowerCase();
-  const name = (p.name || "").toLowerCase();
-  const clientStr = typeof p.client === 'string' ? p.client : (p.client?.name || "");
-  return name.includes(term) || clientStr.toLowerCase().includes(term);
-});
+  const filteredProjects = projects.filter((p) => {
+    const term = searchTerm.toLowerCase();
+    const name = (p.name || "").toLowerCase();
+    const clientStr =
+      typeof p.client === "string" ? p.client : p.client?.name || "";
+    return name.includes(term) || clientStr.toLowerCase().includes(term);
+  });
 
   const handleNavigate = (project) => {
     useProjectStore.getState().setCurrentProject(project);
@@ -205,7 +307,11 @@ const filteredProjects = projects.filter((p) => {
   const handleStatusChange = async (projectId, newStatus) => {
     try {
       const project = projects.find((p) => p.id === projectId);
-      if (project) await updateProject(projectId, { status: newStatus, version: project.version });
+      if (project)
+        await updateProject(projectId, {
+          status: newStatus,
+          version: project.version
+        });
     } catch (err) {
       console.error("Status update failed:", err);
     }
@@ -214,44 +320,74 @@ const filteredProjects = projects.filter((p) => {
   return (
     <div className="bg-[#f5f7fb] min-h-screen font-sans">
       <div className="max-w-7xl mx-auto px-6 py-8">
-{/* ── PORTFOLIO SUMMARY ── */}
-<div id="bar" className="flex flex-wrap items-center gap-5 px-4 py-3 bg-white rounded-lg shadow-sm border border-gray-100 border-l-4 border-l-amber-400 mb-6 relative">
+        {/* ── PORTFOLIO SUMMARY ── */}
+        <div
+          id="bar"
+          className="flex flex-wrap items-center gap-5 px-4 py-3 bg-white rounded-lg shadow-sm border border-gray-100 border-l-4 border-l-amber-400 mb-6 relative"
+        >
+          <div className="flex items-center gap-2 whitespace-nowrap">
+            <span className="text-amber-500">✣</span>
+            <span className="text-xs font-bold text-amber-700 bg-amber-50 rounded-full px-3 py-1">
+              ● ALL PROJECTS — AGGREGATE VIEW
+            </span>
+          </div>
 
-  <div className="flex items-center gap-2 whitespace-nowrap">
-    <span className="text-amber-500">✣</span>
-    <span className="text-xs font-bold text-amber-700 bg-amber-50 rounded-full px-3 py-1">
-      ● ALL PROJECTS — AGGREGATE VIEW
-    </span>
-  </div>
+          <div className="flex-1 min-w-[230px]">
+            <p className="text-xs font-semibold text-slate-800">
+              🟢 Portfolio Summary
+            </p>
+            <p className="text-[11px] text-slate-600 mt-1">
+              {projects.length} projects ·{" "}
+              {projects.filter((p) => p.status === "ACTIVE").length} active ·{" "}
+              {projects.filter((p) => p.status === "COMPLETED").length} complete
+              · {projects.filter((p) => p.status === "DRAFT").length} draft
+            </p>
+          </div>
 
-  <div className="flex-1 min-w-[230px]">
-    <p className="text-xs font-semibold text-slate-800">🟢 Portfolio Summary</p>
-    <p className="text-[11px] text-slate-600 mt-1">
-      {projects.length} projects · {projects.filter(p => p.status === "ACTIVE").length} active · {projects.filter(p => p.status === "COMPLETED").length} complete · {projects.filter(p => p.status === "DRAFT").length} draft
-    </p>
-  </div>
+          <div className="min-w-[220px]">
+            <p className="text-[10px] font-semibold text-slate-500">
+              ◉ AVERAGE PROJECT PROGRESS
+            </p>
+            <p className="text-xs text-slate-800 mt-1">
+              {projects.length
+                ? (
+                    projects.reduce(
+                      (total, p) => total + (p.percentComplete || 0),
+                      0
+                    ) / projects.length
+                  ).toFixed(1)
+                : "0.0"}
+              % across all {projects.length} projects
+            </p>
+          </div>
 
-  <div className="min-w-[220px]">
-    <p className="text-[10px] font-semibold text-slate-500">◉ AVERAGE PROJECT PROGRESS</p>
-    <p className="text-xs text-slate-800 mt-1">
-      {projects.length ? (projects.reduce((total, p) => total + (p.percentComplete || 0), 0) / projects.length).toFixed(1) : "0.0"}% across all {projects.length} projects
-    </p>
-  </div>
+          {canViewAnalytics && (
+            <button
+              onClick={() => alert("Insights clicked!")}
+              className="bg-[#172554] text-white text-xs font-semibold px-4 py-2 rounded hover:bg-blue-800"
+            >
+              View Insights
+            </button>
+          )}
 
-  {canViewAnalytics && <button onClick={() => alert('Insights clicked!')} className="bg-[#172554] text-white text-xs font-semibold px-4 py-2 rounded hover:bg-blue-800">
-    View Insights
-  </button>}
-
-  <button onClick={() => document.getElementById('bar').style.display='none'} className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200 font-bold">
-    ×
-  </button>
-
-</div>
+          <button
+            onClick={() =>
+              (document.getElementById("bar").style.display = "none")
+            }
+            className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200 font-bold"
+          >
+            ×
+          </button>
+        </div>
         {/* ── Header ── */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-6">Projects</h1>
-            <p className="text-gray-400 text-sm mt-0.5">Manage and track your ongoing projects</p>
+            <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-6">
+              Projects
+            </h1>
+            <p className="text-gray-400 text-sm mt-0.5">
+              Manage and track your ongoing projects
+            </p>
           </div>
           <div className="flex items-center gap-3">
             <div className="relative">
@@ -264,12 +400,14 @@ const filteredProjects = projects.filter((p) => {
                 className="pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none w-56 bg-white shadow-sm transition-all"
               />
             </div>
-            {canManageProjects && <NavyButton
-              onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-2 px-4 py-2 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl shadow-sm transition-colors"
-            >
-              <Plus className="w-4 h-4" /> New Project
-            </NavyButton>}
+            {canManageProjects && (
+              <NavyButton
+                onClick={() => setShowCreateModal(true)}
+                className="flex items-center gap-2 px-4 py-2 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl shadow-sm transition-colors"
+              >
+                <Plus className="w-4 h-4" /> New Project
+              </NavyButton>
+            )}
 
             <Link to="/kanban-board">
               <NavyButton className="flex items-center gap-2 px-4 py-2 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl shadow-sm transition-colors">
@@ -294,8 +432,21 @@ const filteredProjects = projects.filter((p) => {
         {/* ── Table ── */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="grid grid-cols-[1fr_1.2fr_1fr_0.8fr_1.4fr_44px] px-6 py-3 border-b border-gray-100 bg-gray-50/60">
-            {["CLIENT", "PROJECT NAME", "STATUS", "SPRINT", "PROGRESS", "STAGES", ""].map((h) => (
-              <div key={h} className="text-xs font-semibold text-gray-400 uppercase tracking-wider">{h}</div>
+            {[
+              "CLIENT",
+              "PROJECT NAME",
+              "STATUS",
+              "SPRINT",
+              "PROGRESS",
+              "STAGES",
+              ""
+            ].map((h) => (
+              <div
+                key={h}
+                className="text-xs font-semibold text-gray-400 uppercase tracking-wider"
+              >
+                {h}
+              </div>
             ))}
           </div>
 
@@ -339,25 +490,41 @@ const filteredProjects = projects.filter((p) => {
         />
       )}
 
-      {canManageProjects && <ProjectForm
-        isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        project={null}
-        onSuccess={() => { fetchProjects(); setShowCreateModal(false); }}
-      />}
+      {canManageProjects && (
+        <ProjectForm
+          isOpen={showCreateModal}
+          onClose={() => setShowCreateModal(false)}
+          project={null}
+          onSuccess={() => {
+            fetchProjects();
+            setShowCreateModal(false);
+          }}
+        />
+      )}
 
       {taskToast && (
         <div
-          role={taskToast.type === 'error' ? 'alert' : 'status'}
-          aria-live={taskToast.type === 'error' ? 'assertive' : 'polite'}
-className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[70] max-w-sm rounded-lg border px-4 py-3 text-sm shadow-lg ${taskToast.type === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-red-50 bg-red-100 text-red-800'}`}
+          role={taskToast.type === "error" ? "alert" : "status"}
+          aria-live={taskToast.type === "error" ? "assertive" : "polite"}
+          className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[70] max-w-sm rounded-lg border px-4 py-3 text-sm shadow-lg ${taskToast.type === "success" ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-red-50 bg-red-100 text-red-800"}`}
         >
           <div className="flex items-center justify-between gap-4">
             <span>{taskToast.message}</span>
-            <button type="button" aria-label="Dismiss notification" onClick={() => setTaskToast(null)} className="font-semibold opacity-70 hover:opacity-100">×</button>
+            <button
+              type="button"
+              aria-label="Dismiss notification"
+              onClick={() => setTaskToast(null)}
+              className="font-semibold opacity-70 hover:opacity-100"
+            >
+              ×
+            </button>
           </div>
         </div>
       )}
+
+      <div className="w-full mr-15 p-15">
+        <ProjectHealthPanel />
+      </div>
     </div>
   );
 }

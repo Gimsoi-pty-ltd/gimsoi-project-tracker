@@ -4,7 +4,7 @@ import { useProjectStore } from "../../store/projectStore";
 import SprintDateFilter from "../../Dashboard/SprintDateFilter";
 import LoadingSpinner from "../LoadingState/LoadingSpinner";
 import ErrorAlert from "../utils/ErrorAlert";
-import FocusTodayCard from "../FocusToday/FocusTodayCard.jsx";
+import FocusNotification from "../FocusToday/FocusNotification.jsx";
 
 import TotalTasks from "../../Dashboard/Metrics/totalTasks";
 import CompletionPercentage from "../../Dashboard/Metrics/completionPercentage";
@@ -21,10 +21,16 @@ import TaskDistributionCard from "../../Dashboard/charts/TaskDistributionCard";
 import PriorityHeatmap from "../../Dashboard/PriorityHeatmap";
 import KanbanSummary from "../../Dashboard/KanbanSummary";
 import ActiveTasks from "../../Dashboard/Metrics/ActiveTasks";
-import HealthMetrics from "./HealthMetrics";
-import ProjectHealthPanel from "./ProjectHealthPanel";
+import { useAuthStore } from "../../store/authStore";
 
 const DashboardCards = () => {
+  
+  const user = useAuthStore((state) => state.user);
+
+  //role Check : ONLY interns can see
+  const userRole = user?.role?.toLowerCase().trim() || "";
+  const isIntern = userRole === "intern" || userRole === "interns";
+
   const {
     activeSprint,
     projectSprints,
@@ -79,6 +85,15 @@ const DashboardCards = () => {
       )}
 
       <main className="flex-1 p-4 sm:p-6 max-w-[1920px] mx-auto w-full space-y-6 relative">
+      
+         {isIntern && <FocusNotification />}
+
+        {dashboardLoading && (
+          <div className="absolute inset-0 bg-white/60 z-10 flex items-center justify-center rounded-lg">
+            <LoadingSpinner size="sm" message="Updating sprint…" />
+          </div>
+        )}
+
         {dashboardLoading && (
           <div className="absolute inset-0 bg-white/60 z-10 flex items-center justify-center rounded-lg">
             <LoadingSpinner size="sm" message="Updating sprint…" />
@@ -92,12 +107,6 @@ const DashboardCards = () => {
           <SprintGoal />
           <SprintHealth />
         </div>
-
-        {/* Project Health Panel */}
-        <div className="w-full">
-          <ProjectHealthPanel />
-        </div>
-       
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <OverdueTasks />
@@ -122,12 +131,7 @@ const DashboardCards = () => {
           </div>
         </div>
 
-        <FocusTodayCard
-          tasks={activeSprint?.tasks || []}
-          loading={dashboardLoading}
-          error={dashboardError}
-          onUpdateStatus={updateTaskStatus}
-        />
+    
 
         <div>
           <ActiveTasks sprintId={activeSprint?.id} />
