@@ -4,7 +4,7 @@ import { HelpCircle, Search, Settings, Menu, Bell } from "lucide-react";
 import logo from "../../assets/Gimsoi-AI.png";
 import { useAuthStore } from "../../store/authStore";
 import { hasPermission } from "../../utils/accessControl";
-import NotificationsDrawer from "./NotificationsDrawer";
+
 
 const getInitials = (name) => {
   if (!name) return "?";
@@ -17,7 +17,7 @@ const getInitials = (name) => {
 };
 
 export default function TopBar({ onMenuClick, onNotificationClick, unreadCount = 0 }) {
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
   const location = useLocation();
   const user = useAuthStore((state) => state.user);
   const initials = getInitials(user?.fullName || user?.name);
@@ -46,19 +46,6 @@ export default function TopBar({ onMenuClick, onNotificationClick, unreadCount =
   ].filter((item) => !item.permission || hasPermission(user?.role, item.permission));
 
   const buttonItems = [
-  { 
-    label: "Notifications", 
-    button: (
-      <button 
-        type="button" 
-        onClick={() => setIsDrawerOpen(!isDrawerOpen)} 
-        className="relative p-1 text-white hover:text-gray-200 cursor-pointer"
-        aria-label="Toggle notifications"
-      >
-        <Bell size={24} />
-      </button>
-    ) 
-  },
   { label: "Help", button: <HelpCircle size={24} />, href: "/help" },
   { label: "Search", button: <Search size={24} />, href: "/search" },
   { label: "Settings", button: <Settings size={24} />, href: "/settings" },
@@ -238,10 +225,6 @@ export default function TopBar({ onMenuClick, onNotificationClick, unreadCount =
           </Link>
         </div>
       </div>
-      <NotificationsDrawer
-  isOpen={isDrawerOpen}
-  onClose={() => setIsDrawerOpen(false)}
-/>
     </div>
   );
 }

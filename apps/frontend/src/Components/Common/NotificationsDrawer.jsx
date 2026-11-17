@@ -1,77 +1,79 @@
+import React, { useEffect, useState } from "react";
+import { Bell, X, CheckCircle } from "lucide-react";
 
-import React, { useState, useEffect } from 'react';
-import { Bell, X, CheckCircle } from 'lucide-react';
+const tabs = [
+  "All",
+  "Task Reassignments",
+  "New Blockers",
+  "PR Reviews",
+];
 
-export default function NotificationsDrawer({ isOpen, onClose, children }) {
-  const [notifications, setNotifications] = useState([]);
-  const [activeTab, setActiveTab] = useState('All');
+const isUnread = (item) => item?.unread === true || item?.isRead === false;
 
-  // Close drawer when Escape is pressed
+export default function NotificationsDrawer({
+  isOpen,
+  onClose,
+  notifications = [],
+  loadingActions = {},
+  onAction,
+  children,
+}) {
+  const [activeTab, setActiveTab] = useState("All");
+
   useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape') onClose();
+    if (!isOpen) return undefined;
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        onClose?.();
+      }
     };
 
-    if (isOpen) {
-      window.addEventListener('keydown', handleKeyDown);
-    }
-
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
 
-  // Remove notification when action is clicked
-  const handleActionClick = (id, e) => {
-    e.stopPropagation();
-    setNotifications((prev) =>
-      prev.filter((item) => item.id !== id)
-    );
-  };
-
-  // Filter notifications according to selected tab
   const filteredNotifications = notifications.filter((item) => {
-    if (activeTab === 'All') return true;
-    if (activeTab === 'Task Reassignments') {
-      return item.category === 'reassignment';
-    }
-    if (activeTab === 'New Blockers') {
-      return item.category === 'blocker';
-    }
-    if (activeTab === 'PR Reviews') {
-      return item.category === 'pr';
-    }
+    if (activeTab === "All") return true;
+    if (activeTab === "Task Reassignments") return item.category === "reassignment";
+    if (activeTab === "New Blockers") return item.category === "blocker";
+    if (activeTab === "PR Reviews") return item.category === "pr";
     return true;
   });
 
-  const unreadCount = notifications.filter(
-    (item) => item.unread
-  ).length;
+  const unreadCount = notifications.filter((item) => isUnread(item)).length;
 
-  const tabs = [
-    'All',
-    'Task Reassignments',
-    'New Blockers',
-    'PR Reviews'
-  ];
+  const handleNotificationAction = (notificationId, actionId) => {
+    if (typeof onAction === "function") {
+      onAction(notificationId, actionId);
+    }
+  };
+
+  const handleDismiss = (notificationId, event) => {
+    event?.stopPropagation?.();
+
+    if (typeof onAction === "function") {
+      onAction(notificationId, "dismiss");
+    }
+  };
 
   return (
     <>
-      {/* Notification Bell */}
       <button
         type="button"
         onClick={isOpen ? onClose : undefined}
-        className="relative p-2 rounded-full hover:bg-gray-100"
+        className="relative rounded-full p-2 transition-colors hover:bg-gray-100"
         aria-label="Notifications"
       >
         <Bell size={22} />
 
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full min-w-5 h-5 flex items-center justify-center px-1">
+          <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-xs text-white">
             {unreadCount}
           </span>
         )}
       </button>
 
-      {/* Notification Drawer */}
       {isOpen && (
         <div
           className="fixed inset-0 z-50 overflow-hidden"
@@ -79,48 +81,45 @@ export default function NotificationsDrawer({ isOpen, onClose, children }) {
           aria-modal="true"
           aria-label="Notifications"
         >
-          {/* Background overlay */}
           <div
-            className="fixed inset-0 bg-black/40"
+            className="fixed inset-0 bg-black/40 transition-opacity"
             onClick={onClose}
+            aria-hidden="true"
           />
 
-          {/* Drawer */}
-          <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
-            <div className="w-screen max-w-md bg-white shadow-2xl flex flex-col">
-
-              {/* Header */}
-              <div className="px-6 py-4 bg-[#003B7A] text-white flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-semibold">
-                    Notifications
-                  </h3>
-                  <span className="text-xs text-blue-200">
-                    {unreadCount} New
-                  </span>
+          <div className="fixed inset-y-0 right-0 flex max-w-full pl-10">
+            <div className="relative flex h-full w-screen max-w-md flex-col bg-white shadow-2xl">
+              <div className="flex items-center justify-between bg-[#002D62] px-6 py-5 text-white shadow-sm">
+                <div className="flex items-center gap-3">
+                  <Bell className="h-5 w-5 text-blue-200" />
+                  <h2 className="m-0 text-lg font-semibold">Notifications</h2>
+                  {notifications.length > 0 && (
+                    <span className="rounded-full bg-red-500 px-2 py-0.5 text-xs font-bold text-white">
+                      {notifications.length}
+                    </span>
+                  )}
                 </div>
 
                 <button
                   type="button"
                   onClick={onClose}
-                  className="p-2 rounded-full hover:bg-white/20"
-                  aria-label="Close notifications"
+                  className="rounded-lg p-1.5 text-blue-200 transition-colors hover:bg-blue-700/50 hover:text-white"
+                  aria-label="Close notifications drawer"
                 >
-                  <X size={22} />
+                  <X className="h-5 w-5" />
                 </button>
               </div>
 
-              {/* Tabs */}
               <div className="flex flex-wrap border-b border-gray-200 px-3">
                 {tabs.map((tab) => (
                   <button
                     key={tab}
                     type="button"
                     onClick={() => setActiveTab(tab)}
-                    className={`px-3 py-3 text-sm font-medium border-b-2 transition-colors ${
+                    className={`border-b-2 px-3 py-3 text-sm font-medium transition-colors ${
                       activeTab === tab
-                        ? 'border-[#003B7A] text-[#003B7A]'
-                        : 'border-transparent text-gray-500 hover:text-gray-800'
+                        ? "border-[#003B7A] text-[#003B7A]"
+                        : "border-transparent text-gray-500 hover:text-gray-800"
                     }`}
                   >
                     {tab}
@@ -128,60 +127,90 @@ export default function NotificationsDrawer({ isOpen, onClose, children }) {
                 ))}
               </div>
 
-              {/* Notification Content */}
-              <div className="flex-1 overflow-y-auto p-6">
-
+              <div className="flex-1 space-y-4 overflow-y-auto p-6">
                 {filteredNotifications.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center text-center py-16">
-                    <div className="bg-gray-100 rounded-full p-4 mb-4">
-                      <CheckCircle
-                        size={32}
-                        className="text-gray-400"
-                      />
+                  <div className="flex h-64 flex-col items-center justify-center text-center">
+                    <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-blue-50 text-blue-500">
+                      <Bell className="h-6 w-6" />
                     </div>
 
-                    <h4 className="text-gray-800 font-semibold">
-                      No notifications
-                    </h4>
+                    <p className="text-sm font-medium text-gray-900">
+                      {notifications.length === 0 ? "No new notifications" : "No notifications in this view"}
+                    </p>
 
-                    <p className="text-sm text-gray-500 mt-2">
-                      You're all caught up. New notifications
-                      will appear here.
+                    <p className="mt-1 max-w-[200px] text-xs text-gray-500">
+                      When you receive updates about tasks or projects, they will appear here.
                     </p>
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    {filteredNotifications.map((item) => (
-                      <div
-                        key={item.id}
-                        className="border border-gray-200 rounded-lg p-4"
-                      >
-                        <h4 className="font-semibold text-gray-800">
-                          {item.title}
-                        </h4>
+                  filteredNotifications.map((notif) => (
+                    <div
+                      key={notif.id}
+                      className={`rounded-xl border p-4 shadow-sm transition-all ${
+                        isUnread(notif) ? "border-blue-100 bg-blue-50/40" : "border-gray-100 bg-white"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                          {isUnread(notif) && (
+                            <span className="h-2 w-2 shrink-0 rounded-full bg-blue-600" />
+                          )}
 
-                        <p className="text-sm text-gray-600 mt-1">
-                          {item.message}
-                        </p>
+                          <h4 className="text-sm font-semibold text-gray-900">
+                            {notif.title}
+                          </h4>
+                        </div>
 
-                        <div className="flex justify-between items-center mt-3">
-                          <span className="text-xs text-gray-400">
-                            {item.time}
-                          </span>
+                        <span className="shrink-0 text-xs text-gray-400">
+                          {notif.timestamp || notif.time}
+                        </span>
+                      </div>
 
+                      <p className="mt-2 text-xs leading-relaxed text-gray-600">
+                        {notif.message}
+                      </p>
+
+                      {notif.actions?.length > 0 ? (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {notif.actions.map((action) => {
+                            const isLoading =
+                              loadingActions[notif.id] === action.id ||
+                              loadingActions[notif.id] === true;
+
+                            return (
+                              <button
+                                key={action.id}
+                                type="button"
+                                disabled={isLoading || !onAction}
+                                onClick={() => handleNotificationAction(notif.id, action.id)}
+                                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all disabled:cursor-not-allowed disabled:opacity-50 ${
+                                  action.variant === "primary"
+                                    ? "bg-blue-600 text-white hover:bg-blue-700"
+                                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                }`}
+                              >
+                                {isLoading && (
+                                  <span className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                                )}
+
+                                {action.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="mt-3 flex justify-end">
                           <button
                             type="button"
-                            onClick={(e) =>
-                              handleActionClick(item.id, e)
-                            }
+                            onClick={(event) => handleDismiss(notif.id, event)}
                             className="text-sm text-[#003B7A] hover:underline"
                           >
                             Dismiss
                           </button>
                         </div>
-                      </div>
-                    ))}
-                  </div>
+                      )}
+                    </div>
+                  ))
                 )}
 
                 {children}
