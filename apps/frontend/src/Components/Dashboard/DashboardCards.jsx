@@ -9,7 +9,8 @@ import TotalTasks from "../../Dashboard/Metrics/totalTasks";
 import CompletionPercentage from "../../Dashboard/Metrics/completionPercentage";
 import VelocityTrend from "../../Dashboard/Metrics/Velocity";
 import SprintGoal from "../../Dashboard/Metrics/SprintGoal";
-import SprintHealth from "../../Dashboard/Metrics/SprintHealth";
+import SprintHealth from "../../Dashboard/Metrics/SprintHealth"; 
+import MyWorkload from "../../Dashboard/Metrics/MyWorkload";
 
 import OverdueTasks from "../../Dashboard/Metrics/OverdueTasks";
 import BlockedTasks from "../../Dashboard/Metrics/BlockedTasks";
