@@ -10,6 +10,7 @@ import {
   getProjectById,
   updateProject,
   getProjectProgress,
+  getProjectHealth,
   deleteProject,
   syncProjectAnalytics,
 } from "../controllers/project.controller.js";
@@ -31,7 +32,13 @@ router.get("/", readLimiter, verifyToken, authorize("VIEW_PROJECTS"), getProject
 
 // Allowed: ADMIN, PM, INTERN, CLIENT
 router.get("/:id/progress", readLimiter, verifyToken, authorize("VIEW_PROJECTS"), getProjectProgress);
-
+router.get(
+  "/:id/health",
+  readLimiter,
+  verifyToken,
+  authorize("VIEW_PROJECTS"),
+  getProjectHealth
+);
 // Allowed: ADMIN, PM, INTERN, CLIENT
 router.get("/:id", readLimiter, verifyToken, authorize("VIEW_PROJECTS"), getProjectById);
 

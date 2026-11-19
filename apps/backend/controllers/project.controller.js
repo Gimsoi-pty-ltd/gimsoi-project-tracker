@@ -72,7 +72,47 @@ export const getProjectProgress = async (req, res, next) => {
     next(err);
   }
 };
+export const getProjectHealth = async (req, res, next) => {
+  try {
+    const { id } = req.params;
 
+    const project = await projectService.getProjectById(id);
+
+    if (!project) {
+      return res.status(404).json({
+        success: false,
+        message: "Project not found",
+      });
+    }
+
+    const progress = await projectService.getProjectProgress(
+      id,
+      req.user.role
+    );
+
+    const completionRate = progress?.percentComplete || 0;
+
+    let healthStatus = "RED";
+
+    if (completionRate >= 80) {
+      healthStatus = "GREEN";
+    } else if (completionRate >= 50) {
+      healthStatus = "AMBER";
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        projectId: project.id,
+        projectName: project.name,
+        completionRate,
+        healthStatus,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
 export const deleteProject = async (req, res, next) => {
   try {
     const { id } = req.params;
