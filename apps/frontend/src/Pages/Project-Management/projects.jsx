@@ -4,7 +4,7 @@ import { useProjectStore } from "../../store/projectStore";
 import EmptyState from "../../Components/utils/EmptyState";
 import ErrorAlert from "../../Components/utils/ErrorAlert";
 import LoadingSpinner from "../../Components/LoadingState/LoadingSpinner";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import {
   Search,
@@ -255,6 +255,7 @@ function DeleteModal({ onCancel, onConfirm }) {
 // ─── Main Projects Page ───────────────────────────────────────────────────────
 export default function Projects() {
   const navigate = useNavigate();
+  const location = useLocation();
   const user = useAuthStore((state) => state.user);
   const canManageProjects = hasPermission(user?.role, "MANAGE_PROJECTS");
   const canViewAnalytics = hasPermission(user?.role, "VIEW_ANALYTICS");
@@ -280,6 +281,31 @@ export default function Projects() {
     const timeoutId = window.setTimeout(() => setTaskToast(null), 4000);
     return () => window.clearTimeout(timeoutId);
   }, [taskToast]);
+
+  useEffect(() => {
+    if (!location.state?.scrollToProjectHealth) return;
+
+    const timer = window.setTimeout(() => {
+      const panel = document.getElementById("project-health-panel");
+
+      if (panel) {
+        panel.scrollIntoView({
+          behavior: "smooth",
+          block: "start"
+        });
+
+        panel.focus({ preventScroll: true });
+
+        // Clear the navigation state after scrolling.
+        navigate("/projects", {
+          replace: true,
+          state: null
+        });
+      }
+    }, 500);
+
+    return () => window.clearTimeout(timer);
+  }, [location.state, navigate]);
 
   const filteredProjects = projects.filter((p) => {
     const term = searchTerm.toLowerCase();

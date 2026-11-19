@@ -24,7 +24,6 @@ import ActiveTasks from "../../Dashboard/Metrics/ActiveTasks";
 import { useAuthStore } from "../../store/authStore";
 
 const DashboardCards = () => {
-  
   const user = useAuthStore((state) => state.user);
 
   //role Check : ONLY interns can see
@@ -85,8 +84,7 @@ const DashboardCards = () => {
       )}
 
       <main className="flex-1 p-4 sm:p-6 max-w-[1920px] mx-auto w-full space-y-6 relative">
-      
-         {isIntern && <FocusNotification />}
+        {isIntern && <FocusNotification />}
 
         {dashboardLoading && (
           <div className="absolute inset-0 bg-white/60 z-10 flex items-center justify-center rounded-lg">
@@ -130,8 +128,6 @@ const DashboardCards = () => {
             <KanbanSummary sprintId={activeSprint?.id} />
           </div>
         </div>
-
-    
 
         <div>
           <ActiveTasks sprintId={activeSprint?.id} />
