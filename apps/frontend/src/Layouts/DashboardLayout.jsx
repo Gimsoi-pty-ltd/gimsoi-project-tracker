@@ -25,13 +25,15 @@ const handleNotificationAction = (notificationId, actionId) => {
                 onClose={() => setSidebarOpen(false)}
             />
 
-           <NotificationsDrawer
-            isOpen={notificationsOpen}
+           {notificationsOpen && (
+            <NotificationsDrawer
+             isOpen={notificationsOpen}
              onClose={() => setNotificationsOpen(false)}
              notifications={notifications}
-            loadingActions={loadingActions}
+             loadingActions={loadingActions}
              onAction={handleNotificationAction}
 />
+            )}
 
             <div className="min-h-screen overflow-x-hidden">
                 {children || <Outlet />}

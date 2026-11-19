@@ -3,9 +3,6 @@ import { Bell, X, CheckCircle } from "lucide-react";
 
 const tabs = [
   "All",
-  "Task Reassignments",
-  "New Blockers",
-  "PR Reviews",
 ];
 
 const isUnread = (item) => item?.unread === true || item?.isRead === false;
@@ -59,20 +56,6 @@ export default function NotificationsDrawer({
 
   return (
     <>
-      <button
-        type="button"
-        onClick={isOpen ? onClose : undefined}
-        className="relative rounded-full p-2 transition-colors hover:bg-gray-100"
-        aria-label="Notifications"
-      >
-        <Bell size={22} />
-
-        {unreadCount > 0 && (
-          <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-xs text-white">
-            {unreadCount}
-          </span>
-        )}
-      </button>
 
       {isOpen && (
         <div
