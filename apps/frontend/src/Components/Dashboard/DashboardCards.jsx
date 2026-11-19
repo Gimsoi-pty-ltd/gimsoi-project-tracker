@@ -1,9 +1,10 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo } from "react";
 import { Info } from "lucide-react";
 import { useProjectStore } from "../../store/projectStore";
 import SprintDateFilter from "../../Dashboard/SprintDateFilter";
 import LoadingSpinner from "../LoadingState/LoadingSpinner";
 import ErrorAlert from "../utils/ErrorAlert";
+import FocusNotification from "../FocusToday/FocusNotification.jsx";
 
 import TotalTasks from "../../Dashboard/Metrics/totalTasks";
 import CompletionPercentage from "../../Dashboard/Metrics/completionPercentage";
@@ -20,8 +21,16 @@ import TaskDistributionCard from "../../Dashboard/charts/TaskDistributionCard";
 import PriorityHeatmap from "../../Dashboard/PriorityHeatmap";
 import KanbanSummary from "../../Dashboard/KanbanSummary";
 import ActiveTasks from "../../Dashboard/Metrics/ActiveTasks";
+import { useAuthStore } from "../../store/authStore";
 
 const DashboardCards = () => {
+  
+  const user = useAuthStore((state) => state.user);
+
+  //role Check : ONLY interns can see
+  const userRole = user?.role?.toLowerCase().trim() || "";
+  const isIntern = userRole === "intern" || userRole === "interns";
+
   const {
     activeSprint,
     projectSprints,
@@ -31,6 +40,7 @@ const DashboardCards = () => {
     dashboardLoading,
     dashboardError,
     clearDashboardError,
+    updateTaskStatus
   } = useProjectStore((state) => state);
   useEffect(() => {
     fetchDashboard();
@@ -49,7 +59,9 @@ const DashboardCards = () => {
       <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-4 shadow-sm">
         <div className="flex flex-col gap-1">
           {currentProject?.name && (
-            <p className="text-xs text-gray-500 font-medium">{currentProject.name}</p>
+            <p className="text-xs text-gray-500 font-medium">
+              {currentProject.name}
+            </p>
           )}
           <SprintDateFilter
             sprints={projectSprints}
@@ -65,11 +77,23 @@ const DashboardCards = () => {
 
       {dashboardError && (
         <div className="px-4 sm:px-6 pt-4">
-          <ErrorAlert message={dashboardError} onDismiss={clearDashboardError} />
+          <ErrorAlert
+            message={dashboardError}
+            onDismiss={clearDashboardError}
+          />
         </div>
       )}
 
       <main className="flex-1 p-4 sm:p-6 max-w-[1920px] mx-auto w-full space-y-6 relative">
+      
+         {isIntern && <FocusNotification />}
+
+        {dashboardLoading && (
+          <div className="absolute inset-0 bg-white/60 z-10 flex items-center justify-center rounded-lg">
+            <LoadingSpinner size="sm" message="Updating sprint…" />
+          </div>
+        )}
+
         {dashboardLoading && (
           <div className="absolute inset-0 bg-white/60 z-10 flex items-center justify-center rounded-lg">
             <LoadingSpinner size="sm" message="Updating sprint…" />
@@ -106,6 +130,8 @@ const DashboardCards = () => {
             <KanbanSummary sprintId={activeSprint?.id} />
           </div>
         </div>
+
+    
 
         <div>
           <ActiveTasks sprintId={activeSprint?.id} />
