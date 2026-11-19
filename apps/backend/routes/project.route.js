@@ -32,6 +32,105 @@ router.get("/", readLimiter, verifyToken, authorize("VIEW_PROJECTS"), getProject
 
 // Allowed: ADMIN, PM, INTERN, CLIENT
 router.get("/:id/progress", readLimiter, verifyToken, authorize("VIEW_PROJECTS"), getProjectProgress);
+
+/**
+ * @swagger
+ * /api/projects/{id}/health:
+ *   get:
+ *     summary: Get project health status and completion rate
+ *     description: |
+ *       Retrieves the high-level health status (RED, AMBER, GREEN) and completion percentage for a project.
+ *       
+ *       **Authorization & Permissions:**
+ *       - Requires authentication.
+ *       - Requires `VIEW_PROJECTS` permission (Allowed: `ADMIN`, `PM`, `INTERN`, `CLIENT`).
+ *       
+ *       **Health Calculation & Thresholds:**
+ *       - Completion Rate is calculated as `percentComplete = Math.round((DONE / totalTasks) * 100)`.
+ *       - Health status categorization:
+ *         - `GREEN`: completionRate >= 80%
+ *         - `AMBER`: completionRate >= 50% and < 80%
+ *         - `RED`: completionRate < 50%
+ *     tags:
+ *       - Analytics & Health
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Project ID
+ *         example: "a81d428e-5b1b-4f90-8e6d-53c89b2d9213"
+ *     responses:
+ *       200:
+ *         description: Project health status retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     projectId:
+ *                       type: string
+ *                       example: "a81d428e-5b1b-4f90-8e6d-53c89b2d9213"
+ *                     projectName:
+ *                       type: string
+ *                       example: "Website Redesign"
+ *                     completionRate:
+ *                       type: integer
+ *                       example: 75
+ *                     healthStatus:
+ *                       type: string
+ *                       enum: [RED, AMBER, GREEN]
+ *                       example: "AMBER"
+ *       401:
+ *         description: Unauthorized - authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized - no token provided"
+ *       403:
+ *         description: Forbidden - missing permission
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Access denied. Role 'ANONYMOUS' does not have 'VIEW_PROJECTS' permission."
+ *       404:
+ *         description: Project not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Project not found"
+ */
 router.get(
   "/:id/health",
   readLimiter,
@@ -39,6 +138,7 @@ router.get(
   authorize("VIEW_PROJECTS"),
   getProjectHealth
 );
+
 // Allowed: ADMIN, PM, INTERN, CLIENT
 router.get("/:id", readLimiter, verifyToken, authorize("VIEW_PROJECTS"), getProjectById);
 
