@@ -4,12 +4,13 @@ import { Calendar, ChevronDown } from "lucide-react";
 const SprintDateFilter = ({
   sprints = [],
   defaultSprintId,
-  onSprintChange,
+  onSprintChange
 }) => {
   const [selectedSprint, setSelectedSprint] = useState(null);
 
   useEffect(() => {
-    const sprint = sprints.find((s) => s.id === defaultSprintId) || sprints[0] || null;
+    const sprint =
+      sprints.find((s) => s.id === defaultSprintId) || sprints[0] || null;
     setSelectedSprint(sprint);
   }, [defaultSprintId, sprints]);
 
@@ -48,13 +49,19 @@ const SprintDateFilter = ({
   return (
     <div className="flex items-center gap-3 sm:gap-4">
       <div className="flex items-center gap-2">
-        <span className="text-xs font-semibold text-gray-500 uppercase hidden sm:inline">
+        <label
+          htmlFor="sprint-date-filter"
+          className="text-xs font-semibold text-gray-500 uppercase hidden sm:inline"
+        >
           Time Scope:
-        </span>
+        </label>
         <div className="relative">
           <select
+            id="sprint-date-filter"
+            name="sprint"
             value={selectedSprint.id}
             onChange={handleSprintChange}
+            aria-label="Select sprint time scope"
             className="appearance-none bg-gray-50 border border-gray-300 text-gray-700 text-sm rounded-md pl-3 pr-8 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer font-medium hover:bg-gray-100 transition-colors"
           >
             {sprints.map((sprint) => (
@@ -63,17 +70,30 @@ const SprintDateFilter = ({
               </option>
             ))}
           </select>
-          <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+
+          <ChevronDown
+            aria-hidden="true"
+            focusable="false"
+            className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"
+          />
         </div>
       </div>
 
       {selectedSprint.startDate && selectedSprint.endDate && (
         <div className="flex items-center gap-2 bg-gray-50 border border-gray-300 rounded-md px-3 py-1.5 text-sm text-gray-700">
-          <Calendar size={14} className="text-gray-400" />
+          <Calendar
+            size={14}
+            aria-hidden="true"
+            focusable="false"
+            className="text-gray-400"
+          />
+
           <span className="font-medium">
-            {formatDate(selectedSprint.startDate)} – {formatDate(selectedSprint.endDate)},{" "}
+            {formatDate(selectedSprint.startDate)} –{" "}
+            {formatDate(selectedSprint.endDate)},{" "}
             {new Date(selectedSprint.endDate).getFullYear()}
           </span>
+
           <span className="text-gray-400">
             ({daysLeft} {daysLeft === 1 ? "day" : "days"} left)
           </span>
