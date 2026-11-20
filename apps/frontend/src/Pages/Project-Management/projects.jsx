@@ -143,7 +143,7 @@ function ProjectRow({ project, onNavigate, onDelete, onStatusChange, canManagePr
 }
 
 // ─── Delete Modal ─────────────────────────────────────────────────────────────
-function DeleteModal({ onCancel, onConfirm }) {
+function DeleteModal({ onCancel, onConfirm, isDeleting }) {
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6">
@@ -153,8 +153,21 @@ function DeleteModal({ onCancel, onConfirm }) {
         <h3 className="text-lg font-bold text-gray-900 mb-1">Delete Project</h3>
         <p className="text-gray-500 text-sm mb-6">Are you sure? This cannot be undone.</p>
         <div className="flex gap-3">
-          <button onClick={onCancel} className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-gray-700 font-medium hover:bg-gray-50 text-sm transition-colors">Cancel</button>
-          <button onClick={onConfirm} className="flex-1 px-4 py-2.5 bg-red-500 text-white rounded-xl font-medium hover:bg-red-600 text-sm transition-colors">Delete</button>
+            <button
+              onClick={onCancel}
+              disabled={isDeleting}
+              className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-gray-700 font-medium hover:bg-gray-50 text-sm transition-colors disabled:opacity-50"
+            >
+              Cancel
+            </button>
+
+            <button
+              onClick={onConfirm}
+              disabled={isDeleting}
+              className="flex-1 px-4 py-2.5 bg-red-500 text-white rounded-xl font-medium hover:bg-red-600 text-sm transition-colors disabled:opacity-50"
+           >
+            {isDeleting ? "Deleting..." : "Delete"}
+            </button>
         </div>
       </div>
     </div>
@@ -172,6 +185,7 @@ export default function Projects() {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [taskToast, setTaskToast] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => { fetchProjects(); }, [fetchProjects]);
   useEffect(() => {
@@ -192,24 +206,51 @@ const filteredProjects = projects.filter((p) => {
     navigate(`/projects/${project.id}`);
   };
 
-  const handleConfirmDelete = async () => {
-    if (!deleteConfirm) return;
-    try {
-      await deleteProject(deleteConfirm);
-      setDeleteConfirm(null);
-    } catch (err) {
-      console.error("Delete failed:", err);
-    }
-  };
+ const handleConfirmDelete = async () => {
+  if (!deleteConfirm || isDeleting) return;
 
-  const handleStatusChange = async (projectId, newStatus) => {
-    try {
-      const project = projects.find((p) => p.id === projectId);
-      if (project) await updateProject(projectId, { status: newStatus, version: project.version });
-    } catch (err) {
-      console.error("Status update failed:", err);
+  setIsDeleting(true);
+
+  try {
+    await deleteProject(deleteConfirm);
+    setDeleteConfirm(null);
+  } catch (err) {
+    console.error("Delete failed:", err);
+
+    setTaskToast({
+      type: "error",
+      message:
+        err.response?.data?.message ||
+        err.message ||
+        "Failed to delete project. Please try again.",
+    });
+  } finally {
+    setIsDeleting(false);
+  }
+};
+
+const handleStatusChange = async (projectId, newStatus) => {
+  try {
+    const project = projects.find((p) => p.id === projectId);
+
+    if (project) {
+      await updateProject(projectId, {
+        status: newStatus,
+        version: project.version,
+      });
     }
-  };
+  } catch (err) {
+    console.error("Status update failed:", err);
+
+    setTaskToast({
+      type: "error",
+      message:
+        err.response?.data?.message ||
+        err.message ||
+        "Failed to update project status. Please try again.",
+    });
+  }
+};
 
   return (
     <div className="bg-[#f5f7fb] min-h-screen font-sans">
@@ -336,6 +377,7 @@ const filteredProjects = projects.filter((p) => {
         <DeleteModal
           onCancel={() => setDeleteConfirm(null)}
           onConfirm={handleConfirmDelete}
+          isDeleting={isDeleting}
         />
       )}
 
