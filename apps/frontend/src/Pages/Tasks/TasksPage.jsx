@@ -7,6 +7,7 @@ import BlockedTasks from "./BlockedTasks";
 import PieChart from "../Task-Progress/PieChart";
 import TaskCard from "../Task-Progress/TaskCard";
 import TaskModal from '../../Dashboard/Metrics/TaskModal';
+import ErrorAlert from "../../Components/utils/ErrorAlert";
 
 
 
@@ -60,18 +61,19 @@ function TasksPageContent() {
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
 
-  const { tasks, getTasks } = useTaskStore();
+  const { tasks, getTasks, error, clearError  } = useTaskStore();
   const EMPTY = [];
   const activeSprintTasks = useProjectStore((state) => state.activeSprint?.tasks ?? EMPTY);
   const taskSource = activeSprintTasks.length > 0 ? activeSprintTasks : tasks;
 
   // Load tasks on mount only
-  useEffect(() => {
-    if (!tasks || tasks.length === 0) {
-      getTasks();
-    }
-  }, []);
-
+ useEffect(() => {
+  if (!tasks || tasks.length === 0) {
+    getTasks().catch((error) => {
+      console.error("Failed to load tasks:", error);
+    });
+  }
+}, []);
   // Refetch tasks every 5 minutes while the page is open
   useEffect(() => {
     const interval = setInterval(() => {
@@ -98,6 +100,18 @@ function TasksPageContent() {
 
   return (
     <div className="bg-gray-50 min-h-screen p-4 md:p-8">
+      {error && (
+  <div className="mb-6">
+    <ErrorAlert
+      message={error}
+      type="error"
+      onDismiss={clearError}
+      actions={[
+        { label: "Retry", onClick: () => getTasks() }
+      ]}
+    />
+  </div>
+)}
       <div className="max-h-screens mx-auto">
         <div className="flex items-center justify-between mb-6">
   <h1 className="text-3xl md:text-4xl font-bold text-gray-800">Tasks</h1>
