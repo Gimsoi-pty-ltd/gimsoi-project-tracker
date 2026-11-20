@@ -18,6 +18,13 @@ import { writeLimiter } from '../middleware/rate-limiter.middleware.js';
 const router = express.Router();
 
 /**
+ * @swagger
+ * tags:
+ *   - name: Analytics & Health
+ *     description: Project health calculations, metrics ingestion, and analytics context
+ */
+
+/**
  * POST /api/analytics/health-score
  */
 router.post('/health-score', writeLimiter, verifyToken, authorize('VIEW_ANALYTICS'), requireCSRF, ingestHealthScore);
@@ -33,7 +40,133 @@ router.post('/metrics', writeLimiter, verifyToken, authorize('VIEW_ANALYTICS'), 
  */
 router.get('/team', readLimiter, verifyToken, authorize('VIEW_ANALYTICS'), validate(teamAnalyticsSchema, 'query'), getTeamPerformanceHandler);
 
+/**
+ * @swagger
+ * /api/analytics/project-health/{projectId}:
+ *   get:
+ *     summary: Get project health analytics
+ *     description: |
+ *       Retrieves aggregated health analytics and sync metadata for a specified project.
+ *       
+ *       **Authorization & Ownership:**
+ *       - Requires authentication (Bearer token or session cookie).
+ *       - Allowed roles: `ADMIN`, `PM`.
+ *       - `ADMIN` can access health analytics for any project.
+ *       - `PM` can only access health analytics for projects they created/own. If a PM attempts to access a project owned by another user, the API responds with a `404 Not Found` (to avoid leaking project existence).
+ *       - Other roles (`INTERN`, `CLIENT`) receive `403 Forbidden`.
+ *       
+ *       **Calculations & Data Source:**
+ *       - Reads from the `ProjectAnalytics` record linked to the project.
+ *       - If analytics record exists: returns task totals (`totalTasks`, `completedTasks`, `blockedTasks`, `cancelledTasks`), sprint statistics (`totalSprints`, `activeSprints`), and sync metadata (`syncStatus`, `lastSyncedAt`).
+ *       - If analytics record has not been generated yet: returns `syncStatus: "pending"` with message `"No analytics data available yet"`.
+ *     tags:
+ *       - Analytics & Health
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Unique ID (UUID) of the project
+ *         example: "a81d428e-5b1b-4f90-8e6d-53c89b2d9213"
+ *     responses:
+ *       200:
+ *         description: Project health analytics retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   oneOf:
+ *                     - type: object
+ *                       properties:
+ *                         projectId:
+ *                           type: string
+ *                           example: "a81d428e-5b1b-4f90-8e6d-53c89b2d9213"
+ *                         totalTasks:
+ *                           type: integer
+ *                           example: 24
+ *                         completedTasks:
+ *                           type: integer
+ *                           example: 18
+ *                         blockedTasks:
+ *                           type: integer
+ *                           example: 2
+ *                         cancelledTasks:
+ *                           type: integer
+ *                           example: 1
+ *                         totalSprints:
+ *                           type: integer
+ *                           example: 3
+ *                         activeSprints:
+ *                           type: integer
+ *                           example: 1
+ *                         lastSyncedAt:
+ *                           type: string
+ *                           format: date-time
+ *                           example: "2026-11-19T12:00:00.000Z"
+ *                         syncStatus:
+ *                           type: string
+ *                           enum: [synced, error, pending]
+ *                           example: "synced"
+ *                     - type: object
+ *                       properties:
+ *                         projectId:
+ *                           type: string
+ *                           example: "a81d428e-5b1b-4f90-8e6d-53c89b2d9213"
+ *                         syncStatus:
+ *                           type: string
+ *                           example: "pending"
+ *                         message:
+ *                           type: string
+ *                           example: "No analytics data available yet"
+ *       401:
+ *         description: Unauthorized - missing or invalid token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized - no token provided"
+ *       403:
+ *         description: Forbidden - user does not have permission (e.g. INTERN, CLIENT)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Forbidden"
+ *       404:
+ *         description: Project not found or belongs to another PM
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Project not found"
+ */
 router.get('/project-health/:projectId', readLimiter, verifyToken, requireAnyRole(['ADMIN', 'PM']), getProjectHealthHandler);
+
 /**
  * GET /api/analytics/ai-context
  *
