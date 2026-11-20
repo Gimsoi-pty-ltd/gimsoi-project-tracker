@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { resourceAPI } from '../../api/api';
+import ErrorAlert from '../../Components/utils/ErrorAlert';
 
 const BlockedTasks = () => {
     const [tasks, setTasks] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
-
+    const [error, setError] = useState(null);
     useEffect(() => {
         const fetchBlockedTasks = async () => {
             setIsLoading(true);
@@ -26,6 +27,11 @@ const BlockedTasks = () => {
                 setTasks(mappedTasks);
             } catch (error) {
                 console.error("Failed to fetch blocked tasks", error);
+                setError(
+                 err.response?.data?.message ||
+                 err.message ||
+                  "Failed to load blocked tasks. Please try again."
+     );
             } finally {
                 setIsLoading(false);
             }
@@ -43,11 +49,26 @@ const BlockedTasks = () => {
             </h3>
 
             {/* List Container */}
+            {error && (
+            <div className="mb-4">
+             <ErrorAlert
+               message={error}
+               type="error"
+               onDismiss={() => setError(null)}
+             />
+             </div>
+            )}
             <ul className="divide-y divide-gray-100">
                 {isLoading ? (
                     <li className="py-3 text-center text-gray-500 text-sm">Loading...</li>
+                ) : error ? (
+                    <li className="py-3 text-center text-gray-500 text-sm">
+                      Unable to display blocked tasks.
+                    </li>
                 ) : tasks.length === 0 ? (
-                    <li className="py-3 text-center text-gray-500 text-sm">No blocked tasks!</li>
+                    <li className="py-3 text-center text-gray-500 text-sm">
+                      No blocked tasks!
+                    </li>
                 ) : (
                     tasks.map((task, index) => (
                         <li key={`${task.id}-${index}`} className="py-3 flex items-center gap-4 group">
