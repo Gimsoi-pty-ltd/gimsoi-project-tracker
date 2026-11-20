@@ -57,7 +57,7 @@ const ExportButton = ({
       >
         {exporting ? loadingLabel : (children || label)}
       </button>
-      {error && <p role="alert" className="mt-2 text-sm text-red-700">{error}</p>}
+      {error && <p role="alert" className="exportmt-2 text-sm text-red-700">{error}</p>}
     </div>
   );
 };
