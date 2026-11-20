@@ -608,12 +608,17 @@ export default function ProjectOverview() {
                     const { fetchDashboard } = useProjectStore.getState();
                     if (typeof fetchDashboard === 'function') await fetchDashboard(p.id);
                     setSprintToast({ type: 'success', message: 'Sprint updated successfully.' });
-                  } catch (err) {
-                    console.error('Failed updating sprint', err);
-                    setSprintToast({ type: 'error', message: err.response?.data?.message || 'Failed to update sprint.' });
-                  } finally {
                     setEditingSprint(null);
-                  }
+                   } catch (err) {
+                    console.error('Failed updating sprint', err);
+                    setSprintToast({
+                     type: 'error',
+                     message:
+                     err.response?.data?.message ||
+                     err.message ||
+                    'Failed to update sprint. Please try again.',
+                  });
+                 }
                 }}
               >
                 Save Changes
