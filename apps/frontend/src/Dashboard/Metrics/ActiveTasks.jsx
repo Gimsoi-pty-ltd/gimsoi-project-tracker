@@ -129,7 +129,18 @@ export default function ActiveTasksCard() {
         members: (membersResponse.data?.data || []).map((member) => member.user).filter(Boolean),
         labels: labelsResponse.data?.data || [],
       });
-    }).catch(() => setOptionRows({ phases: [], members: [], labels: [] }));
+    }).catch((err) => {
+     console.error("Failed to load task options:", err);
+
+     setOptionRows({ phases: [], members: [], labels: [] });
+
+     setTaskToast({
+       type: "error",
+       message:
+        err.response?.data?.message ||
+        "Could not load task options. Please try again.",
+      });
+    });
   }, [currentProject?.id]);
 
   const statusOptions   = ["All", ...new Set(tasks.map((t) => t.status))];
@@ -206,6 +217,7 @@ export default function ActiveTasksCard() {
   };
 
   const handleTaskExport = async () => {
+   try {
     let rows = filteredTasks;
     if (taskScope === "project") {
       const allTasks = await fetchAllProjectTasks(currentProject.id);
@@ -232,7 +244,21 @@ export default function ActiveTasksCard() {
       content: `\uFEFF${csv}`,
       filename: `${currentProject?.name?.replace(/[^a-z0-9]+/gi, "_") || "project"}_${taskScope}_tasks_${new Date().toISOString().slice(0, 10)}.csv`,
     };
-  };
+      } catch (err) {
+    console.error("Task export failed:", err);
+
+    setTaskToast({
+      type: "error",
+      message:
+        err.response?.data?.message ||
+        err.message ||
+        "Failed to export tasks. Please try again.",
+    });
+
+    return null;
+    }
+   };
+
 
   const handleTaskImport = async (file) => {
     setTaskImporting(true);
@@ -324,7 +350,15 @@ export default function ActiveTasksCard() {
 
       setTaskImportResult({ created, failedRows });
       if (created) {
-        useProjectStore.getState().fetchDashboard(currentProject.id);
+       useProjectStore.getState().fetchDashboard(currentProject.id).catch((err) => {
+       console.error("Failed to refresh dashboard after task import:", err);
+
+      setTaskToast({
+       type: "error",
+       message:
+         "Tasks were imported, but the dashboard could not be refreshed.",
+      });
+    });
         if (taskScope === "project") await refreshProjectTasks();
       }
     } catch (importError) {
@@ -351,7 +385,13 @@ export default function ActiveTasksCard() {
         await useProjectStore.getState().fetchDashboard();
         if (taskScope === "project") await refreshProjectTasks();
       } catch (err) {
-        alert(err.message || "Failed to delete task");
+       setTaskToast({
+        type: "error",
+        message:
+        err.response?.data?.message ||
+        err.message ||
+        "Failed to delete task. Please try again.",
+          });
       }
     }
   };
@@ -364,9 +404,15 @@ export default function ActiveTasksCard() {
       });
       await useProjectStore.getState().fetchDashboard();
       if (taskScope === "project") await refreshProjectTasks();
-    } catch (err) {
-      alert(err.message || "Failed to update task status");
-    }
+      } catch (err) {
+        setTaskToast({
+         type: "error",
+         message:
+         err.response?.data?.message ||
+         err.message ||
+       "Failed to update task status. Please try again.",
+        });
+      }
   };
 
   return (
