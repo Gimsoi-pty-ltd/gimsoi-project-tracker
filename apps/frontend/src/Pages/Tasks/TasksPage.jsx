@@ -6,9 +6,9 @@ import OverdueTasks from "./OverdueTasks";
 import BlockedTasks from "./BlockedTasks";
 import PieChart from "../Task-Progress/PieChart";
 import TaskCard from "../Task-Progress/TaskCard";
-import TaskModal from '../../Dashboard/Metrics/TaskModal';
-
-
+import TaskModal from "../../Dashboard/Metrics/TaskModal";
+import FocusTodayCard from "../../Components/FocusToday/FocusTodayCard";
+import { useAuthStore } from "../../store/authStore";
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -53,6 +53,9 @@ const normalizeStatus = (status) => {
 };
 
 function TasksPageContent() {
+  const user = useAuthStore((state) => state.user);
+  const userRole = user?.role?.toLowerCase().trim() || "";
+  const isIntern = userRole === "intern" || userRole === "interns";
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get("tab") || "overdue";
   const activeTab = TABS.find((t) => t.id === tabParam) ? tabParam : "overdue";
@@ -80,7 +83,6 @@ function TasksPageContent() {
     return () => clearInterval(interval);
   }, [getTasks]);
 
-
   const now = Date.now();
   const overdueCount = taskSource.filter(
     (t) => t.dueDate && new Date(t.dueDate).getTime() < now && !["completed", "done"].includes(normalizeStatus(t.status))
@@ -99,21 +101,30 @@ function TasksPageContent() {
   return (
     <div className="bg-gray-50 min-h-screen p-4 md:p-8">
       <div className="max-h-screens mx-auto">
+        
+        {/* Header */}
         <div className="flex items-center justify-between mb-6">
-  <h1 className="text-3xl md:text-4xl font-bold text-gray-800">Tasks</h1>
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-800">Tasks</h1>
 
-  <button
-    type="button"
-    onClick={() => {
-      setEditingTask(null);
-      setIsTaskModalOpen(true);
-    }}
-    className="px-3 py-2 rounded-lg bg-blue-900 hover:bg-blue-600 text-white text-sm font-medium"
-  >
-    + Add Task
-  </button>
-</div>
+          <button
+            type="button"
+            onClick={() => {
+              setEditingTask(null);
+              setIsTaskModalOpen(true);
+            }}
+            className="px-3 py-2 rounded-lg bg-blue-900 hover:bg-blue-600 text-white text-sm font-medium"
+          >
+            + Add Task
+          </button>
+        </div>
 
+       {isIntern && (
+  <div className="mb-6">
+    <FocusTodayCard tasks={taskSource} />
+  </div>
+)}
+
+        {/* Tabs & Content */}
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
           <div className="flex gap-1 border-b border-gray-200 bg-gray-50 px-6">
             {tabsWithCounts.map((tab) => (
@@ -200,14 +211,13 @@ function TasksPageContent() {
         </div>
       </div>
       <TaskModal
-  isOpen={isTaskModalOpen}
-  task={editingTask}
-  onClose={() => {
-    setIsTaskModalOpen(false);
-    setEditingTask(null);
-  }}
-/>
-
+        isOpen={isTaskModalOpen}
+        task={editingTask}
+        onClose={() => {
+          setIsTaskModalOpen(false);
+          setEditingTask(null);
+        }}
+      />
     </div>
   );
 }

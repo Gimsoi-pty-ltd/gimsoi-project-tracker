@@ -65,6 +65,8 @@ async function createAuthenticatedApiContext(rolePrefix, emailSuffix, baseURL) {
         }
     });
 
+    finalContext.testUserEmail = email;
+
     // 5. Fetch clean CSRF token using the dedicated endpoint with the Authorization header
     const csrfToken = await fetchCsrfToken(finalContext);
 

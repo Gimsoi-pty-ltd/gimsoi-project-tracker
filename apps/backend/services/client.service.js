@@ -12,25 +12,46 @@ export const createClient = async ({ name, contactEmail, createdByUserId }) => {
   });
 };
 
-export const getClients = async (query = {}) => {
+export const getClients = async (query = {}, contactEmail = null) => {
   const { limit, cursor } = parsePagination(query);
+
   return prisma.client.findMany({
+    where: contactEmail
+      ? {
+          contactEmail: {
+            equals: contactEmail,
+            mode: "insensitive",
+          },
+        }
+      : {},
     take: limit + 1,
     ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
     orderBy: { createdAt: "desc" },
   });
 };
 
-export const getClientById = async (id) => {
-  const client = await prisma.client.findUnique({
-    where: { id: String(id) },
+export const getClientById = async (id, contactEmail = null) => {
+  const client = await prisma.client.findFirst({
+    where: {
+      id: String(id),
+      ...(contactEmail
+        ? {
+            contactEmail: {
+              equals: contactEmail,
+              mode: "insensitive",
+            },
+          }
+        : {}),
+    },
   });
+
   if (!client) {
+    if (contactEmail) return null;
     throw new NotFoundError("Client not found");
   }
+
   return client;
 };
-
 export const updateClient = async (id, data) => {
   const { version, ...updatePayload } = data;
   

@@ -1,11 +1,12 @@
 import React from 'react';
 
-const NavyButton = ({ onClick, children, type = "button", className = "", disabled = false }) => {
+const NavyButton = ({ onClick, children, label, type = "button", className = "", disabled = false }) => {
   return (
     <button
       type={type}
       onClick={onClick}
       disabled={disabled}
+      aria-label={label}
       className={`
         inline-flex items-center justify-center
         min-w-[140px] px-10 py-3.5
