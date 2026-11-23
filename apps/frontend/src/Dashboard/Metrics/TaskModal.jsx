@@ -7,12 +7,12 @@ import { X } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { hasPermission } from '../../utils/accessControl';
 import { DEPARTMENT_LABELS } from '../../utils/departmentLabels';
+import TaskForm from '../../Components/Tasks/TaskForm';
 
 const UI_TO_STATUS = {
   todo: 'TODO',
   inProgress: 'IN_PROGRESS',
   review: 'REVIEW',
-  done: 'DONE',
   blocked: 'BLOCKED',
   cancelled: 'CANCELLED'
 };
@@ -23,8 +23,6 @@ const UI_TO_PRIORITY = {
   Medium: 'MEDIUM',
   Low: 'LOW'
 };
-
-import TaskForm from '../../Components/Tasks/TaskForm';
 
 export default function TaskModal({ isOpen, onClose, task = null, initialSprintId = null, onSuccess = null, readOnly = false }) {
   const createTask = useTaskStore(state => state.createTask);
@@ -109,9 +107,11 @@ export default function TaskModal({ isOpen, onClose, task = null, initialSprintI
       if (canManageProjectLabels && labelsResult.status === 'fulfilled') {
         const existingNames = new Set(labels.map((label) => label.name.toLowerCase()));
         const missingDepartments = DEPARTMENT_LABELS.filter((department) => !existingNames.has(department.name.toLowerCase()));
-        const createdLabels = await Promise.allSettled(missingDepartments.map((department) =>
-          resourceAPI.post('/labels', { projectId: currentProject.id, ...department }),
-        ));
+        const createdLabels = await Promise.allSettled(
+          missingDepartments.map((department) =>
+            resourceAPI.post('/labels', { projectId: currentProject.id, ...department }),
+          )
+        );
         labels = [
           ...labels,
           ...createdLabels
@@ -130,8 +130,9 @@ export default function TaskModal({ isOpen, onClose, task = null, initialSprintI
     fetchOptions();
     return () => { cancelled = true; };
   }, [isOpen, currentProject?.id, task?.id, canManageProjectLabels, optionsVersion]);
-
-  useEffect(() => {
+useEffect(() => {
+    if (!isOpen) return;
+    setError('');
     if (task) {
       setFormData({
         title: task.title || '',
@@ -169,7 +170,18 @@ export default function TaskModal({ isOpen, onClose, task = null, initialSprintI
     }
   }, [task, isOpen, initialSprintId, activeSprint?.id]);
 
-  if (!isOpen) return null;
+  // Close the modal with the Escape key
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        onClose?.();
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
 
   const toggleSelection = (field, value) => {
     setFormData((prev) => {
@@ -248,14 +260,19 @@ export default function TaskModal({ isOpen, onClose, task = null, initialSprintI
       setIsSubmitting(false);
     }
   };
-
+if (!isOpen) return null;
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
        <div className="bg-white rounded-2xl shadow-xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden">
         <div className="flex justify-between items-center p-6 border-b border-gray-100 shrink-0">
           <h2 className="text-xl font-bold text-gray-800">{readOnly ? 'Task details' : task ? 'Edit Task' : 'Create New Task'}</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-            <X size={20} />
+           <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="text-gray-400 hover:text-gray-600 rounded-md p-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <X size={20} aria-hidden="true" />
           </button>
         </div>
 

@@ -9,9 +9,7 @@ const DashboardLayout = ({ children }) => {
     const [notificationsOpen, setNotificationsOpen] = useState(false);
     const [notifications, setNotifications] = useState([]);
     const [loadingActions, setLoadingActions] = useState({});
-const handleNotificationAction = (notificationId, actionId) => {
-    console.log("Notification action:", { notificationId, actionId });
-};
+
     return (
         <div className="min-h-screen bg-[#F8FAFC]" style={{ fontFamily: "Arial, sans-serif" }}>
             <TopBar

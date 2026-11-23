@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 
 export default function TaskForm({
   formData,
   setFormData,
+  onClose,
   userOptions = [],
   parentTaskOptions = [],
   sprintOptions = [],
@@ -27,7 +28,7 @@ export default function TaskForm({
   const safeTeamIds = Array.isArray(formData?.teamIds)
     ? formData.teamIds
     : [];
-
+     useEffect 
   return (
     <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-2">
 
@@ -170,7 +171,7 @@ export default function TaskForm({
                 return (
                   <label
                     key={department.id}
-                    className={`inline-flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium ${isSelected ? "border-blue-300 bg-blue-50 text-blue-900" : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"}`}
+                    className={`inline-flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 ${isSelected ? "border-blue-300 bg-blue-50 text-blue-900" : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"}`}
                   >
                     <input
                       type="checkbox"
