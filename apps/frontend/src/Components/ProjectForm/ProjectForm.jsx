@@ -88,10 +88,29 @@ export default function ProjectForm({ isOpen, onClose, project = null, onSuccess
   const [clientsError, setClientsError] = useState(null);
   const [clientsVersion, setClientsVersion] = useState(0);
 
+  const set = (field, value) => setFormData((current) => ({ ...current, [field]: value }));
+
+  useEffect(() => {
+    if (!isOpen) return;
+    if (clearError) clearError();
+    setFormError(null);
+    setFormData(project ? {
+      name: project.name || "",
+      clientId: project.client?.id || project.clientId || "",
+      startDate: project.startDate ? project.startDate.slice(0, 10) : "",
+      endDate: project.endDate ? project.endDate.slice(0, 10) : "",
+      description: project.description || "",
+      status: project.status || "DRAFT",
+      milestones: Array.isArray(project.milestones) ? [...project.milestones] : [],
+      setupNotes: project.setupNotes || "",
+    } : empty);
+  }, [isOpen, project, clearError]);
+
   useEffect(() => {
     if (!isOpen) return;
     let cancelled = false;
     setClientOptions(project?.client?.id ? [project.client] : []);
+
     const fetchOptions = async () => {
       setClientsLoading(true);
       setClientsError(null);
@@ -105,109 +124,46 @@ export default function ProjectForm({ isOpen, onClose, project = null, onSuccess
           setClientOptions(options);
         }
       } catch (err) {
-        if (!cancelled) setClientsError(err.response?.data?.message || "Could not load client options.");
+        if (!cancelled) {
+          setClientsError(err.response?.data?.message || "Failed to load clients");
+        }
       } finally {
         if (!cancelled) setClientsLoading(false);
       }
     };
+
     fetchOptions();
     return () => { cancelled = true; };
-  }, [isOpen, project?.id, clientsVersion]);
-
-  useEffect(() => {
-    if (project) {
-      // milestones is stored as a single String/null column on the backend,
-      // so an existing project may hand us back a JSON string (or, for older
-      // rows saved before this change, a plain-text value). Normalize it
-      // back into an array for the UI either way.
-      let parsedMilestones = [];
-      if (Array.isArray(project.milestones)) {
-        parsedMilestones = project.milestones;
-      } else if (typeof project.milestones === "string" && project.milestones.trim() !== "") {
-        try {
-          const parsed = JSON.parse(project.milestones);
-          parsedMilestones = Array.isArray(parsed) ? parsed : [project.milestones];
-        } catch {
-          parsedMilestones = [project.milestones]; // fallback for legacy plain-text values
-        }
-      }
-      parsedMilestones = parsedMilestones.map((milestone) =>
-        typeof milestone === "string" ? milestone : milestone?.label || milestone?.name || "",
-      );
-
-      setFormData({
-        name:        project.name        || "",
-        clientId:    project.clientId    || "",
-        startDate:   project.startDate ? new Date(project.startDate).toISOString().split('T')[0] : "",
-        endDate:     project.endDate ? new Date(project.endDate).toISOString().split('T')[0] : "",
-        description: project.description || "",
-        status:      project.status      || "DRAFT",
-        milestones:  parsedMilestones,
-        setupNotes:  project.setupNotes  || "",
-      });
-    } else {
-      setFormData(empty);
-    }
-    setFormError(null);
-    clearError();
-  }, [project, isOpen, clearError]);
-
-  const set = (field, value) =>
-    setFormData((prev) => ({ ...prev, [field]: value }));
+  }, [isOpen, project, clientsVersion]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setFormError(null);
+    if (clearError) clearError();
 
-    if (!formData.name.trim()) {
-      setFormError("Project name is required");
+    if (!project && !formData.clientId) {
+      setFormError("Please select a client");
       return;
     }
-
-    if (!project?.id && !formData.clientId) {
-      setFormError("Client is required");
-      return;
-    }
-
     if (formData.startDate && formData.endDate && formData.endDate < formData.startDate) {
-      setFormError("End date must be on or after the start date.");
+      setFormError("End date must be on or after the start date");
       return;
     }
 
-    const milestones = formData.milestones
-      .map((milestone) => milestone.trim())
-      .filter(Boolean);
-    const serializedMilestones = JSON.stringify(milestones);
-    if (serializedMilestones.length > 4000) {
-      setFormError("Milestones exceed the 4,000 character limit. Shorten or remove some entries.");
-      return;
-    }
-
-    // Only send fields the backend's Zod schema actually accepts
-    // (createProjectSchema / updateProjectSchema). Anything else — like the
-    // old `team` field — gets dropped here instead of causing a 400.
-    // `milestones` is stored as a single String/null column, so serialize
-    // the array rather than sending it as-is.
     const payload = {
-      name: formData.name,
-      clientId: formData.clientId,
-      description: formData.description || undefined,
-      status: formData.status,
+      name: formData.name.trim(),
+      clientId: project ? undefined : formData.clientId,
       startDate: formData.startDate || null,
       endDate: formData.endDate || null,
-      milestones: milestones.length
-        ? serializedMilestones
-        : null,
-      setupNotes: formData.setupNotes || null,
+      description: formData.description.trim(),
+      status: formData.status,
+      milestones: formData.milestones.map((milestone) => milestone.trim()).filter(Boolean),
+      setupNotes: formData.setupNotes.trim(),
     };
 
     try {
-      if (project?.id) {
-        // updateProjectSchema requires `version` for optimistic locking —
-        // without it the backend 400s with "expected number, received undefined".
-        // clientId isn't part of updateProjectSchema, so drop it on updates.
-        const { clientId, ...updatePayload } = payload;
-        await updateProject(project.id, { ...updatePayload, version: project.version });
+      if (project) {
+        await updateProject(project.id, payload);
       } else {
         await createProject(payload);
       }
@@ -217,6 +173,15 @@ export default function ProjectForm({ isOpen, onClose, project = null, onSuccess
       setFormError(err.response?.data?.message || "Failed to save project");
     }
   };
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -236,10 +201,12 @@ export default function ProjectForm({ isOpen, onClose, project = null, onSuccess
             <p className="mt-1 text-sm text-gray-500">Set the project details, delivery window, and key milestones.</p>
           </div>
           <button
+            type="button"
             onClick={onClose}
+            aria-label="Close"
             className="p-2 hover:bg-gray-100 rounded-xl transition-colors text-gray-400 hover:text-gray-600"
           >
-            <X size={18} />
+            <X size={18} aria-hidden="true" />
           </button>
         </div>
 
@@ -253,7 +220,15 @@ export default function ProjectForm({ isOpen, onClose, project = null, onSuccess
                 <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
                   <p className="text-sm text-red-700">{formError || error || clientsError}</p>
-                  {clientsError && !formError && !error && <button type="button" onClick={() => setClientsVersion((version) => version + 1)} className="mt-1 text-xs font-semibold text-red-800 underline">Retry loading clients</button>}
+                  {clientsError && !formError && !error && (
+                    <button
+                      type="button"
+                      onClick={() => setClientsVersion((version) => version + 1)}
+                      className="mt-1 text-xs font-semibold text-red-800 underline"
+                    >
+                      Retry loading clients
+                    </button>
+                  )}
                 </div>
               </div>
             )}
@@ -266,6 +241,7 @@ export default function ProjectForm({ isOpen, onClose, project = null, onSuccess
                   <h3 className="text-sm font-semibold text-gray-900">Project details</h3>
                   <p className="mt-1 text-xs text-gray-500">Core information visible to project members.</p>
                 </div>
+
                 {/* Project Name */}
                 <div>
                   <label className={labelCls}>Project Name *</label>
@@ -285,14 +261,16 @@ export default function ProjectForm({ isOpen, onClose, project = null, onSuccess
                   <label className={labelCls}>Client {!project && "*"}</label>
                   <Dropdown
                     value={formData.clientId}
-                    onChange={(v) => set("clientId", v)}
+                    onChange={(value) => set("clientId", value)}
                     options={clientOptions}
-                    disabled={clientsLoading || Boolean(project)}
-                    placeholder={clientsLoading ? "Loading clients..." : "Select a client"}
+                    placeholder="Select a client"
+                    disabled={!!project || clientsLoading}
                   />
-                  {!clientsLoading && clientOptions.length === 0 && !clientsError && <p className="mt-1 text-xs text-amber-700">No clients are available. Add a client before creating a project.</p>}
+                  {!clientsLoading && clientOptions.length === 0 && !clientsError && (
+                    <p className="mt-1 text-xs text-amber-700">No clients are available. Add a client before creating a project.</p>
+                  )}
                   {project && (
-                    <p className="mt-1 text-xs text-gray-400">Client can't be changed after a project is created.</p>
+                    <p class="mt-1 text-xs text-gray-400">Client can't be changed after a project is created.</p>
                   )}
                 </div>
 
@@ -416,22 +394,21 @@ export default function ProjectForm({ isOpen, onClose, project = null, onSuccess
 
           {/* Actions — always visible, never scrolls away */}
           <div className="flex gap-3 px-6 py-4 border-t border-gray-100 flex-shrink-0">
-            <button
+            <><button
               type="button"
               onClick={onClose}
               className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-slate-900 hover:text-white transition-colors"
             >
               Cancel
-            </button>
-            <NavyButton
+            </button><NavyButton
               type="submit"
               disabled={isLoading || clientsLoading || (!project && clientOptions.length === 0)}
               className="flex-1 px-4 py-2.5  hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading
-                ? project ? "Saving..." : "Creating..."
-                : project ? "Save Changes" : "Save"}
-            </NavyButton>
+                {isLoading
+                  ? project ? "Saving..." : "Creating..."
+                  : project ? "Save Changes" : "Save"}
+              </NavyButton></>
           </div>
         </form>
       </div>

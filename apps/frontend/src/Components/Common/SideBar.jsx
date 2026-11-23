@@ -46,6 +46,7 @@ const isNavActive = (pathname, href) => {
 export default function Sidebar({ isOpen, onClose }) {
     const location = useLocation();
     const sidebarRef = React.useRef(null);
+    const scrollContainerRef = React.useRef(null);
     const navigate = useNavigate();
 
     const projects = useProjectStore((state) => state.projects);
@@ -221,7 +222,15 @@ export default function Sidebar({ isOpen, onClose }) {
                         )}
                     </div>
 
-                    <div className="flex-1 overflow-y-auto px-3 md:px-4">
+                    <div
+                       ref={scrollContainerRef}
+                         onWheel={(e) => {
+                        if (scrollContainerRef.current) {
+                        scrollContainerRef.current.scrollTop += e.deltaY;
+                      }
+                    }}
+                        className="flex-1 min-h-0 overflow-y-auto px-3 md:px-4"
+                       >
                         <div className="mb-8 md:mb-10">
                             <p className="px-4 md:px-6 mb-2 text-xs font-bold tracking-[1px] uppercase text-blue-200/60">
                                 Dashboard
