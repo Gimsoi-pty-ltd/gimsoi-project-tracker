@@ -4,7 +4,7 @@ import { useProjectStore } from "../../store/projectStore";
 import EmptyState from "../../Components/utils/EmptyState";
 import ErrorAlert from "../../Components/utils/ErrorAlert";
 import LoadingSpinner from "../../Components/LoadingState/LoadingSpinner";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import {
   Search,
@@ -222,7 +222,7 @@ function ProjectRow({
 }
 
 // ─── Delete Modal ─────────────────────────────────────────────────────────────
-function DeleteModal({ onCancel, onConfirm }) {
+function DeleteModal({ onCancel, onConfirm, isDeleting }) {
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6">
@@ -234,18 +234,21 @@ function DeleteModal({ onCancel, onConfirm }) {
           Are you sure? This cannot be undone.
         </p>
         <div className="flex gap-3">
-          <button
-            onClick={onCancel}
-            className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-gray-700 font-medium hover:bg-gray-50 text-sm transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={onConfirm}
-            className="flex-1 px-4 py-2.5 bg-red-500 text-white rounded-xl font-medium hover:bg-red-600 text-sm transition-colors"
-          >
-            Delete
-          </button>
+            <button
+              onClick={onCancel}
+              disabled={isDeleting}
+              className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-gray-700 font-medium hover:bg-gray-50 text-sm transition-colors disabled:opacity-50"
+            >
+              Cancel
+            </button>
+
+            <button
+              onClick={onConfirm}
+              disabled={isDeleting}
+              className="flex-1 px-4 py-2.5 bg-red-500 text-white rounded-xl font-medium hover:bg-red-600 text-sm transition-colors disabled:opacity-50"
+           >
+            {isDeleting ? "Deleting..." : "Delete"}
+            </button>
         </div>
       </div>
     </div>
@@ -255,6 +258,7 @@ function DeleteModal({ onCancel, onConfirm }) {
 // ─── Main Projects Page ───────────────────────────────────────────────────────
 export default function Projects() {
   const navigate = useNavigate();
+  const location = useLocation();
   const user = useAuthStore((state) => state.user);
   const canManageProjects = hasPermission(user?.role, "MANAGE_PROJECTS");
   const canViewAnalytics = hasPermission(user?.role, "VIEW_ANALYTICS");
@@ -271,6 +275,7 @@ export default function Projects() {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [taskToast, setTaskToast] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     fetchProjects();
@@ -280,6 +285,31 @@ export default function Projects() {
     const timeoutId = window.setTimeout(() => setTaskToast(null), 4000);
     return () => window.clearTimeout(timeoutId);
   }, [taskToast]);
+
+  useEffect(() => {
+    if (!location.state?.scrollToProjectHealth) return;
+
+    const timer = window.setTimeout(() => {
+      const panel = document.getElementById("project-health-panel");
+
+      if (panel) {
+        panel.scrollIntoView({
+          behavior: "smooth",
+          block: "start"
+        });
+
+        panel.focus({ preventScroll: true });
+
+        // Clear the navigation state after scrolling.
+        navigate("/projects", {
+          replace: true,
+          state: null
+        });
+      }
+    }, 500);
+
+    return () => window.clearTimeout(timer);
+  }, [location.state, navigate]);
 
   const filteredProjects = projects.filter((p) => {
     const term = searchTerm.toLowerCase();
@@ -294,28 +324,51 @@ export default function Projects() {
     navigate(`/projects/${project.id}`);
   };
 
-  const handleConfirmDelete = async () => {
-    if (!deleteConfirm) return;
-    try {
-      await deleteProject(deleteConfirm);
-      setDeleteConfirm(null);
-    } catch (err) {
-      console.error("Delete failed:", err);
-    }
-  };
+ const handleConfirmDelete = async () => {
+  if (!deleteConfirm || isDeleting) return;
 
-  const handleStatusChange = async (projectId, newStatus) => {
-    try {
-      const project = projects.find((p) => p.id === projectId);
-      if (project)
-        await updateProject(projectId, {
-          status: newStatus,
-          version: project.version
-        });
-    } catch (err) {
-      console.error("Status update failed:", err);
+  setIsDeleting(true);
+
+  try {
+    await deleteProject(deleteConfirm);
+    setDeleteConfirm(null);
+  } catch (err) {
+    console.error("Delete failed:", err);
+
+    setTaskToast({
+      type: "error",
+      message:
+        err.response?.data?.message ||
+        err.message ||
+        "Failed to delete project. Please try again.",
+    });
+  } finally {
+    setIsDeleting(false);
+  }
+};
+
+const handleStatusChange = async (projectId, newStatus) => {
+  try {
+    const project = projects.find((p) => p.id === projectId);
+
+    if (project) {
+      await updateProject(projectId, {
+        status: newStatus,
+        version: project.version,
+      });
     }
-  };
+  } catch (err) {
+    console.error("Status update failed:", err);
+
+    setTaskToast({
+      type: "error",
+      message:
+        err.response?.data?.message ||
+        err.message ||
+        "Failed to update project status. Please try again.",
+    });
+  }
+};
 
   return (
     <div className="bg-[#f5f7fb] min-h-screen font-sans">
@@ -487,6 +540,7 @@ export default function Projects() {
         <DeleteModal
           onCancel={() => setDeleteConfirm(null)}
           onConfirm={handleConfirmDelete}
+          isDeleting={isDeleting}
         />
       )}
 

@@ -24,12 +24,28 @@ export const createClient = async (req, res) => {
 export const getClients = async (req, res) => {
   try {
     const { limit } = parsePagination(req.query);
-    const records = await clientService.getClients(req.query);
+
+    const clientEmail =
+      req.user?.role === "CLIENT" ? req.user.email : null;
+
+    const records = await clientService.getClients(
+      req.query,
+      clientEmail
+    );
+
     const { data, nextCursor } = buildPage(records, limit);
-    return res.status(200).json({ success: true, data, nextCursor });
+
+    return res.status(200).json({
+      success: true,
+      data,
+      nextCursor,
+    });
   } catch (err) {
     console.error("getClients error:", err?.message);
-    return res.status(500).json({ success: false, message: "Failed to fetch clients" });
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch clients",
+    });
   }
 };
 
@@ -37,13 +53,31 @@ export const getClientById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const client = await clientService.getClientById(id);
-    if (!client) return res.status(404).json({ success: false, message: "Client not found" });
+    const clientEmail =
+      req.user?.role === "CLIENT" ? req.user.email : null;
 
-    return res.status(200).json({ success: true, data: client });
+    const client = await clientService.getClientById(
+      id,
+      clientEmail
+    );
+
+    if (!client) {
+      return res.status(404).json({
+        success: false,
+        message: "Client not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: client,
+    });
   } catch (err) {
     console.error("getClientById error:", err?.message);
-    return res.status(500).json({ success: false, message: "Failed to fetch client" });
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch client",
+    });
   }
 };
 

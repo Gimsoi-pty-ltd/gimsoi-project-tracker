@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { ShieldCheck, RefreshCw, AlertCircle } from "lucide-react";
 import { useAuthStore } from "../../store/authStore";
-// import { Info } from "lucide-react";
-import { useProjectStore } from "../../store/projectStore";
 
+import { useProjectStore } from "../../store/projectStore";
 import HealthMetrics from "./HealthMetrics";
+
 export default function ProjectHealthPanel() {
   const { user } = useAuthStore();
 
@@ -17,9 +17,7 @@ export default function ProjectHealthPanel() {
   const isProjectManager = userRole === "project manager" || userRole === "pm";
 
   const currentProject = useProjectStore((state) => state.currentProject);
-  const ensureDashboardLoaded = useProjectStore(
-    (state) => state.ensureDashboardLoaded
-  );
+
   const getProjectProgress = useProjectStore(
     (state) => state.getProjectProgress
   );
@@ -34,8 +32,7 @@ export default function ProjectHealthPanel() {
   const [healthData, setHealthData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
-  // Fetch project health data from backend
+  const [healthStatus, setHealthStatus] = useState(null);
 
   // Fetch project health data from backend
   const fetchHealthData = useCallback(async () => {
@@ -109,78 +106,100 @@ export default function ProjectHealthPanel() {
   }
 
   return (
-    <div className="w-full rounded-2xl bg-white border border-gray-100 shadow-sm p-6">
-      {/* Panel header */}
-      <div className="flex items-center gap-3 mb-5">
-        <div className="p-2 bg-blue-50 rounded-lg">
-          <ShieldCheck className="w-6 h-6 text-blue-600" />
-        </div>
-
-        <div>
-          <h2 className="text-lg font-bold text-gray-900">Project Health</h2>
-
-          <p className="text-sm text-gray-500">
-            Overview of your project's health
-          </p>
-        </div>
-
-        <div className="flex items-center justify-end gap-1 ml-auto">
-          {/* <Info size={16} className="text-blue-500" /> */}
-          <button
-            type="button"
-            onClick={fetchHealthData}
-            disabled={loading}
-            aria-label="Refresh project health"
-            className="p-2 rounded-lg text-blue-600 hover:bg-blue-50 disabled:opacity-50"
-          >
-            <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
-          </button>
-        </div>
-      </div>
-
-      {/* Loading state */}
-      {loading && (
-        <div className="animate-pulse space-y-3">
-          <div className="h-5 bg-gray-200 rounded w-1/3" />
-          <div className="h-16 bg-gray-100 rounded-lg" />
-          <div className="h-5 bg-gray-200 rounded w-2/3" />
-        </div>
-      )}
-
-      {/* Error state */}
-      {!loading && error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <div className="flex items-center gap-2 text-red-600">
-            <AlertCircle size={20} />
-            <p className="font-medium">Unable to load project health.</p>
+    <>
+      <div
+        id="project-health-panel"
+        tabIndex={-1}
+        className="w-full rounded-2xl bg-white border border-gray-100 shadow-sm p-6"
+      >
+        {/* Panel header */}
+        <div className="flex items-center gap-3 mb-5">
+          <div className="p-2 bg-blue-50 rounded-lg">
+            <ShieldCheck className="w-6 h-6 text-blue-600" />
           </div>
-          <button
-            onClick={fetchHealthData}
-            disabled={loading}
-            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+
+          <div>
+            <h2 className="text-lg font-bold text-gray-900">Project Health</h2>
+
+            <p className="text-sm text-gray-500">
+              Overview of your project's health
+            </p>
+          </div>
+
+          <div className="flex items-center justify-end gap-1 ml-auto">
+            {/* <Info size={16} className="text-blue-500" /> */}
+            <button
+              type="button"
+              onClick={fetchHealthData}
+              disabled={loading}
+              aria-label="Refresh project health"
+              className="p-2 rounded-lg text-blue-600 hover:bg-blue-50 disabled:opacity-50"
+            >
+              <RefreshCw
+                size={18}
+                aria-hidden="true"
+                className={loading ? "animate-spin" : ""}
+              />
+            </button>
+          </div>
+        </div>
+
+        {/* Loading state */}
+        {loading && (
+          <div
+            className="animate-pulse space-y-3"
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
           >
-            Try Again
-          </button>
+            <span className="sr-only">
+              Loading project health information. Please wait.
+            </span>
 
-          <p className="text-sm text-gray-600 mt-2">{error}</p>
-        </div>
-      )}
+            <div className="h-5 bg-gray-200 rounded w-1/3" />
+            <div className="h-16 bg-gray-100 rounded-lg" />
+            <div className="h-5 bg-gray-200 rounded w-2/3" />
+          </div>
+        )}
+        {/* Error state */}
+        {!loading && error && (
+          <div
+            className="bg-red-50 border border-red-200 rounded-lg p-4"
+            role="alert"
+            aria-live="assertive"
+          >
+            <div className="flex items-center gap-2 text-red-600">
+              <AlertCircle size={20} />
+              <p className="font-medium">Unable to load project health.</p>
+            </div>
+            <button
+              onClick={fetchHealthData}
+              disabled={loading}
+              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              Try Again
+            </button>
 
-      {/* Main Content */}
-      {!loading && !error && (
-        <div className="space-y-6">
-          {/* Boitumelo - Project Health Metrics */}
-          <section className="space-y-4">
-            <h3 className="text-base font-semibold text-gray-800">
-              Health Metrics
-            </h3>
+            <p className="text-sm text-gray-600 mt-2">{error}</p>
+          </div>
+        )}
 
-            {/* health score, performance metrics and risk reasons */}
+        {/* Main Content */}
+        {!loading && !error && (
+          <div className="space-y-6">
+            {/* Boitumelo - Project Health Metrics */}
+            <section className="space-y-4">
+              <h3 className="text-base font-semibold text-gray-800">
+                Health Metrics
+              </h3>
 
-            <HealthMetrics />
-          </section>
-        </div>
-      )}
-    </div>
+              {/* health score, performance metrics and risk reasons */}
+
+              <HealthMetrics onStatusChange={setHealthStatus} />
+            </section>
+          </div>
+        )}
+      </div>
+    </>
   );
 }

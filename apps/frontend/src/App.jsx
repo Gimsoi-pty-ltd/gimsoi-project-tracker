@@ -6,6 +6,7 @@ import {
   Navigate
 } from "react-router-dom";
 import Recommendations from "./Pages/AI-Recommendations.jsx";
+import ProjectHealthToast from "./Dashboard/ProjectHealthToast";
 
 // ─── AUTH PAGES ─────────────────────────────
 const LoginPage = lazy(() => import("./Pages/LogInOut-flow/LoginPage"));
@@ -525,6 +526,7 @@ function App() {
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </Suspense>
+      {isAuthenticated && <ProjectHealthToast />}
     </Router>
   );
 }

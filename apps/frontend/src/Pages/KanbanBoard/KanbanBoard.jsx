@@ -405,8 +405,16 @@ const Kanban = () => {
         // though this board's own local columnState updates fine.
         useProjectStore.getState().fetchDashboard().catch((err) => {
           console.error("Failed to refresh dashboard after kanban move:", err);
-        });
-      }
+
+           setTaskToast({
+             type: 'error',
+             message:
+             err.response?.data?.message ||
+             err.message ||
+             'Task updated, but the dashboard could not be refreshed.',
+                       });
+                   });
+                 }
     } catch (err) {
       // Try to extract a useful error message from the backend
       const errMsg = err?.response?.data?.message || err?.message || 'Unknown error occurred';
@@ -538,7 +546,15 @@ const Kanban = () => {
                   const res = await getTaskById(card.id);
                   setEditingTask(res?.data ?? res);
                 } catch (err) {
-                  console.error('Failed to load task details:', err);
+                 console.error('Failed to load task details:', err);
+
+                 setTaskToast({
+                  type: 'error',
+                  message:
+                  err.response?.data?.message ||
+                  err.message ||
+                  'Failed to load task details. Please try again.',
+                 });
                 }
               }}
               onCardDragStart={handleDragStart}
