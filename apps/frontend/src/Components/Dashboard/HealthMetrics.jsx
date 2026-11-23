@@ -57,4 +57,42 @@ export default function HealthMetrics({ projectId }) {
         }
 
         // Score: 100 - penalties
-        let score = 100 -
+        const overduePenalty = overdue * 10; // <-- ADDED
+        const blockedPenalty = blocked * 5; // <-- ADDED
+        let score = Math.max(0, Math.min(100, 100 - overduePenalty - blockedPenalty)); // <-- ADDED
+
+        setHealth({ 
+          score, 
+          overdue, 
+          blocked, 
+          total, 
+          done, 
+          bottleneck, 
+          bottleneckCount: maxCount,
+        }); 
+      } catch (err) { 
+        setError(err.message || "Failed to load health metrics"); 
+      } finally { 
+        setLoading(false); 
+      } 
+    }
+
+    load();
+  }, [projectId]); 
+
+  if (loading) return <p>Loading health metrics...</p>; 
+  if (error) return <p>{error}</p>; 
+  if (!health) return null; 
+
+  return ( 
+    <div> 
+      <p>Health Score: {health.score}</p> 
+      <p>Completed: {health.done} / {health.total}</p> 
+      <p>Overdue: {health.overdue}</p> 
+      <p>Blocked: {health.blocked}</p> 
+      {health.bottleneck && ( 
+        <p>Bottleneck: {health.bottleneck} ({health.bottleneckCount})</p> 
+      )} // 
+    </div> 
+  ); 
+}
