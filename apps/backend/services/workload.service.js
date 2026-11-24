@@ -9,7 +9,7 @@ const ACTIVE_STATUSES = [
 ];
 
 const PRIORITY_ORDER = {
-  CRITICAL: 0,
+  URGENT: 0,
   HIGH: 1,
   MEDIUM: 2,
   LOW: 3,
