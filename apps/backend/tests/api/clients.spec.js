@@ -94,6 +94,56 @@ test.describe('Clients API - authentication, authorisation, validation and error
         expect(body.success).toBe(true);
     });
 
+
+test('CLIENT can only view their own company', async ({ clientApi, adminApi }) => {
+    // Create the company linked to the logged-in CLIENT email.
+    const ownClientResponse = await adminApi.post('/api/clients', {
+        data: {
+            name: `Own Company ${Date.now()}`,
+            contactEmail: clientApi.testUserEmail
+        }
+    });
+
+    expect(ownClientResponse.status()).toBe(201);
+    const ownClient = (await ownClientResponse.json()).data;
+
+    // Create a different company with another email.
+    const otherClientResponse = await adminApi.post('/api/clients', {
+        data: {
+            name: `Other Company ${Date.now()}`,
+            contactEmail: `other-${Date.now()}@example.com`
+        }
+    });
+
+    expect(otherClientResponse.status()).toBe(201);
+    const otherClient = (await otherClientResponse.json()).data;
+
+    // CLIENT should only see their own company in the list.
+    const listResponse = await clientApi.get('/api/clients');
+    expect(listResponse.status()).toBe(200);
+
+    const listBody = await listResponse.json();
+    const visibleClientIds = listBody.data.map(client => client.id);
+
+    expect(visibleClientIds).toContain(ownClient.id);
+    expect(visibleClientIds).not.toContain(otherClient.id);
+
+    // CLIENT must not access another company's record by ID.
+    const otherClientResponseById = await clientApi.get(
+        `/api/clients/${otherClient.id}`
+    );
+
+    expect(otherClientResponseById.status()).toBe(404);
+
+    // ADMIN should still be able to access the other company.
+    const adminResponse = await adminApi.get(
+        `/api/clients/${otherClient.id}`
+    );
+
+    expect(adminResponse.status()).toBe(200);
+});
+
+
     test('CLIENT role is forbidden from creating clients', async ({ clientApi }) => {
         const response = await clientApi.post('/api/clients', {
             data: {
