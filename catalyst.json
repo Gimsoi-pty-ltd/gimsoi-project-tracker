@@ -2,7 +2,7 @@
   "appsail": [
     {
       "source": "apps/backend",
-      "name": "project-fly-by"
+      "name": "the-tracker"
     }
   ],
   "client": {

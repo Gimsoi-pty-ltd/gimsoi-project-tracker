@@ -187,18 +187,33 @@ jobs:
       - name: Install Catalyst CLI
         run: npm install -g zcatalyst-cli
 
+      # --- DEPLOY BACKEND ---
       - name: Deploy Backend (AppSail)
         working-directory: ./apps/backend
         run: >
           catalyst deploy appsail
           --project ${{ secrets.CATALYST_PROJECT_ID_PROD }}
+          --org ${{ secrets.CATALYST_ORG }}
           --token ${{ secrets.CATALYST_TOKEN }}
 
-      - name: Deploy Frontend (Web Client)
+      # --- DEPLOY FRONTEND ---
+      - name: Build Frontend
+        working-directory: ./apps/frontend
+        run: npm run build
+
+      - name: Bump Client Version
         run: |
-          cd apps/frontend
-          npm run build
-          cd ../..
-          catalyst deploy --only client \
-            --project ${{ secrets.CATALYST_PROJECT_ID_PROD }} \
-            --token ${{ secrets.CATALYST_TOKEN }}
+          $file = "apps/frontend/dist/client-package.json"
+          $json = Get-Content $file -Raw | ConvertFrom-Json
+          $versionParts = $json.version.Split('.')
+          $versionParts[2] = ([int]$versionParts[2] + 1).ToString()
+          $json.version = $versionParts -join '.'
+          $json | ConvertTo-Json -Depth 10 | Set-Content $file
+        shell: pwsh
+
+      - name: Deploy Frontend (Web Client)
+        run: >
+          catalyst deploy --only client
+          --project ${{ secrets.CATALYST_PROJECT_ID_PROD }}
+          --org ${{ secrets.CATALYST_ORG }}
+          --token ${{ secrets.CATALYST_TOKEN }}
